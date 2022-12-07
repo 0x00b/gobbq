@@ -1,0 +1,16 @@
+syntax = "proto3";
+package bbq;
+option go_package = "github.com/0x00b/gobbq/proto/common;bbq";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MethodOptions {
+  bool Client = 50000; 
+  bool Broadcast = 50001; 
+  bool Server = 50002; 
+}
+
+message Error {
+  string Code = 1;
+  string Message = 2;
+}

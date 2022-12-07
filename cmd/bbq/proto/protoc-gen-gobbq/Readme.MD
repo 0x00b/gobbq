@@ -1,0 +1,1 @@
+文件夹必须命名为 protoc-gen-xxxx， xxxx既是插件的名字，在protoc中使用选项即可指定 --xxxx_out=plugins=grpc
