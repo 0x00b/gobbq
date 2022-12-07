@@ -1,8 +1,6 @@
 package stop
 
 import (
-	"syscall"
-
 	"github.com/0x00b/gobbq/cmd/bbq/game/com"
 	"github.com/spf13/cobra"
 )
@@ -27,5 +25,5 @@ func kill(cmd *cobra.Command, args []string) {
 }
 
 func _kill(sid com.ServerID) {
-	stopWithSignal(sid, syscall.SIGKILL)
+	// stopWithSignal(sid, syscall.SIGKILL)
 }

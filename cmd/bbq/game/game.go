@@ -2,7 +2,6 @@ package game
 
 import (
 	"github.com/0x00b/gobbq/cmd/bbq/game/build"
-	"github.com/0x00b/gobbq/cmd/bbq/game/com"
 	"github.com/0x00b/gobbq/cmd/bbq/game/reload"
 	"github.com/0x00b/gobbq/cmd/bbq/game/start"
 	"github.com/0x00b/gobbq/cmd/bbq/game/status"
@@ -28,5 +27,5 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	com.DetectGoBBQPath()
+	// com.DetectGoBBQPath()
 }
