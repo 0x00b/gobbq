@@ -83,7 +83,7 @@ func DetectServerStatus() *ServerStatus {
 
 		}
 
-		relpath, err := filepath.Rel(com.RunEnv.GoWorldRoot, path)
+		relpath, err := filepath.Rel(com.RunEnv.GoBBQRoot, path)
 		if err != nil || strings.HasPrefix(relpath, "..") {
 			continue
 		}

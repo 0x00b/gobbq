@@ -49,12 +49,12 @@ func buildServer(sid com.ServerID) {
 
 func buildDispatcher() {
 	com.ShowMsg("go build dispatcher ...")
-	buildDirectory(filepath.Join(com.RunEnv.GoWorldRoot, "components", "dispatcher"))
+	buildDirectory(filepath.Join(com.RunEnv.GoBBQRoot, "components", "dispatcher"))
 }
 
 func buildGate() {
 	com.ShowMsg("go build gate ...")
-	buildDirectory(filepath.Join(com.RunEnv.GoWorldRoot, "components", "gate"))
+	buildDirectory(filepath.Join(com.RunEnv.GoBBQRoot, "components", "gate"))
 }
 
 func buildDirectory(dir string) {

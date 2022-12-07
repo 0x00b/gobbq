@@ -27,7 +27,7 @@ func run(cmd *cobra.Command, args []string) {
 
 }
 func reload(sid com.ServerID, daemonMode bool) {
-	err := os.Chdir(com.RunEnv.GoWorldRoot)
+	err := os.Chdir(com.RunEnv.GoBBQRoot)
 	com.CheckErrorOrQuit(err, "chdir to gobbq directory failed")
 
 	ss := status.DetectServerStatus()

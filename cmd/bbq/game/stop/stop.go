@@ -43,7 +43,7 @@ func _stop(sid com.ServerID) {
 }
 
 func stopWithSignal(sid com.ServerID, signal syscall.Signal) {
-	err := os.Chdir(com.RunEnv.GoWorldRoot)
+	err := os.Chdir(com.RunEnv.GoBBQRoot)
 	com.CheckErrorOrQuit(err, "chdir to gobbq directory failed")
 
 	ss := status.DetectServerStatus()

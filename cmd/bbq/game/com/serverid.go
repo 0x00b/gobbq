@@ -12,7 +12,7 @@ type ServerID string
 // Path returns the path to the server
 func (sid ServerID) Path() string {
 	serverPath := strings.Split(string(sid), "/")
-	serverPath = append([]string{RunEnv.GoWorldRoot}, serverPath...)
+	serverPath = append([]string{RunEnv.GoBBQRoot}, serverPath...)
 	return filepath.Join(serverPath...)
 }
 

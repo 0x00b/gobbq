@@ -12,17 +12,17 @@ import (
 
 // Env represents environment variables
 type Env struct {
-	GoWorldRoot string
+	GoBBQRoot string
 }
 
 // GetDispatcherDir returns the path to the dispatcher
 func (env *Env) GetDispatcherDir() string {
-	return filepath.Join(env.GoWorldRoot, "components", "dispatcher")
+	return filepath.Join(env.GoBBQRoot, "components", "dispatcher")
 }
 
 // GetGateDir returns the path to the gate
 func (env *Env) GetGateDir() string {
-	return filepath.Join(env.GoWorldRoot, "components", "gate")
+	return filepath.Join(env.GoBBQRoot, "components", "gate")
 }
 
 // GetDispatcherBinary returns the path to the dispatcher binary
@@ -95,21 +95,21 @@ func _DetectGoBBQPath() string {
 	searchPaths := getGoSearchPaths()
 	ShowMsg("go search paths: %s", strings.Join(searchPaths, string(os.PathListSeparator)))
 	for _, sp := range searchPaths {
-		goworldPath := filepath.Join(sp, "src", "github.com", "0x00b", "gobbq")
-		if IsDir(goworldPath) {
-			return goworldPath
+		gobbqPath := filepath.Join(sp, "src", "github.com", "0x00b", "gobbq")
+		if IsDir(gobbqPath) {
+			return gobbqPath
 		}
 	}
 	return ""
 }
 
 func DetectGoBBQPath() {
-	RunEnv.GoWorldRoot = _DetectGoBBQPath()
-	if RunEnv.GoWorldRoot == "" {
+	RunEnv.GoBBQRoot = _DetectGoBBQPath()
+	if RunEnv.GoBBQRoot == "" {
 		ShowMsgAndQuit("gobbq directory is not detected")
 	}
 
-	ShowMsg("gobbq directory found: %s", RunEnv.GoWorldRoot)
-	configFile := filepath.Join(RunEnv.GoWorldRoot, "gobbq.ini")
+	ShowMsg("gobbq directory found: %s", RunEnv.GoBBQRoot)
+	configFile := filepath.Join(RunEnv.GoBBQRoot, "gobbq.ini")
 	config.SetConfigFile(configFile)
 }
