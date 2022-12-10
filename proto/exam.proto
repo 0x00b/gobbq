@@ -4,36 +4,54 @@ import "google/api/annotations.proto";
 import "common.proto";
 
 // 查询机构列表
-message ListCorpData {
-  message Request {
-    // 授权方企业微信id列表
-    repeated string CorpIDs = 1;
-    // 分页页码
-    int64 PageIndex = 2;
-    // 分页大小
-    int64 PageSize = 3;
-    // 过滤类型：0-全部，1-已开通，2-已过期
-    int32 FilterType = 4;
-    // 搜索关键字
-    string KeyWord = 5;
-    // 是否包含详情信息
-    bool ContainDetail = 6;
+message FooReq {
+  message Request { 
+    string name = 1; 
+    string passwd = 2; 
   }
   message Result {
-    string RequestId = 1;
-    Error Error = 2;
-    int64 TotalCount = 3;
+    string playerid = 1;
   }
-  Result Response = 1;
 }
 
-// 主平台相关接口
-service Manager {
-  // 查询机构列表（支持查询详情）
-  rpc ListCorp(ListCorpData.Request) returns (ListCorpData) {
-    option (google.api.http) = {
-      post : "/op/DescribeCorps"
-      body : "*"
-    };
+// define a entity
+service Player {
+  //option
+  // name
+  // passwd
+
+  rpc Foo(FooReq.Request) returns (FooReq.Result) {
+    //option cs
+    //option sc
+    //option ss
   }
 }
+
+// for option cs
+//  server need impeliment:
+//    func(Player)Foo(Context, FooReq.Request) (FooReq.Result, error)
+//  client call:
+//    func(Player)Foo(Context, FooReq.Request, ...callback(Context, FooReq.Result)) error
+
+
+// for option sc
+//  server call:
+//    func(Player)Foo(Context, FooReq.Request, ...callback(Context, FooReq.Result)) error
+//  client:
+//    func(Player)Foo(callback(Context, FooReq.Request) (FooReq.Result, error))
+
+// for option ss
+//  local need impeliment:
+//    func(Player)Foo(Context, FooReq.Request) (FooReq.Result, error)
+//  remote call:
+//    func(Player)Foo(Context, FooReq.Request, ...callback(Context, FooReq.Result)) error
+
+// no response , no callback
+// Context{playerid, traceid, ...}
+// playerid <=call bind=> clientid <=auto bind=> socket.conn
+// playerid is bussiness id, clientid is auto generte for socket.conn
+
+// call client need playerid or clientid, otherwise it is error
+// can new context for playerid
+
+// 自建dns，实现自己的负载均衡，类似dirsvr
