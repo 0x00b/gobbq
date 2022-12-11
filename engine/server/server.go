@@ -12,10 +12,11 @@ import (
 )
 
 // NewSever return gobbq server
-func NewSever(opts ...ServerOption) *Server {
+func NewServer(opts ...ServerOption) *Server {
 	svr := &Server{
-		quit: bbqsync.NewEvent(),
-		done: bbqsync.NewEvent(),
+		quit:                bbqsync.NewEvent(),
+		done:                bbqsync.NewEvent(),
+		registeredTransport: make(map[NetWorkName]Transport),
 	}
 
 	return svr

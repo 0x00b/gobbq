@@ -1,14 +1,13 @@
-package gobbq_test
+package main
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/engine/server"
 )
 
-func TestMain(m *testing.T) {
+func main() {
 	// net.Listen("", "")
 	// net.ListenPacket("", "")
 	svr := gobbq.NewSever()

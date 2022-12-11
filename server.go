@@ -10,7 +10,7 @@ import (
 
 // NewSever return gobbq server
 func NewSever(opts ...server.ServerOption) *server.Server {
-	svr := &server.Server{}
+	svr := server.NewServer()
 
 	svr.RegisterTransport(&websocket.WebSocket{})
 	svr.RegisterTransport(stream.NewStreamTransport(tcp.NewTCPListener(server.TCP)))

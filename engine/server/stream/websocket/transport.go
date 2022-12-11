@@ -8,18 +8,11 @@ import (
 	"net/http"
 
 	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/engine/server/stream"
 	"golang.org/x/net/websocket"
 )
 
-// curl --include \
-//      --no-buffer \
-//      --header "Connection: Upgrade" \
-//      --header "Upgrade: websocket" \
-//      --header "Host: example.com:80" \
-//      --header "Origin: http://example.com:80" \
-//      --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
-//      --header "Sec-WebSocket-Version: 13" \
-//      localhost:80
+// curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host: example.com:80" --header "Origin: http://example.com:80" --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" --header "Sec-WebSocket-Version: 13" localhost:80
 
 type WebSocket struct {
 	server http.Server
@@ -60,5 +53,8 @@ func (ws *WebSocket) Name() server.NetWorkName {
 func (ws *WebSocket) handleConn(conn net.Conn) {
 
 	fmt.Println("handleconn")
+
+	stream.NewStreamServer(context.TODO(), conn).Serve()
+
 	return
 }

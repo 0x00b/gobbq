@@ -26,17 +26,18 @@ func (bs *Bytes) Bytes() []byte {
 }
 
 func init() {
-	packetBodyCap := uint32(MinBufferCap)
-	for packetBodyCap <= MaxBufferCap {
-		key := CalcBufferCapKey(packetBodyCap)
+	bufferCap := uint32(MinBufferCap)
+	for bufferCap <= MaxBufferCap {
+		tempBufferCap := bufferCap
+		key := CalcBufferCapKey(bufferCap)
 		bufferPools[key] = &sync.Pool{
 			New: func() interface{} {
 				bs := Bytes{}
-				bs.bytes = make([]byte, packetBodyCap)
+				bs.bytes = make([]byte, tempBufferCap)
 				return bs
 			},
 		}
-		packetBodyCap *= bufferCapGrowMultiple
+		bufferCap *= bufferCapGrowMultiple
 	}
 }
 
@@ -64,8 +65,7 @@ func Get(len uint32) Bytes {
 func Put(bs Bytes) {
 	capSize := uint32(cap(bs.bytes))
 	if capSize > MaxBufferCap {
-		fmt.Printf("bytes buffer len err: %d morethan %d\n", capSize, MaxBufferCap)
-		capSize = MaxBufferCap
+		panic(fmt.Sprintf("bytes buffer len err: %d morethan %d\n", capSize, MaxBufferCap))
 	}
 
 	key := CalcBufferCapKey(capSize)

@@ -20,13 +20,12 @@ var (
 )
 
 type Config struct {
-	CrcChecksum bool
-	compressor  bool
+	// flags Flags
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		CrcChecksum: false,
+		// flags: 0,
 	}
 }
 
@@ -37,6 +36,11 @@ type PacketReadWriter struct {
 	rw io.ReadWriter
 
 	headerBuff [packetHeaderSize]byte
+
+	// write will inc 1
+	writeMsgCnt uint32
+	// read will inc 1
+	readMsgCnt uint32
 }
 
 // NewPacketReadWriter creates a packet connection based on network connection
@@ -62,13 +66,16 @@ func NewPacketReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *C
 }
 
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
-	pdata := packet.data()
+	pc.writeMsgCnt++
+	packet.SetPacketID(pc.writeMsgCnt)
+
+	pdata := packet.Data()
 	err := writeFull(pc.rw, pdata)
 	if err != nil {
 		return err
 	}
 
-	if pc.Config.CrcChecksum {
+	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
 		var crc32Buffer [4]byte
 		packetBodyCrc := crc32.ChecksumIEEE(pdata)
 		packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
@@ -97,7 +104,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	packet.SetPacketType(PacketType(pc.headerBuff[4]))
 	packet.SetPacketFlags(Flags(pc.headerBuff[5]))
 	packet.SetPacketID(packetEndian.Uint32(pc.headerBuff[6:]) & (1<<31 - 1))
-	packet.Src = pc
+	packet.src = pc
 
 	packetParser, ok := packetParsers[packet.GetPacketType()]
 	if ok {
@@ -118,16 +125,17 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	packet.SetPacketBodyLen(packetBodySize)
+	packet.setPacketBodyLen(packetBodySize)
+	pc.readMsgCnt++
 
 	// receive checksum (uint32)
-	if pc.Config.CrcChecksum {
+	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
 		_, err = io.ReadFull(pc.rw, pc.headerBuff[:4])
 		if err != nil {
 			return nil, err
 		}
 
-		packetBodyCrc := crc32.ChecksumIEEE(packet.data())
+		packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
 		if packetBodyCrc != packetEndian.Uint32(pc.headerBuff[:4]) {
 			return nil, errChecksumError
 		}
