@@ -100,7 +100,7 @@ type Packet struct {
 	// depend on PacketType
 	meta interface{}
 
-	bytes bytespool.Bytes
+	bytes *bytespool.Bytes
 }
 
 func allocPacket() *Packet {

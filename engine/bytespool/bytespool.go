@@ -32,7 +32,7 @@ func init() {
 		key := CalcBufferCapKey(bufferCap)
 		bufferPools[key] = &sync.Pool{
 			New: func() interface{} {
-				bs := Bytes{}
+				bs := &Bytes{}
 				bs.bytes = make([]byte, tempBufferCap)
 				return bs
 			},
@@ -57,12 +57,15 @@ func CalcBufferCapKey(len uint32) uint32 {
 	}
 	return cnt
 }
-func Get(len uint32) Bytes {
+func Get(len uint32) *Bytes {
 	key := CalcBufferCapKey(len)
-	return bufferPools[key].Get().(Bytes)
+	return bufferPools[key].Get().(*Bytes)
 }
 
-func Put(bs Bytes) {
+func Put(bs *Bytes) {
+	if bs == nil {
+		return
+	}
 	capSize := uint32(cap(bs.bytes))
 	if capSize > MaxBufferCap {
 		panic(fmt.Sprintf("bytes buffer len err: %d morethan %d\n", capSize, MaxBufferCap))
