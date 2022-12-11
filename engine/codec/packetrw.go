@@ -19,10 +19,6 @@ var (
 	errChecksumError      = errors.Errorf("checksum error")
 )
 
-const (
-	MaxPacketBodyLength = 16 * 1024 * 1024
-)
-
 type Config struct {
 	CrcChecksum bool
 	compressor  bool
