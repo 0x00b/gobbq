@@ -1,21 +1,3 @@
-/*
- *
- * Copyright 2017 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 // Package gzip implements and registers the gzip compressor
 // during the initialization.
 //
@@ -33,7 +15,7 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/0x00b/gobbq/engine/encoding"
+	"github.com/0x00b/gobbq/engine/codec"
 )
 
 // Name is the name registered for the gzip compressor.
@@ -44,7 +26,7 @@ func init() {
 	c.poolCompressor.New = func() interface{} {
 		return &writer{Writer: gzip.NewWriter(ioutil.Discard), pool: &c.poolCompressor}
 	}
-	encoding.RegisterCompressor(c)
+	codec.RegisterCompressor(c)
 }
 
 type writer struct {
@@ -61,7 +43,7 @@ func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
-	c := encoding.GetCompressor(Name).(*compressor)
+	c := codec.GetCompressor(Name).(*compressor)
 	c.poolCompressor.New = func() interface{} {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {

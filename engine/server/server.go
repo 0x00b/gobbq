@@ -35,6 +35,8 @@ type Server struct {
 	quit    *bbqsync.Event
 	done    *bbqsync.Event
 	serveWG sync.WaitGroup // counts active Serve goroutines for GracefulStop
+
+	registeredTransport map[NetWorkName]Transport
 }
 
 type ServerOptions struct {
@@ -62,7 +64,7 @@ type ServerOption interface {
 }
 
 func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...ServerOption) error {
-	ts, known := registeredTransport[network]
+	ts, known := s.registeredTransport[network]
 	if !known {
 		return ErrServerUnknown
 	}
@@ -99,4 +101,8 @@ func (s *Server) register(sd *entity.EntityDesc, ss interface{}) {
 		return
 	}
 	s.opts.Entities[sd.TypeName] = sd
+}
+
+func (s *Server) RegisterTransport(t Transport) {
+	s.registeredTransport[t.Name()] = t
 }

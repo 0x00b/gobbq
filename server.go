@@ -2,21 +2,20 @@ package gobbq
 
 import (
 	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/engine/server/kcp"
-	"github.com/0x00b/gobbq/engine/server/tcp"
-	"github.com/0x00b/gobbq/engine/server/websocket"
+	"github.com/0x00b/gobbq/engine/server/stream"
+	"github.com/0x00b/gobbq/engine/server/stream/kcp"
+	"github.com/0x00b/gobbq/engine/server/stream/tcp"
+	"github.com/0x00b/gobbq/engine/server/stream/websocket"
 )
-
-func init() {
-	server.RegisterTransport(&websocket.WebSocket{})
-	server.RegisterTransport(tcp.NewTCPTransport(server.TCP))
-	server.RegisterTransport(tcp.NewTCPTransport(server.TCP6))
-	server.RegisterTransport(&kcp.KCPTransport{})
-}
 
 // NewSever return gobbq server
 func NewSever(opts ...server.ServerOption) *server.Server {
 	svr := &server.Server{}
+
+	svr.RegisterTransport(&websocket.WebSocket{})
+	svr.RegisterTransport(stream.NewStreamTransport(tcp.NewTCPListener(server.TCP)))
+	svr.RegisterTransport(stream.NewStreamTransport(tcp.NewTCPListener(server.TCP6)))
+	svr.RegisterTransport(stream.NewStreamTransport(&kcp.KCPListener{}))
 
 	return svr
 }

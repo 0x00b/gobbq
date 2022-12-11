@@ -32,13 +32,13 @@ func (ws *WebSocket) ListenAndServe(network server.NetWorkName, address string, 
 
 	ws.server.Addr = address
 
-	// ws.server.Handler
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		conn.PayloadType = websocket.BinaryFrame
 		ws.handleConn(conn)
 	})
 
-	http.Handle("/ws", h)
+	ws.server.Handler = h
+	// http.Handle("/ws", h)
 
 	if ops.TLSKeyFile == "" && ops.TLSCertFile == "" {
 		ws.server.ListenAndServe()
