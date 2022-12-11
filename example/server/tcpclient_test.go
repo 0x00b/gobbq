@@ -8,10 +8,9 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	//这里使用的是 gorilla 的 websocket 库
 )
 
-func TestWSClient(m *testing.T) {
+func TestTcpClient(m *testing.T) {
 
 	wsc, err := net.Dial("tcp", ":1234")
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"golang.org/x/net/websocket"
-	//这里使用的是 gorilla 的 websocket 库
 )
 
 func TestWSClient(m *testing.T) {

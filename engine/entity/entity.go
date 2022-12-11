@@ -4,12 +4,12 @@ type EntityID string
 
 type EntityType string
 
-// IAcotr declares functions that is defined in Acotr
+// IEntity declares functions that is defined in Entity
 // These functions are mostly component functions
-type IAcotr interface {
+type IEntity interface {
 	EntityID() EntityID
 
-	// Acotr Lifetime
+	// Entity Lifetime
 	OnInit()       // Called when initializing entity struct, override to initialize entity custom fields
 	OnAttrsReady() // Called when entity attributes are ready.
 	OnCreated()    // Called when entity is just created
@@ -21,10 +21,6 @@ type IAcotr interface {
 	OnFreeze()   // Called when entity is freezing
 	OnRestored() // Called when entity is restored
 
-	// Client Notifications
-	OnClientConnected()    // Called when Client is connected to entity (become player)
-	OnClientDisconnected() // Called when Client disconnected
-
 	// Type returns the name of the Entity implementation.
 	// the result cannot change between calls.
 	Type() EntityType
@@ -33,17 +29,16 @@ type IAcotr interface {
 // Entity is the basic execution unit in GoWorld server. Entities can be used to
 // represent players, NPCs, monsters. Entities can migrate among spaces.
 type Entity struct {
-	I        IAcotr
-	ID       EntityID
-	TypeName EntityType
+	I  IEntity
+	ID EntityID
+
+	typeName EntityType
 
 	destroyed bool
 
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
-	entityInfo *EntityInfo
-
-	client *GameClient
+	entityInfo *EntityDesc
 
 	// syncingFromClient bool
 	// rawTimers            map[*timer.Timer]struct{}
@@ -51,16 +46,4 @@ type Entity struct {
 	// lastTimerId          EntityTimerID
 	// Attrs                *MapAttr
 	// syncInfoFlag         syncInfoFlag
-}
-
-// ClientID type
-type ClientID string
-
-// GameClient represents the game Client of Entity
-//
-// Each Entity can have at most one GameClient, and GameClient can be given to other Entitys
-type GameClient struct {
-	clientID ClientID
-	gateID   uint16
-	ownerID  EntityID
 }

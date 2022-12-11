@@ -8,10 +8,11 @@ import (
 )
 
 func main() {
-	// net.Listen("", "")
-	// net.ListenPacket("", "")
 	svr := gobbq.NewSever()
-	err := svr.ListenAndServe(server.WebSocket, ":80")
-	fmt.Println(err)
 
+	go svr.ListenAndServe(server.TCP, ":1234")
+	go svr.ListenAndServe(server.KCP, ":1235")
+	err := svr.ListenAndServe(server.WebSocket, ":80")
+
+	fmt.Println(err)
 }

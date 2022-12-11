@@ -8,12 +8,11 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/xtaci/kcp-go"
-	//这里使用的是 gorilla 的 websocket 库
 )
 
-func TestWSClient(m *testing.T) {
+func TestKcpClient(m *testing.T) {
 
-	wsc, err := kcp.DialWithOptions("127.0.0.1:1234", nil, 10, 3)
+	wsc, err := kcp.DialWithOptions("127.0.0.1:1235", nil, 10, 3)
 	if err != nil {
 		panic(err)
 	}

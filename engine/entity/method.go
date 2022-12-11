@@ -16,15 +16,22 @@ type EntityDesc struct {
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
 	HandlerType interface{}
-	Methods     []MethodDesc
+	Methods     map[string]MethodDesc
 	Metadata    interface{}
 }
 
-// EntityInfo wraps information about a service. It is very similar to
-// EntityDesc and is constructed from it for internal purposes.
-type EntityInfo struct {
-	// Contains the implementation for the methods in this service.
-	serviceImpl interface{}
-	methods     map[string]*MethodDesc
-	mdata       interface{}
+// ClientID type
+type ClientID string
+
+// GameClient represents the game Client of Entity
+//
+// Each Entity can have at most one GameClient, and GameClient can be given to other Entitys
+type GameClient struct {
+	clientID ClientID
+	gateID   uint16
+	ownerID  EntityID
+}
+
+type RpcHeaderInfo struct {
+	path string // service_name/method_name
 }
