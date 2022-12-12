@@ -54,7 +54,7 @@ func (ws *WebSocket) handleConn(conn net.Conn) {
 
 	fmt.Println("handleconn")
 
-	stream.NewStreamServer(context.TODO(), conn).Serve()
+	stream.NewConnHandler(context.TODO(), conn).Serve()
 
 	return
 }

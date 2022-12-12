@@ -96,7 +96,7 @@ func (ts *StreamTransport) handleConn(conn net.Conn) {
 
 	fmt.Println("handleconn")
 
-	NewStreamServer(context.TODO(), conn).Serve()
+	NewConnHandler(context.TODO(), conn).Serve()
 
 	return
 }

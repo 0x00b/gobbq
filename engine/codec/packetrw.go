@@ -65,10 +65,8 @@ func NewPacketReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *C
 	return pc
 }
 
+// WritePacket write packet data to pc.rw, need to initialize the packet by yourself
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
-	pc.writeMsgCnt++
-	packet.SetPacketID(pc.writeMsgCnt)
-
 	pdata := packet.Data()
 	err := writeFull(pc.rw, pdata)
 	if err != nil {

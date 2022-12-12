@@ -101,6 +101,11 @@ type Packet struct {
 	meta interface{}
 
 	bytes *bytespool.Bytes
+
+	// members:
+	// PacketID <-> RequestID <-> ResponseID, represent one call.
+	// PacketType
+	// PacketFlags
 }
 
 func allocPacket() *Packet {
@@ -158,11 +163,13 @@ func (p *Packet) SetPacketFlags(flags Flags) {
 	*pplen = flags
 }
 
+// PacketID <-> RequestID <-> ResponseID, represent one call.
 func (p *Packet) GetPacketID() uint32 {
 	// _ = p.bytes.Bytes()[9]
 	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
 }
 
+// PacketID <-> RequestID <-> ResponseID, represent one call.
 func (p *Packet) SetPacketID(id uint32) {
 	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
 	*pplen = id

@@ -11,7 +11,7 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type StreamServer struct {
+type ConnHandler struct {
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	ctx              context.Context
@@ -19,18 +19,18 @@ type StreamServer struct {
 	lastVisited      time.Time
 }
 
-func NewStreamServer(ctx context.Context, conn net.Conn) *StreamServer {
-	return &StreamServer{
+func NewConnHandler(ctx context.Context, conn net.Conn) *ConnHandler {
+	return &ConnHandler{
 		rwc:              conn,
 		packetReadWriter: codec.NewPacketReadWriter(ctx, conn),
 		ctx:              ctx,
 	}
 }
 
-func (c *StreamServer) Close() {
+func (c *ConnHandler) Close() {
 }
 
-func (c *StreamServer) Serve() {
+func (c *ConnHandler) Serve() {
 	defer c.Close()
 	for {
 		// 检查上游是否关闭
@@ -72,7 +72,7 @@ func (c *StreamServer) Serve() {
 	}
 }
 
-func (c *StreamServer) handle(packet *codec.Packet) {
+func (c *ConnHandler) handle(packet *codec.Packet) {
 	defer packet.Release()
 
 	switch packet.GetPacketType() {
@@ -84,7 +84,7 @@ func (c *StreamServer) handle(packet *codec.Packet) {
 
 }
 
-func (c *StreamServer) handleRPC(packet *codec.Packet) {
+func (c *ConnHandler) handleRPC(packet *codec.Packet) {
 
 	fmt.Println("recv", string(packet.PacketBody()))
 
