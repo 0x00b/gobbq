@@ -42,7 +42,7 @@ func init() {
 }
 
 func CalcBufferCapKey(len uint32) uint32 {
-	if len <= MinBufferCap {
+	if len == 0 {
 		return 1
 	}
 	if len > MaxBufferCap {
@@ -52,7 +52,7 @@ func CalcBufferCapKey(len uint32) uint32 {
 	len -= 1
 	len /= MinBufferCap
 	for len != 0 {
-		len /= 2
+		len /= bufferCapGrowMultiple
 		cnt++
 	}
 	return cnt
