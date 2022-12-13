@@ -21,7 +21,7 @@ var (
 )
 
 const (
-	// (4 byte total len) + (1 byte msg type) + (1 byte flag) + (4 byte msg id)
+	// (4 byte total len) + (1 byte msg type) + (1 byte flag) + (4 byte packet id)
 	packetHeaderSize    = 10
 	minPacketBufferLen  = bytespool.MinBufferCap
 	MaxPacketBodyLength = bytespool.MaxBufferCap - packetHeaderSize
@@ -55,13 +55,15 @@ type Flags uint8
 
 const (
 	//PacketRPC
-	FlagDataZipCompress  Flags = 0x1
-	FlagDataChecksumIEEE Flags = 0x2
-	FlagDataProtoBuf     Flags = 0x4 //use proto
+	FlagDataRpcResponse  Flags = 0x01 // 0x00：request， 0x01：response
+	FlagDataZipCompress  Flags = 0x02 // 留两位来代表压缩算法 {0x2,0x4,0x6}
+	FlagDataChecksumIEEE Flags = 0x08
+	FlagDataProtoBuf     Flags = 0x10
 )
 
 var flagName = map[PacketType]map[Flags]string{
 	PacketRPC: {
+		FlagDataRpcResponse:  "RpcResponse",
 		FlagDataZipCompress:  "ZipCompress",
 		FlagDataChecksumIEEE: "ChecksumIEEE",
 		FlagDataProtoBuf:     "ProtoBuf",
@@ -103,7 +105,7 @@ type Packet struct {
 	bytes *bytespool.Bytes
 
 	// members:
-	// PacketID <-> RequestID <-> ResponseID, represent one call.
+	// PacketID uint32 <-> RequestID <-> ResponseID, represent one call.
 	// PacketType
 	// PacketFlags
 }

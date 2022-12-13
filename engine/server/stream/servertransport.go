@@ -11,7 +11,7 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type ConnHandler struct {
+type ServerTransport struct {
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	ctx              context.Context
@@ -19,32 +19,32 @@ type ConnHandler struct {
 	lastVisited      time.Time
 }
 
-func NewConnHandler(ctx context.Context, conn net.Conn) *ConnHandler {
-	return &ConnHandler{
+func NewServerTransport(ctx context.Context, conn net.Conn) *ServerTransport {
+	return &ServerTransport{
 		rwc:              conn,
 		packetReadWriter: codec.NewPacketReadWriter(ctx, conn),
 		ctx:              ctx,
 	}
 }
 
-func (c *ConnHandler) Close() {
+func (c *ServerTransport) Close() {
 }
 
-func (c *ConnHandler) Serve() {
-	defer c.Close()
+func (st *ServerTransport) Serve() {
+	defer st.Close()
 	for {
 		// 检查上游是否关闭
 		select {
-		case <-c.ctx.Done():
+		case <-st.ctx.Done():
 			return
 		default:
 		}
 
-		if c.idleTimeout > 0 {
+		if st.idleTimeout > 0 {
 			now := time.Now()
-			if now.Sub(c.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
-				c.lastVisited = now
-				err := c.rwc.SetReadDeadline(now.Add(c.idleTimeout))
+			if now.Sub(st.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
+				st.lastVisited = now
+				err := st.rwc.SetReadDeadline(now.Add(st.idleTimeout))
 				if err != nil {
 					fmt.Println("transport: tcpconn SetReadDeadline fail ", err)
 					return
@@ -52,7 +52,7 @@ func (c *ConnHandler) Serve() {
 			}
 		}
 
-		pkt, err := c.packetReadWriter.ReadPacket()
+		pkt, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				// report.TCPServerTransportReadEOF.Incr() // 客户端主动断开连接
@@ -68,30 +68,30 @@ func (c *ConnHandler) Serve() {
 		}
 		// report.TCPServerTransportReceiveSize.Set(float64(len(req)))
 
-		c.handle(pkt)
+		st.handle(pkt)
 	}
 }
 
-func (c *ConnHandler) handle(packet *codec.Packet) {
+func (st *ServerTransport) handle(packet *codec.Packet) {
 	defer packet.Release()
 
 	switch packet.GetPacketType() {
 	case codec.PacketRPC:
-		c.handleRPC(packet)
+		st.handleRPC(packet)
 	case codec.PacketPing:
 	default:
 	}
 
 }
 
-func (c *ConnHandler) handleRPC(packet *codec.Packet) {
+func (st *ServerTransport) handleRPC(packet *codec.Packet) {
 
 	fmt.Println("recv", string(packet.PacketBody()))
 
 	newpkt := codec.NewPacket()
 	newpkt.WriteBytes([]byte("test"))
 
-	err := c.packetReadWriter.WritePacket(newpkt)
+	err := st.packetReadWriter.WritePacket(newpkt)
 	if err != nil {
 		fmt.Println("WritePacket", err)
 	}
