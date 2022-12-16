@@ -1,6 +1,8 @@
 package entity
 
-import "context"
+import (
+	"context"
+)
 
 type methodHandler func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
 
@@ -30,8 +32,4 @@ type GameClient struct {
 	clientID ClientID
 	gateID   uint16
 	ownerID  EntityID
-}
-
-type RpcHeaderInfo struct {
-	path string // service_name/method_name
 }

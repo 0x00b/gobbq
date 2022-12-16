@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/bytespool"
@@ -30,13 +31,13 @@ const (
 type PacketType uint8
 
 const (
-	PacketRPC  PacketType = 0x0
-	PacketPing PacketType = 0x1
+	PacketRPC PacketType = 0x0
+	PacketSys PacketType = 0x1
 )
 
 var packetName = map[PacketType]string{
-	PacketRPC:  "RPC",
-	PacketPing: "PING",
+	PacketRPC: "RPC",
+	PacketSys: "PING",
 }
 
 func (t PacketType) String() string {
@@ -52,6 +53,17 @@ var packetParsers map[PacketType]packetParser
 
 // depend on PacketType
 type Flags uint8
+
+// Has reports whether f contains all (0 or more) flags in v.
+func (f Flags) Has(v Flags) bool {
+	return (f & v) == v
+}
+
+// Has reports whether f contains all (0 or more) flags in v.
+func (f *Flags) Set(v Flags) *Flags {
+	*f = *f | v
+	return f
+}
 
 const (
 	//PacketRPC
@@ -90,17 +102,14 @@ func rpcPacketParser(pc *PacketReadWriter, pkt *Packet) (uint32, error) {
 	return 0, nil
 }
 
-// Has reports whether f contains all (0 or more) flags in v.
-func (f Flags) Has(v Flags) bool {
-	return (f & v) == v
-}
-
 // Packet is a packet for sending data
 type Packet struct {
-	src *PacketReadWriter
+	refcount int32
+
+	src *PacketReadWriter // not nil indicates this is request packet
 
 	// depend on PacketType
-	meta interface{}
+	// meta interface{}
 
 	bytes *bytespool.Bytes
 
@@ -121,6 +130,23 @@ func allocPacket() *Packet {
 // NewPacket allocates a new packet
 func NewPacket() *Packet {
 	return allocPacket()
+}
+
+func (p *Packet) Retain() {
+	atomic.AddInt32(&p.refcount, 1)
+}
+
+// Release releases the packet to packet pool
+func (p *Packet) Release() {
+
+	refcount := atomic.AddInt32(&p.refcount, -1)
+
+	if refcount == 0 {
+		bytespool.Put(p.bytes)
+		packetPool.Put(p)
+	} else if refcount < 0 {
+		panic(fmt.Errorf("releasing packet with refcount=%d", p.refcount))
+	}
 }
 
 // WriteBytes appends slice of bytes to the end of packetBody
@@ -182,20 +208,13 @@ func (p *Packet) PacketCap() uint32 {
 	return uint32(len(p.bytes.Bytes()))
 }
 
-// Release releases the packet to packet pool
-func (p *Packet) Release() {
-
-	bytespool.Put(p.bytes) // reclaim the buffer
-
-	packetPool.Put(p)
-}
-
 func (p *Packet) reset() {
 	p.src = nil
 	p.setPacketBodyLen(0)
 	p.SetPacketType(0)
 	p.SetPacketFlags(0)
 	p.SetPacketID(0)
+	p.refcount = 1
 }
 
 func (p *Packet) Data() []byte {

@@ -9,7 +9,7 @@ const (
 	KCP       NetWorkName = "kcp"
 )
 
-type Namer interface {
+type NetNamer interface {
 	// Name returns the name of the Transport implementation.
 	// the result cannot change between calls.
 	Name() NetWorkName
@@ -22,7 +22,7 @@ type Namer interface {
 // Write methods for a given Packet will be called serially.
 
 type Transport interface {
-	Namer
+	NetNamer
 
 	ListenAndServe(network NetWorkName, address string, ops ServerOptions) error
 

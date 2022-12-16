@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/engine/server/stream"
+	"github.com/0x00b/gobbq/engine/server/transport"
 	"golang.org/x/net/websocket"
 )
 
@@ -54,7 +54,7 @@ func (ws *WebSocket) handleConn(conn net.Conn) {
 
 	fmt.Println("handleconn")
 
-	stream.NewServerTransport(context.TODO(), conn).Serve()
+	transport.NewServerTransport(context.TODO(), conn).Serve()
 
 	return
 }

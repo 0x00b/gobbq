@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/server/stream"
+	"github.com/0x00b/gobbq/engine/server/transport"
 	"github.com/xtaci/kcp-go"
 )
 
@@ -20,7 +20,7 @@ func TestKcpClient(m *testing.T) {
 
 	ctx := context.Background()
 
-	ct := stream.NewClientTransport(ctx, wsc)
+	ct := transport.NewClientTransport(ctx, wsc)
 
 	pkt := codec.NewPacket()
 	pkt.WriteBytes([]byte("dsfsdfs"))
