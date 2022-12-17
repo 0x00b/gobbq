@@ -9,20 +9,26 @@ const (
 	KCP       NetWorkName = "kcp"
 )
 
-type NetNamer interface {
+type NetName interface {
 	// Name returns the name of the Transport implementation.
 	// the result cannot change between calls.
 	Name() NetWorkName
+}
+
+type ServiceName interface {
+	// Name returns the name of the Transport implementation.
+	// the result cannot change between calls.
+	Name() string
 }
 
 // ServerTransport is the common interface for all gRPC server-side transport
 // implementations.
 //
 // Methods may be called concurrently from multiple goroutines, but
-// Write methods for a given Packet will be called serially.
+// Write methods for a given Message will be called serially.
 
-type Transport interface {
-	NetNamer
+type Service interface {
+	ServiceName
 
 	ListenAndServe(network NetWorkName, address string, ops ServerOptions) error
 

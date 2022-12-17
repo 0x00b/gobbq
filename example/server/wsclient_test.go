@@ -19,14 +19,14 @@ func TestWSClient(m *testing.T) {
 		log.Fatal(err)
 	}
 
-	ws := codec.NewPacketReadWriter(context.Background(), wsc)
+	ws := codec.NewMessageReadWriter(context.Background(), wsc)
 
-	pkt := codec.NewPacket()
+	pkt := codec.NewMessage()
 	pkt.WriteBytes([]byte("test"))
-	ws.WritePacket(pkt)
+	ws.WriteMessage(pkt)
 
-	if pkt, err = ws.ReadPacket(); err != nil {
+	if pkt, err = ws.ReadMessage(); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Received: %s.\n", string(pkt.PacketBody()))
+	fmt.Printf("Received: %s.\n", string(pkt.MessageBody()))
 }

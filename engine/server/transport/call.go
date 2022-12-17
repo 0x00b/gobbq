@@ -5,8 +5,8 @@ import (
 )
 
 type Header struct {
-	packetID uint32
-	flags    codec.Flags
+	messageID uint32
+	flags     codec.Flags
 
 	keys map[string][]string
 }
@@ -36,14 +36,14 @@ type CallOption interface {
 
 // type CallerInterface interface {
 
-// 	// NewPacket
-// 	NewPacket(ctx context.Context, ci *CallInfo, req interface{}, opts ...CallOption) (*codec.Packet, error)
+// 	// NewMessage
+// 	NewMessage(ctx context.Context, ci *CallInfo, req interface{}, opts ...CallOption) (*codec.Message, error)
 // }
 
 // type CalleeInterface interface {
 
-// 	// ParsePacket
-// 	ParsePacket(ctx context.Context, pkt *codec.Packet) (ci *CallInfo, reqBodyBuff []byte, err error)
+// 	// ParseMessage
+// 	ParseMessage(ctx context.Context, pkt *codec.Message) (ci *CallInfo, reqBodyBuff []byte, err error)
 // }
 
 // func Invoke(ctx context.Context, method string, req interface{}, callback ...func(ctx context.Context, reply interface{}) error) error

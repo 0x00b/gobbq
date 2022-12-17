@@ -11,6 +11,10 @@ import (
 type KCPListener struct {
 }
 
+func NewDefaultKCPListener() *KCPListener {
+	return &KCPListener{}
+}
+
 func (kl *KCPListener) Listen(network server.NetWorkName, address string, ops server.ServerOptions) (net.Listener, error) {
 	if network != server.KCP {
 		return nil, errors.New("not kcp")

@@ -14,9 +14,8 @@ import (
 // NewSever return gobbq server
 func NewServer(opts ...ServerOption) *Server {
 	svr := &Server{
-		quit:                bbqsync.NewEvent(),
-		done:                bbqsync.NewEvent(),
-		registeredTransport: make(map[NetWorkName]Transport),
+		quit: bbqsync.NewEvent(),
+		done: bbqsync.NewEvent(),
 	}
 
 	return svr
@@ -37,7 +36,7 @@ type Server struct {
 	done    *bbqsync.Event
 	serveWG sync.WaitGroup // counts active Serve goroutines for GracefulStop
 
-	registeredTransport map[NetWorkName]Transport
+	service Service
 }
 
 type ServerOptions struct {
@@ -57,6 +56,7 @@ type ServerOptions struct {
 }
 
 var ErrServerStopped = errors.New("gobbq: the server has been stopped")
+var ErrNoServive = errors.New("gobbq: no register service")
 var ErrServerUnknown = errors.New("gobbq: the network is unknown")
 
 // A ServerOption sets options such as credentials, codec and keepalive parameters, etc.
@@ -65,12 +65,10 @@ type ServerOption interface {
 }
 
 func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...ServerOption) error {
-	ts, known := s.registeredTransport[network]
-	if !known {
-		return ErrServerUnknown
+	if s.service == nil {
+		return ErrNoServive
 	}
-
-	err := ts.ListenAndServe(network, address, s.opts)
+	err := s.service.ListenAndServe(network, address, s.opts)
 
 	return err
 }
@@ -104,6 +102,6 @@ func (s *Server) register(sd *entity.EntityDesc, ss interface{}) {
 	s.opts.Entities[sd.TypeName] = sd
 }
 
-func (s *Server) RegisterTransport(t Transport) {
-	s.registeredTransport[t.Name()] = t
+func (s *Server) RegisterService(t Service) {
+	s.service = t
 }

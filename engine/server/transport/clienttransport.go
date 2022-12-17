@@ -9,25 +9,32 @@ import (
 )
 
 type ClientTransport struct {
-	*ServerTransport
+	*conn
 }
 
-func NewClientTransport(ctx context.Context, conn net.Conn) *ClientTransport {
-	ct := &ClientTransport{}
-	ct.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, ct)
+func NewClientTransport(ctx context.Context, rawConn net.Conn) *ClientTransport {
+	ct := &ClientTransport{
+		conn: &conn{
+			rwc:               rawConn,
+			ctx:               context.Background(),
+			messageReadWriter: codec.NewMessageReadWriter(context.Background(), rawConn),
+			MessageHandler:    NewServerMessageHandler(context.Background(), rawConn),
+		},
+	}
+	// ct.ServerTransport = NewServerTransportWithMessageHandler(ctx, conn, ct)
 	return ct
 }
 
-func (ct *ClientTransport) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (ct *ClientTransport) HandleMessage(c context.Context, pkt *codec.Message) error {
 
-	fmt.Println("recv", string(pkt.PacketBody()))
+	fmt.Println("recv", string(pkt.MessageBody()))
 
-	newpkt := codec.NewPacket()
+	newpkt := codec.NewMessage()
 	newpkt.WriteBytes([]byte("test"))
 
-	err := ct.WritePacket(newpkt)
+	err := ct.WriteMessage(newpkt)
 	if err != nil {
-		fmt.Println("WritePacket", err)
+		fmt.Println("WriteMessage", err)
 	}
 
 	return nil
@@ -37,7 +44,7 @@ func (ct *ClientTransport) Invoke(ctx context.Context, method string, req interf
 
 	// req
 
-	// register rsp use req.GetPacketID()
+	// register rsp use req.GetMessageID()
 
 	return nil
 }
@@ -50,18 +57,18 @@ func (ct *ClientTransport) invoke(ctx context.Context, method string, req interf
 		Method: method,
 	}
 
-	pkt, err := ct.newPacket(ctx, ci, req, opts...)
+	pkt, err := ct.newMessage(ctx, ci, req, opts...)
 	if err != nil {
 		return err
 	}
-	if err := ct.WritePacket(pkt); err != nil {
+	if err := ct.WriteMessage(pkt); err != nil {
 		return err
 	}
 	return nil
 }
 
-// newPacket reffer parsePacket
-func (ct *ClientTransport) newPacket(ctx context.Context, ci *CallInfo, req interface{}, opts ...CallOption) (*codec.Packet, error) {
+// newMessage reffer parseMessage
+func (ct *ClientTransport) newMessage(ctx context.Context, ci *CallInfo, req interface{}, opts ...CallOption) (*codec.Message, error) {
 
 	return nil, nil
 }
