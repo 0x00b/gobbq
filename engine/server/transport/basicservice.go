@@ -22,7 +22,7 @@ type service struct {
 	idleTimeout time.Duration
 	lastVisited time.Time
 
-	ops server.ServerOptions
+	ops *server.ServerOptions
 
 	// st Transport
 }
@@ -34,9 +34,9 @@ func NewService(ctx context.Context) *service {
 	}
 }
 
-func (t *service) ListenAndServe(network server.NetWorkName, address string, ops server.ServerOptions) error {
-	t.ops = ops
-	return t.listenAndServe(network, address, ops)
+func (t *service) ListenAndServe(network server.NetWorkName, address string, opts *server.ServerOptions) error {
+	t.ops = opts
+	return t.listenAndServe(network, address, opts)
 }
 
 func (t *service) Close(chan struct{}) error {
@@ -49,10 +49,10 @@ func (t *service) Name() string {
 
 // ===== inner =====
 
-func (t *service) listenAndServe(network server.NetWorkName, address string, ops server.ServerOptions) error {
+func (t *service) listenAndServe(network server.NetWorkName, address string, opts *server.ServerOptions) error {
 
 	if network == server.WebSocket {
-		return newWebSocketService().ListenAndServe(network, address, ops)
+		return newWebSocketService().ListenAndServe(network, address, opts)
 	}
 
 	var ln net.Listener
@@ -60,9 +60,9 @@ func (t *service) listenAndServe(network server.NetWorkName, address string, ops
 
 	switch network {
 	case server.KCP:
-		ln, err = kcp.NewDefaultKCPListener().Listen(network, address, ops)
+		ln, err = kcp.NewDefaultKCPListener().Listen(network, address, opts)
 	case server.TCP, server.TCP6:
-		ln, err = tcp.NewTCPListener(network).Listen(network, address, ops)
+		ln, err = tcp.NewTCPListener(network).Listen(network, address, opts)
 	default:
 		panic(fmt.Sprintf("unkown network:%s", network))
 	}
@@ -84,11 +84,11 @@ func (t *service) listenAndServe(network server.NetWorkName, address string, ops
 		}
 
 		fmt.Printf("Connection from: %s", conn.RemoteAddr())
-		go t.handleConn(conn)
+		go t.handleConn(conn, opts)
 	}
 }
 
-func (t *service) handleConn(rawConn net.Conn) {
+func (t *service) handleConn(rawConn net.Conn, opts *server.ServerOptions) {
 	if t.ops.TLSCertFile != "" && t.ops.TLSKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(t.ops.TLSCertFile, t.ops.TLSKeyFile)
 		if err != nil {
@@ -120,7 +120,8 @@ func (t *service) handleConn(rawConn net.Conn) {
 		rwc:              rawConn,
 		ctx:              context.Background(),
 		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn),
+		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn, opts),
+		opts:             opts,
 	}
 	conn.Serve()
 

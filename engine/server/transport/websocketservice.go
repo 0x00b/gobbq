@@ -22,7 +22,7 @@ func newWebSocketService() *WebSocketService {
 	return &WebSocketService{}
 }
 
-func (ws *WebSocketService) ListenAndServe(network server.NetWorkName, address string, ops server.ServerOptions) error {
+func (ws *WebSocketService) ListenAndServe(network server.NetWorkName, address string, opts *server.ServerOptions) error {
 	if network != server.WebSocket {
 		return errors.New("not websocket")
 	}
@@ -31,16 +31,16 @@ func (ws *WebSocketService) ListenAndServe(network server.NetWorkName, address s
 
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		conn.PayloadType = websocket.BinaryFrame
-		ws.handleConn(conn)
+		ws.handleConn(conn, opts)
 	})
 
 	ws.server.Handler = h
 	// http.Handle("/ws", h)
 
-	if ops.TLSKeyFile == "" && ops.TLSCertFile == "" {
+	if opts.TLSKeyFile == "" && opts.TLSCertFile == "" {
 		ws.server.ListenAndServe()
 	} else {
-		ws.server.ListenAndServeTLS(ops.CACertFile, ops.TLSKeyFile)
+		ws.server.ListenAndServeTLS(opts.CACertFile, opts.TLSKeyFile)
 	}
 	return nil
 }
@@ -54,7 +54,7 @@ func (ws *WebSocketService) Name() server.NetWorkName {
 	return server.WebSocket
 }
 
-func (ws *WebSocketService) handleConn(rawConn net.Conn) {
+func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *server.ServerOptions) {
 
 	fmt.Println("handleconn")
 
@@ -62,7 +62,8 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn) {
 		rwc:              rawConn,
 		ctx:              context.Background(),
 		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn),
+		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn, opts),
+		opts:             opts,
 	}
 	conn.Serve()
 

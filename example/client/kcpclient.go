@@ -26,13 +26,13 @@ func main() {
 	pkt := codec.NewPacket()
 
 	hdr := &bbqpb.RequestHeader{
-		Version:      1,
-		RequestId:    1,
-		Timeout:      1,
-		Method:       "1",
-		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
-		ContentType:  1,
-		CompressType: 1,
+		Version:   1,
+		RequestId: 1,
+		Timeout:   1,
+		Method:    "helloworld.Test/SayHello",
+		TransInfo: map[string][]byte{"xxx": []byte("22222")},
+		// ContentType:  1,
+		// CompressType: 1,
 	}
 
 	hdrBytes, err := codec.GetCodec(bbqpb.ContentType_proto).Marshal(hdr)
@@ -44,7 +44,10 @@ func main() {
 	fmt.Println("raw data:", []byte(hdr.String()), []byte("dsfsdfs"))
 
 	pkt.WriteMsgHeader(hdrBytes)
-	pkt.WriteBytes([]byte("dsfsdfs"))
+
+	// body
+	pkt.WriteBytes(hdrBytes)
+
 	fmt.Println("data:", len(pkt.PacketBody()), pkt.PacketBody())
 
 	ct.WritePacket(pkt)

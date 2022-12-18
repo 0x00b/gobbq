@@ -16,6 +16,7 @@ func NewServer(opts ...ServerOption) *Server {
 	svr := &Server{
 		quit: bbqsync.NewEvent(),
 		done: bbqsync.NewEvent(),
+		opts: &ServerOptions{Entities: make(map[entity.EntityType]*entity.EntityDesc)},
 	}
 
 	return svr
@@ -23,7 +24,7 @@ func NewServer(opts ...ServerOption) *Server {
 
 // Server is a gobbq server to serve RPC requests.
 type Server struct {
-	opts ServerOptions
+	opts *ServerOptions
 
 	mu sync.Mutex // guards following
 	// conns contains all active server transports. It is a map keyed on a
@@ -99,6 +100,7 @@ func (s *Server) register(sd *entity.EntityDesc, ss interface{}) {
 		fmt.Printf("grpc: Server.RegisterService found duplicate service registration for %q", sd.TypeName)
 		return
 	}
+	sd.ServiceImpl = ss
 	s.opts.Entities[sd.TypeName] = sd
 }
 

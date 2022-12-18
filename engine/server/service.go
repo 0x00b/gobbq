@@ -30,7 +30,7 @@ type ServiceName interface {
 type Service interface {
 	ServiceName
 
-	ListenAndServe(network NetWorkName, address string, ops ServerOptions) error
+	ListenAndServe(network NetWorkName, address string, opts *ServerOptions) error
 
 	Close(chan struct{}) error
 }

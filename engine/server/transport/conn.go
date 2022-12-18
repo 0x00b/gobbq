@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/server"
 )
 
 type PacketHandler interface {
@@ -22,6 +23,7 @@ type conn struct {
 	idleTimeout      time.Duration
 	lastVisited      time.Time
 	PacketHandler    PacketHandler
+	opts             *server.ServerOptions
 }
 
 func (st *conn) Name() string {

@@ -14,7 +14,8 @@ type MethodDesc struct {
 
 // EntityDesc represents an RPC service's specification.
 type EntityDesc struct {
-	TypeName EntityType
+	ServiceImpl interface{}
+	TypeName    EntityType
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
 	HandlerType interface{}

@@ -19,7 +19,7 @@ func (tl *TCPListener) Name() server.NetWorkName {
 	return tl.network
 }
 
-func (tl *TCPListener) Listen(network server.NetWorkName, address string, ops server.ServerOptions) (net.Listener, error) {
+func (tl *TCPListener) Listen(network server.NetWorkName, address string, ops *server.ServerOptions) (net.Listener, error) {
 	if network != server.TCP && network != server.TCP6 {
 		return nil, errors.New("not tcp")
 	}
