@@ -24,7 +24,7 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 
 	hdr := &bbqpb.RequestHeader{}
 
-	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(pkt.PacketBody()[:pkt.GetMsgHeaderLen()], hdr)
+	codec.DefaultCodec.Unmarshal(pkt.PacketBody()[:pkt.GetMsgHeaderLen()], hdr)
 
 	fmt.Println("recv RequestHeader:", hdr.String())
 	fmt.Println("recv len:", pkt.GetMsgHeaderLen(), pkt.GetPacketBodyLen())
@@ -33,9 +33,25 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 	_ = hdr.Method
 
 	npkt := codec.NewPacket()
-	npkt.WriteBytes([]byte("test"))
 
-	err := pkt.Src.WritePacket(npkt)
+	rhdr := &bbqpb.ResponseHeader{
+		Version:      hdr.Version,
+		RequestId:    hdr.RequestId,
+		Timeout:      hdr.Timeout,
+		Method:       hdr.Method,
+		TransInfo:    hdr.TransInfo,
+		ContentType:  hdr.ContentType,
+		CompressType: hdr.CompressType,
+	}
+	rbyte, err := codec.DefaultCodec.Marshal(rhdr)
+	if err != nil {
+		fmt.Println("WritePacket", err)
+		return err
+	}
+	npkt.WriteMsgHeader(rbyte)
+	npkt.WriteBytes([]byte("test response"))
+
+	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		fmt.Println("WritePacket", err)
 	}

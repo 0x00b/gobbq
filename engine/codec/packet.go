@@ -133,6 +133,12 @@ func (p *Packet) WriteBytes(b []byte) {
 	copy(pl, b)
 }
 
+// WriteBytes appends slice of bytes to the end of packetBody
+func (p *Packet) WriteMsgHeader(b []byte) {
+	p.setMsgHeaderLen(uint32(len(b)))
+	p.WriteBytes(b)
+}
+
 // PacketBody returns the total packetBody of packet
 func (p *Packet) PacketBody() []byte {
 	return p.bytes.Bytes()[packetHeaderSize : packetHeaderSize+p.GetPacketBodyLen()]
@@ -175,7 +181,7 @@ func (p *Packet) GetMsgHeaderLen() uint32 {
 	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
 }
 
-func (p *Packet) SetMsgHeaderLen(plen uint32) {
+func (p *Packet) setMsgHeaderLen(plen uint32) {
 	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
 	*pplen = plen
 }

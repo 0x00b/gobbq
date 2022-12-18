@@ -40,18 +40,15 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	pkt.SetMsgHeaderLen(uint32(len(hdrBytes)))
-	// pkt.setPacketBodyLen(pkt.GetMsgHeaderLen() + uint32(len("dsfsdfs")))
-
 	fmt.Println("len:", pkt.GetMsgHeaderLen(), uint32(len("dsfsdfs")), pkt.GetPacketBodyLen())
 	fmt.Println("raw data:", []byte(hdr.String()), []byte("dsfsdfs"))
 
-	pkt.WriteBytes(hdrBytes)
+	pkt.WriteMsgHeader(hdrBytes)
 	pkt.WriteBytes([]byte("dsfsdfs"))
 	fmt.Println("data:", len(pkt.PacketBody()), pkt.PacketBody())
 
 	ct.WritePacket(pkt)
 
-	// ct.Serve()/
+	ct.Serve()
 	time.Sleep(1 * time.Minute)
 }

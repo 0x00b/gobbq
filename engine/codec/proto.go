@@ -13,8 +13,10 @@ import (
 const Name = "proto"
 
 func init() {
-	RegisterCodec(protoCodec{})
+	RegisterCodec(DefaultCodec)
 }
+
+var DefaultCodec = protoCodec{}
 
 // codec is a Codec implementation with protobuf. It is the default codec for gRPC.
 type protoCodec struct{}

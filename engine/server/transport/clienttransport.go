@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
@@ -28,7 +29,13 @@ func NewClientTransport(ctx context.Context, rawConn net.Conn) *ClientTransport 
 
 func (ct *ClientTransport) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	fmt.Println("recv", string(pkt.PacketBody()))
+	hdr := &bbqpb.ResponseHeader{}
+
+	codec.DefaultCodec.Unmarshal(pkt.PacketBody()[:pkt.GetMsgHeaderLen()], hdr)
+
+	fmt.Println("recv ResponseHeader:", hdr.String())
+	fmt.Println("recv len:", pkt.GetMsgHeaderLen(), pkt.GetPacketBodyLen())
+	fmt.Println("recv data:", string(pkt.PacketBody()[pkt.GetMsgHeaderLen():pkt.GetPacketBodyLen()]))
 
 	// newpkt := codec.NewPacket()
 	// newpkt.WriteBytes([]byte("test"))

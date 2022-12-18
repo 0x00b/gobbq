@@ -101,7 +101,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	packet := NewPacket()
 	packet.SetPacketType(PacketType(pc.headerBuff[4]))
 	packet.SetPacketFlags(Flags(pc.headerBuff[5]))
-	packet.SetMsgHeaderLen(packetEndian.Uint32(pc.headerBuff[6:]))
+	packet.setMsgHeaderLen(packetEndian.Uint32(pc.headerBuff[6:]))
 	packet.Src = pc
 
 	//extendPacketBody 返回的时候已经把header buff排除了
