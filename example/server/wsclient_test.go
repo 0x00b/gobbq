@@ -21,12 +21,12 @@ func TestWSClient(m *testing.T) {
 
 	ws := codec.NewPacketReadWriter(context.Background(), wsc)
 
-	msg := codec.NewPacket()
-	msg.WriteBytes([]byte("test"))
-	ws.WritePacket(msg)
+	pkt := codec.NewPacket()
+	pkt.WriteBytes([]byte("test"))
+	ws.WritePacket(pkt)
 
-	if msg, err = ws.ReadPacket(); err != nil {
+	if pkt, err = ws.ReadPacket(); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Received: %s.\n", string(msg.PacketBody()))
+	fmt.Printf("Received: %s.\n", string(pkt.PacketBody()))
 }

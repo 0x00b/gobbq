@@ -18,22 +18,22 @@ func NewServerPacketHandler(ctx context.Context, conn net.Conn) *ServerPacketHan
 	return st
 }
 
-func (st *ServerPacketHandler) HandlePacket(c context.Context, msg *codec.Packet) error {
+func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	// parse msg , get header
+	// parse pkt , get header
 
 	hdr := &bbqpb.RequestHeader{}
 
-	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(msg.Data(), hdr)
+	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(pkt.Data(), hdr)
 
 	_ = hdr.Method
 
-	fmt.Println("recv", string(msg.PacketBody()))
+	fmt.Println("recv", string(pkt.PacketBody()))
 
-	newmsg := codec.NewPacket()
-	newmsg.WriteBytes([]byte("test"))
+	npkt := codec.NewPacket()
+	npkt.WriteBytes([]byte("test"))
 
-	err := msg.Src.WritePacket(newmsg)
+	err := pkt.Src.WritePacket(npkt)
 	if err != nil {
 		fmt.Println("WritePacket", err)
 	}

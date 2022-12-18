@@ -12,7 +12,7 @@ import (
 )
 
 type PacketHandler interface {
-	HandlePacket(c context.Context, msg *codec.Packet) error
+	HandlePacket(c context.Context, pkt *codec.Packet) error
 }
 
 type conn struct {
@@ -28,8 +28,8 @@ func (st *conn) Name() string {
 	return "server"
 }
 
-func (st *conn) WritePacket(msg *codec.Packet) error {
-	return st.packetReadWriter.WritePacket(msg)
+func (st *conn) WritePacket(pkt *codec.Packet) error {
+	return st.packetReadWriter.WritePacket(pkt)
 }
 
 func (st *conn) Serve() {
@@ -54,7 +54,7 @@ func (st *conn) Serve() {
 			}
 		}
 
-		msg, err := st.packetReadWriter.ReadPacket()
+		pkt, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				// report.TCPTransportReadEOF.Incr() // 客户端主动断开连接
@@ -70,16 +70,16 @@ func (st *conn) Serve() {
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
-		st.handle(context.Background(), msg)
+		st.handle(context.Background(), pkt)
 	}
 }
 
-func (st *conn) handle(c context.Context, msg *codec.Packet) error {
-	defer msg.Release()
+func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
+	defer pkt.Release()
 
-	switch msg.GetPacketType() {
+	switch pkt.GetPacketType() {
 	case codec.PacketRPC:
-		st.PacketHandler.HandlePacket(c, msg)
+		st.PacketHandler.HandlePacket(c, pkt)
 	case codec.PacketSys:
 	default:
 	}

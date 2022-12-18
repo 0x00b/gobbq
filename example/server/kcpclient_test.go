@@ -22,11 +22,11 @@ func TestKcpClient(m *testing.T) {
 
 	ct := transport.NewClientTransport(ctx, wsc)
 
-	msg := codec.NewPacket()
-	msg.WriteBytes([]byte("dsfsdfs"))
+	pkt := codec.NewPacket()
+	pkt.WriteBytes([]byte("dsfsdfs"))
 
 	fmt.Println("writing")
-	ct.WritePacket(msg)
+	ct.WritePacket(pkt)
 	fmt.Println("writed")
 
 	ct.Serve()

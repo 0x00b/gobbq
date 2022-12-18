@@ -17,9 +17,9 @@ func NewDispatherTransport(ctx context.Context, conn net.Conn) *DispatherPacketH
 	return st
 }
 
-func (st *DispatherPacketHandler) HandlePacket(c context.Context, msg *codec.Packet) error {
+func (st *DispatherPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	fmt.Println("recv", string(msg.PacketBody()))
+	fmt.Println("recv", string(pkt.PacketBody()))
 	// send to game
 	// or send to gate
 

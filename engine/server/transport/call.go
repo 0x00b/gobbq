@@ -9,7 +9,7 @@ package transport
 // type CalleeInterface interface {
 
 // 	// ParsePacket
-// 	ParsePacket(ctx context.Context, msg *codec.Packet) (ci *CallInfo, reqBodyBuff []byte, err error)
+// 	ParsePacket(ctx context.Context, pkt *codec.Packet) (ci *CallInfo, reqBodyBuff []byte, err error)
 // }
 
 // func Invoke(ctx context.Context, method string, req interface{}, callback ...func(ctx context.Context, reply interface{}) error) error

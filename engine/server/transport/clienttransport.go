@@ -25,14 +25,14 @@ func NewClientTransport(ctx context.Context, rawConn net.Conn) *ClientTransport 
 	return ct
 }
 
-func (ct *ClientTransport) HandlePacket(c context.Context, msg *codec.Packet) error {
+func (ct *ClientTransport) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	fmt.Println("recv", string(msg.PacketBody()))
+	fmt.Println("recv", string(pkt.PacketBody()))
 
-	newmsg := codec.NewPacket()
-	newmsg.WriteBytes([]byte("test"))
+	newpkt := codec.NewPacket()
+	newpkt.WriteBytes([]byte("test"))
 
-	err := ct.WritePacket(newmsg)
+	err := ct.WritePacket(newpkt)
 	if err != nil {
 		fmt.Println("WritePacket", err)
 	}

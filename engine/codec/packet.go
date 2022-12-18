@@ -98,11 +98,11 @@ var flagName = map[PacketType]map[Flags]string{
 }
 
 func allocPacket() *Packet {
-	msg := packetPool.Get().(*Packet)
+	pkt := packetPool.Get().(*Packet)
 
-	msg.reset()
+	pkt.reset()
 
-	return msg
+	return pkt
 }
 
 // NewPacket allocates a new packet

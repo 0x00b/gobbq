@@ -17,9 +17,9 @@ func NewGatePacketHandler(ctx context.Context, conn net.Conn) *GatePacketHandler
 	return st
 }
 
-func (st *GatePacketHandler) HandlePacket(c context.Context, msg *codec.Packet) error {
+func (st *GatePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	fmt.Println("recv", string(msg.PacketBody()))
+	fmt.Println("recv", string(pkt.PacketBody()))
 
 	// send to dispather
 	return nil
