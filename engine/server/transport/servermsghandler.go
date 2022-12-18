@@ -24,11 +24,13 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 
 	hdr := &bbqpb.RequestHeader{}
 
-	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(pkt.Data(), hdr)
+	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(pkt.PacketBody()[:pkt.GetMsgHeaderLen()], hdr)
+
+	fmt.Println("recv RequestHeader:", hdr.String())
+	fmt.Println("recv len:", pkt.GetMsgHeaderLen(), pkt.GetPacketBodyLen())
+	fmt.Println("recv data:", string(pkt.PacketBody()[pkt.GetMsgHeaderLen():pkt.GetPacketBodyLen()]))
 
 	_ = hdr.Method
-
-	fmt.Println("recv", string(pkt.PacketBody()))
 
 	npkt := codec.NewPacket()
 	npkt.WriteBytes([]byte("test"))

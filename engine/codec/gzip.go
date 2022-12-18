@@ -5,7 +5,7 @@
 //
 // Notice: This package is EXPERIMENTAL and may be changed or removed in a
 // later release.
-package gzip
+package codec
 
 import (
 	"compress/gzip"
@@ -16,7 +16,6 @@ import (
 	"sync"
 
 	"github.com/0x00b/gobbq/bbqpb"
-	"github.com/0x00b/gobbq/engine/codec"
 )
 
 func init() {
@@ -24,7 +23,7 @@ func init() {
 	c.poolCompressor.New = func() interface{} {
 		return &writer{Writer: gzip.NewWriter(ioutil.Discard), pool: &c.poolCompressor}
 	}
-	codec.RegisterCompressor(c)
+	RegisterCompressor(c)
 }
 
 type writer struct {
@@ -41,7 +40,7 @@ func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
-	c := codec.GetCompressor(bbqpb.CompressType_gzip).(*compressor)
+	c := GetCompressor(bbqpb.CompressType_gzip).(*compressor)
 	c.poolCompressor.New = func() interface{} {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {

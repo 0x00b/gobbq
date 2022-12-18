@@ -28,8 +28,8 @@ type Packet struct {
 
 const (
 
-	//  packet = messge header + header + body
-	// messge header = (4 byte total len) + (1 byte msg type) + (1 byte flag) + (4 byte header len)
+	// packet = packet header + message header + message body
+	// packet header = (4 byte total len) + (1 byte msg type) + (1 byte flag) + (4 byte header len)
 	packetHeaderSize = 10
 
 	minPacketBufferLen  = bytespool.MinBufferCap
@@ -144,7 +144,7 @@ func (p *Packet) GetPacketBodyLen() uint32 {
 	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[0]))
 }
 
-func (p *Packet) SetPacketBodyLen(plen uint32) {
+func (p *Packet) setPacketBodyLen(plen uint32) {
 	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[0]))
 	*pplen = plen
 }
@@ -169,6 +169,17 @@ func (p *Packet) SetPacketFlags(flags Flags) {
 	*pplen = flags
 }
 
+// GetPacketBodyLen returns the packetBody length
+func (p *Packet) GetMsgHeaderLen() uint32 {
+	// _ = p.bytes.Bytes()[3]
+	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
+}
+
+func (p *Packet) SetMsgHeaderLen(plen uint32) {
+	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
+	*pplen = plen
+}
+
 // PacketCap  returns the current packetBody capacity
 func (p *Packet) PacketCap() uint32 {
 	return uint32(len(p.bytes.Bytes()))
@@ -176,7 +187,7 @@ func (p *Packet) PacketCap() uint32 {
 
 func (p *Packet) reset() {
 	p.Src = nil
-	p.SetPacketBodyLen(0)
+	p.setPacketBodyLen(0)
 	p.SetPacketType(0)
 	p.SetPacketFlags(0)
 	p.refcount = 1
@@ -202,7 +213,7 @@ func (p *Packet) extendPacketBody(size int) []byte {
 	oldCap := p.PacketCap()
 
 	if newPacketLen <= oldCap { // most case
-		p.SetPacketBodyLen(newPacketBodyLen)
+		p.setPacketBodyLen(newPacketBodyLen)
 		return p.packetBodySlice(packetBodyLen, newPacketBodyLen)
 	}
 
@@ -219,6 +230,6 @@ func (p *Packet) extendPacketBody(size int) []byte {
 
 	bytespool.Put(oldBytes)
 
-	p.SetPacketBodyLen(newPacketBodyLen)
+	p.setPacketBodyLen(newPacketBodyLen)
 	return p.packetBodySlice(packetBodyLen, newPacketBodyLen)
 }

@@ -13,14 +13,15 @@ type ClientTransport struct {
 }
 
 func NewClientTransport(ctx context.Context, rawConn net.Conn) *ClientTransport {
+
 	ct := &ClientTransport{
 		conn: &conn{
 			rwc:              rawConn,
 			ctx:              context.Background(),
 			packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-			PacketHandler:    NewServerPacketHandler(context.Background(), rawConn),
 		},
 	}
+	ct.conn.PacketHandler = ct
 	// ct.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, ct)
 	return ct
 }
@@ -29,13 +30,13 @@ func (ct *ClientTransport) HandlePacket(c context.Context, pkt *codec.Packet) er
 
 	fmt.Println("recv", string(pkt.PacketBody()))
 
-	newpkt := codec.NewPacket()
-	newpkt.WriteBytes([]byte("test"))
+	// newpkt := codec.NewPacket()
+	// newpkt.WriteBytes([]byte("test"))
 
-	err := ct.WritePacket(newpkt)
-	if err != nil {
-		fmt.Println("WritePacket", err)
-	}
+	// err := ct.WritePacket(newpkt)
+	// if err != nil {
+	// 	fmt.Println("WritePacket", err)
+	// }
 
 	return nil
 }

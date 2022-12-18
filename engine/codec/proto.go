@@ -1,12 +1,11 @@
 // Package proto defines the protobuf codec. Importing this package will
 // register the codec.
-package proto
+package codec
 
 import (
 	"fmt"
 
 	bp "github.com/0x00b/gobbq/bbqpb"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -14,7 +13,7 @@ import (
 const Name = "proto"
 
 func init() {
-	codec.RegisterCodec(protoCodec{})
+	RegisterCodec(protoCodec{})
 }
 
 // codec is a Codec implementation with protobuf. It is the default codec for gRPC.
