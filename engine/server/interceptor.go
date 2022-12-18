@@ -16,7 +16,7 @@
  *
  */
 
-package entity
+package server
 
 import (
 	"context"

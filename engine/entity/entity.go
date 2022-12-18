@@ -38,7 +38,7 @@ type Entity struct {
 
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
-	entityInfo *EntityDesc
+	// entityInfo *EntityDesc
 
 	// syncingFromClient bool
 	// rawTimers            map[*timer.Timer]struct{}

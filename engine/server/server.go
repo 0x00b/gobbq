@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/bbqsync"
-	"github.com/0x00b/gobbq/engine/entity"
 )
 
 // NewSever return gobbq server
@@ -16,7 +15,7 @@ func NewServer(opts ...ServerOption) *Server {
 	svr := &Server{
 		quit: bbqsync.NewEvent(),
 		done: bbqsync.NewEvent(),
-		opts: &ServerOptions{Entities: make(map[entity.EntityType]*entity.EntityDesc)},
+		opts: &ServerOptions{Entities: make(map[string]*EntityDesc)},
 	}
 
 	return svr
@@ -53,7 +52,7 @@ type ServerOptions struct {
 	numServerWorkers  uint32
 	connectionTimeout time.Duration
 
-	Entities map[entity.EntityType]*entity.EntityDesc
+	Entities map[string]*EntityDesc
 }
 
 var ErrServerStopped = errors.New("gobbq: the server has been stopped")
@@ -78,7 +77,7 @@ func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...Serv
 // server. It is called from the IDL generated code. This must be called before
 // invoking Serve. If ss is non-nil (for legacy code), its type is checked to
 // ensure it implements sd.HandlerType.
-func (s *Server) RegisterEntity(sd *entity.EntityDesc, ss interface{}) {
+func (s *Server) RegisterEntity(sd *EntityDesc, ss interface{}) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
@@ -89,7 +88,7 @@ func (s *Server) RegisterEntity(sd *entity.EntityDesc, ss interface{}) {
 	s.register(sd, ss)
 }
 
-func (s *Server) register(sd *entity.EntityDesc, ss interface{}) {
+func (s *Server) register(sd *EntityDesc, ss interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fmt.Printf("RegisterService(%q)", sd.TypeName)

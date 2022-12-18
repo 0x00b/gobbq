@@ -6,7 +6,6 @@ import (
 
 	"github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/bbqpb"
-	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/server"
 )
 
@@ -39,7 +38,7 @@ func RegisterTestEntity(s *server.Server, srv TestEntityInterface) {
 	s.RegisterEntity(&Test_ServiceDesc, srv)
 }
 
-func _SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor entity.UnaryServerInterceptor) (interface{}, error) {
+func _SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor server.UnaryServerInterceptor) (interface{}, error) {
 	in := new(bbqpb.RequestHeader)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -50,10 +49,10 @@ func _SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return nil, nil
 }
 
-var Test_ServiceDesc = entity.EntityDesc{
+var Test_ServiceDesc = server.EntityDesc{
 	TypeName:    "helloworld.Test",
 	HandlerType: (*TestEntityInterface)(nil),
-	Methods: map[string]entity.MethodDesc{
+	Methods: map[string]server.MethodDesc{
 		"SayHello": {
 			MethodName: "SayHello",
 			Handler:    _SayHello_Handler,

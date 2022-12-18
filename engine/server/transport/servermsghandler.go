@@ -9,7 +9,6 @@ import (
 
 	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/server"
 )
 
@@ -47,7 +46,7 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 
 	_ = service
 	_ = method
-	ed := st.opts.Entities[entity.EntityType(service)]
+	ed := st.opts.Entities[service]
 	mt := ed.Methods[method]
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()[pkt.GetMsgHeaderLen():pkt.GetPacketBodyLen()]

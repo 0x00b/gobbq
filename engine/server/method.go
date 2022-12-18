@@ -1,4 +1,4 @@
-package entity
+package server
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type MethodDesc struct {
 // EntityDesc represents an RPC service's specification.
 type EntityDesc struct {
 	ServiceImpl interface{}
-	TypeName    EntityType
+	TypeName    string
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
 	HandlerType interface{}
@@ -32,5 +32,5 @@ type ClientID string
 type GameClient struct {
 	clientID ClientID
 	gateID   uint16
-	ownerID  EntityID
+	ownerID  string
 }
