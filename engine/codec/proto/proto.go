@@ -5,6 +5,7 @@ package proto
 import (
 	"fmt"
 
+	bp "github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/golang/protobuf/proto"
 )
@@ -22,7 +23,7 @@ type protoCodec struct{}
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 	vv, ok := v.(proto.Message)
 	if !ok {
-		return nil, fmt.Errorf("failed to marshal, message is %T, want proto.Message", v)
+		return nil, fmt.Errorf("failed to marshal, packet is %T, want proto.Packet", v)
 	}
 	return proto.Marshal(vv)
 }
@@ -30,11 +31,11 @@ func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
 	vv, ok := v.(proto.Message)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal, message is %T, want proto.Message", v)
+		return fmt.Errorf("failed to unmarshal, packet is %T, want proto.Packet", v)
 	}
 	return proto.Unmarshal(data, vv)
 }
 
-func (protoCodec) Name() string {
-	return Name
+func (protoCodec) Type() bp.ContentType {
+	return bp.ContentType_proto
 }

@@ -5,28 +5,37 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type ServerMessageHandler struct {
+type ServerPacketHandler struct {
 }
 
-func NewServerMessageHandler(ctx context.Context, conn net.Conn) *ServerMessageHandler {
-	st := &ServerMessageHandler{}
-	// st.ServerTransport = NewServerTransportWithMessageHandler(ctx, conn, st)
+func NewServerPacketHandler(ctx context.Context, conn net.Conn) *ServerPacketHandler {
+	st := &ServerPacketHandler{}
+	// st.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, st)
 	return st
 }
 
-func (st *ServerMessageHandler) HandleMessage(c context.Context, pkt *codec.Message) error {
+func (st *ServerPacketHandler) HandlePacket(c context.Context, msg *codec.Packet) error {
 
-	fmt.Println("recv", string(pkt.MessageBody()))
+	// parse msg , get header
 
-	newpkt := codec.NewMessage()
-	newpkt.WriteBytes([]byte("test"))
+	hdr := &bbqpb.RequestHeader{}
 
-	err := pkt.Src.WriteMessage(newpkt)
+	codec.GetCodec(bbqpb.ContentType_proto).Unmarshal(msg.Data(), hdr)
+
+	_ = hdr.Method
+
+	fmt.Println("recv", string(msg.PacketBody()))
+
+	newmsg := codec.NewPacket()
+	newmsg.WriteBytes([]byte("test"))
+
+	err := msg.Src.WritePacket(newmsg)
 	if err != nil {
-		fmt.Println("WriteMessage", err)
+		fmt.Println("WritePacket", err)
 	}
 
 	return nil

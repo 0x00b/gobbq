@@ -8,18 +8,18 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type DispatherMessageHandler struct {
+type DispatherPacketHandler struct {
 }
 
-func NewDispatherTransport(ctx context.Context, conn net.Conn) *DispatherMessageHandler {
-	st := &DispatherMessageHandler{}
-	// st.ServerTransport = NewServerTransportWithMessageHandler(ctx, conn, st)
+func NewDispatherTransport(ctx context.Context, conn net.Conn) *DispatherPacketHandler {
+	st := &DispatherPacketHandler{}
+	// st.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, st)
 	return st
 }
 
-func (st *DispatherMessageHandler) HandleMessage(c context.Context, pkt *codec.Message) error {
+func (st *DispatherPacketHandler) HandlePacket(c context.Context, msg *codec.Packet) error {
 
-	fmt.Println("recv", string(pkt.MessageBody()))
+	fmt.Println("recv", string(msg.PacketBody()))
 	// send to game
 	// or send to gate
 

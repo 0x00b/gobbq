@@ -30,19 +30,19 @@ func TestMain(t *testing.T) {
 
 	//
 	i := 0
-	messageBodyCap := uint32(bytespool.MinBufferCap)
-	for messageBodyCap <= bytespool.MaxBufferCap {
-		key := bytespool.CalcBufferCapKey(messageBodyCap)
-		fmt.Println(i, key, messageBodyCap)
+	packetBodyCap := uint32(bytespool.MinBufferCap)
+	for packetBodyCap <= bytespool.MaxBufferCap {
+		key := bytespool.CalcBufferCapKey(packetBodyCap)
+		fmt.Println(i, key, packetBodyCap)
 		i++
-		messageBodyCap *= 2
+		packetBodyCap *= 2
 	}
 	fmt.Println("========")
-	messageBodyCap = 0
-	for messageBodyCap <= 1000 {
-		key := bytespool.CalcBufferCapKey(messageBodyCap)
-		fmt.Println(key, messageBodyCap)
-		messageBodyCap++
+	packetBodyCap = 0
+	for packetBodyCap <= 1000 {
+		key := bytespool.CalcBufferCapKey(packetBodyCap)
+		fmt.Println(key, packetBodyCap)
+		packetBodyCap++
 	}
 
 }

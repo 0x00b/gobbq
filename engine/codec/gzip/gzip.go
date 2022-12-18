@@ -15,11 +15,9 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
 )
-
-// Name is the name registered for the gzip compressor.
-const Name = "gzip"
 
 func init() {
 	c := &compressor{}
@@ -43,7 +41,7 @@ func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
-	c := codec.GetCompressor(Name).(*compressor)
+	c := codec.GetCompressor(bbqpb.CompressType_gzip).(*compressor)
 	c.poolCompressor.New = func() interface{} {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {
@@ -96,7 +94,7 @@ func (z *reader) Read(p []byte) (n int, err error) {
 
 // RFC1952 specifies that the last four bytes "contains the size of
 // the original (uncompressed) input data modulo 2^32."
-// gRPC has a max message size of 2GB so we don't need to worry about wraparound.
+// gRPC has a max packet size of 2GB so we don't need to worry about wraparound.
 func (c *compressor) DecompressedSize(buf []byte) int {
 	last := len(buf)
 	if last < 4 {
@@ -105,8 +103,8 @@ func (c *compressor) DecompressedSize(buf []byte) int {
 	return int(binary.LittleEndian.Uint32(buf[last-4 : last]))
 }
 
-func (c *compressor) Name() string {
-	return Name
+func (c *compressor) Type() bbqpb.CompressType {
+	return bbqpb.CompressType_gzip
 }
 
 type compressor struct {

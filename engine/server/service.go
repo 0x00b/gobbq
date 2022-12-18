@@ -25,7 +25,7 @@ type ServiceName interface {
 // implementations.
 //
 // Methods may be called concurrently from multiple goroutines, but
-// Write methods for a given Message will be called serially.
+// Write methods for a given Packet will be called serially.
 
 type Service interface {
 	ServiceName

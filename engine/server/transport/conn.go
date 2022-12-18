@@ -11,30 +11,25 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type MessageHandler interface {
-	HandleMessage(c context.Context, pkt *codec.Message) error
+type PacketHandler interface {
+	HandlePacket(c context.Context, msg *codec.Packet) error
 }
 
 type conn struct {
-	rwc               net.Conn
-	messageReadWriter *codec.MessageReadWriter
-	ctx               context.Context
-	idleTimeout       time.Duration
-	lastVisited       time.Time
-	MessageHandler    MessageHandler
+	rwc              net.Conn
+	packetReadWriter *codec.PacketReadWriter
+	ctx              context.Context
+	idleTimeout      time.Duration
+	lastVisited      time.Time
+	PacketHandler    PacketHandler
 }
 
 func (st *conn) Name() string {
 	return "server"
 }
 
-func (st *conn) WriteMessage(pkt *codec.Message) error {
-	return st.messageReadWriter.WriteMessage(pkt)
-}
-
-func (st *conn) parseMessage(ctx context.Context, pkt *codec.Message) (ci *CallInfo, reqBodyBuff []byte, err error) {
-
-	return
+func (st *conn) WritePacket(msg *codec.Packet) error {
+	return st.packetReadWriter.WritePacket(msg)
 }
 
 func (st *conn) Serve() {
@@ -59,7 +54,7 @@ func (st *conn) Serve() {
 			}
 		}
 
-		pkt, err := st.messageReadWriter.ReadMessage()
+		msg, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				// report.TCPTransportReadEOF.Incr() // 客户端主动断开连接
@@ -75,17 +70,17 @@ func (st *conn) Serve() {
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
-		st.handle(context.Background(), pkt)
+		st.handle(context.Background(), msg)
 	}
 }
 
-func (st *conn) handle(c context.Context, pkt *codec.Message) error {
-	defer pkt.Release()
+func (st *conn) handle(c context.Context, msg *codec.Packet) error {
+	defer msg.Release()
 
-	switch pkt.GetMessageType() {
-	case codec.MessageRPC:
-		st.MessageHandler.HandleMessage(c, pkt)
-	case codec.MessageSys:
+	switch msg.GetPacketType() {
+	case codec.PacketRPC:
+		st.PacketHandler.HandlePacket(c, msg)
+	case codec.PacketSys:
 	default:
 	}
 	return nil

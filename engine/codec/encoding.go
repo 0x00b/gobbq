@@ -9,15 +9,12 @@ package codec
 
 import (
 	"io"
-	"strings"
+
+	"github.com/0x00b/gobbq/bbqpb"
 )
 
-// Identity specifies the optional encoding for uncompressed streams.
-// It is intended for grpc internal use only.
-const Identity = "identity"
-
 // Compressor is used for compressing and decompressing when sending or
-// receiving messages.
+// receiving packets.
 type Compressor interface {
 	// Compress writes the data written to wc to w after compressing it.  If an
 	// error occurs while initializing the compressor, that error is returned
@@ -30,7 +27,7 @@ type Compressor interface {
 	// Name is the name of the compression codec and is used to set the content
 	// coding header.  The result must be static; the result cannot change
 	// between calls.
-	Name() string
+	Type() bbqpb.CompressType
 	// If a Compressor implements
 	// DecompressedSize(compressedBytes []byte) int, gRPC will call it
 	// to determine the size of the buffer allocated for the result of decompression.
@@ -42,11 +39,11 @@ type Compressor interface {
 	// later release.
 }
 
-var registeredCompressor = make(map[string]Compressor)
+var registeredCompressor = make(map[bbqpb.CompressType]Compressor)
 
 // RegisterCompressor registers the compressor with gRPC by its name.  It can
 // be activated when sending an RPC via grpc.UseCompressor().  It will be
-// automatically accessed when receiving a message based on the content coding
+// automatically accessed when receiving a packet based on the content coding
 // header.  Servers also use it to send a response with the same encoding as
 // the request.
 //
@@ -54,16 +51,16 @@ var registeredCompressor = make(map[string]Compressor)
 // an init() function), and is not thread-safe.  If multiple Compressors are
 // registered with the same name, the one registered last will take effect.
 func RegisterCompressor(c Compressor) {
-	registeredCompressor[c.Name()] = c
+	registeredCompressor[c.Type()] = c
 	// grpcutil.RegisteredCompressorNames = append(grpcutil.RegisteredCompressorNames, c.Name())
 }
 
 // GetCompressor returns Compressor for the given compressor name.
-func GetCompressor(name string) Compressor {
+func GetCompressor(name bbqpb.CompressType) Compressor {
 	return registeredCompressor[name]
 }
 
-// Codec defines the interface gRPC uses to encode and decode messages.  Note
+// Codec defines the interface gRPC uses to encode and decode packets.  Note
 // that implementations of this interface must be thread safe; a Codec's
 // methods can be called from concurrent goroutines.
 type Codec interface {
@@ -74,10 +71,10 @@ type Codec interface {
 	// Name returns the name of the Codec implementation. The returned string
 	// will be used as part of content type in transmission.  The result must be
 	// static; the result cannot change between calls.
-	Name() string
+	Type() bbqpb.ContentType
 }
 
-var registeredCodecs = make(map[string]Codec)
+var registeredCodecs = make(map[bbqpb.ContentType]Codec)
 
 // RegisterCodec registers the provided Codec for use with all gRPC clients and
 // servers.
@@ -87,7 +84,7 @@ var registeredCodecs = make(map[string]Codec)
 // is case-insensitive, and is stored and looked up as lowercase.  If the
 // result of calling Name() is an empty string, RegisterCodec will panic. See
 // Content-Type on
-// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests for
+// https://github.com/grpc/grpc/blob/master/doc/bbqpbCOL-HTTP2.md#requests for
 // more details.
 //
 // NOTE: this function must only be called during initialization time (i.e. in
@@ -97,17 +94,13 @@ func RegisterCodec(codec Codec) {
 	if codec == nil {
 		panic("cannot register a nil Codec")
 	}
-	if codec.Name() == "" {
-		panic("cannot register Codec with empty string result for Name()")
-	}
-	contentSubtype := strings.ToLower(codec.Name())
-	registeredCodecs[contentSubtype] = codec
+	registeredCodecs[codec.Type()] = codec
 }
 
 // GetCodec gets a registered Codec by content-subtype, or nil if no Codec is
 // registered for the content-subtype.
 //
 // The content-subtype is expected to be lowercase.
-func GetCodec(contentSubtype string) Codec {
-	return registeredCodecs[contentSubtype]
+func GetCodec(contentType bbqpb.ContentType) Codec {
+	return registeredCodecs[contentType]
 }

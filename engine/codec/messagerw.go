@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	ErrMessageBodyTooLarge = io.ErrShortWrite
-	ErrMessageBodyTooSmall = io.ErrUnexpectedEOF
+	ErrPacketBodyTooLarge = io.ErrShortWrite
+	ErrPacketBodyTooSmall = io.ErrUnexpectedEOF
 
-	errMessageBodyTooLarge = errors.Errorf("messageBody too large")
-	errChecksumError       = errors.Errorf("checksum error")
+	errPacketBodyTooLarge = errors.Errorf("packetBody too large")
+	errChecksumError      = errors.Errorf("checksum error")
 )
 
 type Config struct {
@@ -29,13 +29,13 @@ func DefaultConfig() *Config {
 	}
 }
 
-// MessageReadWriter is a connection that send and receive data messages upon a network stream connection
-type MessageReadWriter struct {
+// PacketReadWriter is a connection that send and receive data packets upon a network stream connection
+type PacketReadWriter struct {
 	Config Config
 
 	rw io.ReadWriter
 
-	headerBuff [messageHeaderSize]byte
+	headerBuff [packetHeaderSize]byte
 
 	// write will inc 1
 	writeMsgCnt uint32
@@ -43,12 +43,12 @@ type MessageReadWriter struct {
 	readMsgCnt uint32
 }
 
-// NewMessageReadWriter creates a message connection based on network connection
-func NewMessageReadWriter(ctx context.Context, rw io.ReadWriter) *MessageReadWriter {
-	return NewMessageReadWriterWithConfig(ctx, rw, DefaultConfig())
+// NewPacketReadWriter creates a packet connection based on network connection
+func NewPacketReadWriter(ctx context.Context, rw io.ReadWriter) *PacketReadWriter {
+	return NewPacketReadWriterWithConfig(ctx, rw, DefaultConfig())
 }
 
-func NewMessageReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *Config) *MessageReadWriter {
+func NewPacketReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *Config) *PacketReadWriter {
 	if rw == nil {
 		panic(fmt.Errorf("conn is nil"))
 	}
@@ -57,7 +57,7 @@ func NewMessageReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *
 		cfg = DefaultConfig()
 	}
 
-	pc := &MessageReadWriter{
+	pc := &PacketReadWriter{
 		rw:     rw,
 		Config: *cfg,
 	}
@@ -65,26 +65,26 @@ func NewMessageReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *
 	return pc
 }
 
-// WriteMessage write message data to pc.rw, need to initialize the message by yourself
-func (pc *MessageReadWriter) WriteMessage(message *Message) error {
-	pdata := message.Data()
+// WritePacket write packet data to pc.rw, need to initialize the packet by yourself
+func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
+	pdata := packet.Data()
 	err := writeFull(pc.rw, pdata)
 	if err != nil {
 		return err
 	}
 
-	if message.GetMessageFlags().Has(FlagDataChecksumIEEE) {
+	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
 		var crc32Buffer [4]byte
-		messageBodyCrc := crc32.ChecksumIEEE(pdata)
-		messageEndian.PutUint32(crc32Buffer[:], messageBodyCrc)
+		packetBodyCrc := crc32.ChecksumIEEE(pdata)
+		packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
 		return writeFull(pc.rw, crc32Buffer[:])
 	} else {
 		return nil
 	}
 }
 
-// recv receives the next message
-func (pc *MessageReadWriter) ReadMessage() (*Message, error) {
+// recv receives the next packet
+func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	var err error
 
 	_, err = io.ReadFull(pc.rw, pc.headerBuff[:])
@@ -92,54 +92,41 @@ func (pc *MessageReadWriter) ReadMessage() (*Message, error) {
 		return nil, err
 	}
 
-	messageBodySize := messageEndian.Uint32(pc.headerBuff[:4])
-	if messageBodySize > MaxMessageBodyLength {
-		return nil, errMessageBodyTooLarge
+	packetBodySize := packetEndian.Uint32(pc.headerBuff[:4])
+	if packetBodySize > MaxPacketBodyLength {
+		return nil, errPacketBodyTooLarge
 	}
 
-	// allocate a message to receive messageBody
-	message := NewMessage()
-	message.SetMessageType(MessageType(pc.headerBuff[4]))
-	message.SetMessageFlags(Flags(pc.headerBuff[5]))
-	message.SetMessageID(messageEndian.Uint32(pc.headerBuff[6:]) & (1<<31 - 1))
-	message.Src = pc
+	// allocate a packet to receive packetBody
+	packet := NewPacket()
+	packet.SetPacketType(PacketType(pc.headerBuff[4]))
+	packet.SetPacketFlags(Flags(pc.headerBuff[5]))
+	packet.Src = pc
 
-	messageParser, ok := messageParsers[message.GetMessageType()]
-	if ok {
-		n, err := messageParser(pc, message)
-		if err != nil {
-			return nil, err
-		}
-		if n > messageBodySize {
-			return nil, errors.New("invalid message")
-		}
-		messageBodySize -= n
-	}
-
-	//extendMessageBody 返回的时候已经把header buff排除了
-	messageBody := message.extendMessageBody(int(messageBodySize))
-	_, err = io.ReadFull(pc.rw, messageBody)
+	//extendPacketBody 返回的时候已经把header buff排除了
+	packetBody := packet.extendPacketBody(int(packetBodySize))
+	_, err = io.ReadFull(pc.rw, packetBody)
 	if err != nil {
 		return nil, err
 	}
 
-	message.setMessageBodyLen(messageBodySize)
+	packet.SetPacketBodyLen(packetBodySize)
 	pc.readMsgCnt++
 
 	// receive checksum (uint32)
-	if message.GetMessageFlags().Has(FlagDataChecksumIEEE) {
+	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
 		_, err = io.ReadFull(pc.rw, pc.headerBuff[:4])
 		if err != nil {
 			return nil, err
 		}
 
-		messageBodyCrc := crc32.ChecksumIEEE(message.Data())
-		if messageBodyCrc != messageEndian.Uint32(pc.headerBuff[:4]) {
+		packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
+		if packetBodyCrc != packetEndian.Uint32(pc.headerBuff[:4]) {
 			return nil, errChecksumError
 		}
 	}
 
-	return message, nil
+	return packet, nil
 }
 
 func writeFull(conn io.Writer, data []byte) error {

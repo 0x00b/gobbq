@@ -46,11 +46,11 @@ type ServerOptions struct {
 	TLSCertFile string // server证书
 	TLSKeyFile  string // server秘钥
 
-	maxSendMessageSize int
-	writeBufferSize    int
-	readBufferSize     int
-	numServerWorkers   uint32
-	connectionTimeout  time.Duration
+	maxSendPacketSize int
+	writeBufferSize   int
+	readBufferSize    int
+	numServerWorkers  uint32
+	connectionTimeout time.Duration
 
 	Entities map[entity.EntityType]*entity.EntityDesc
 }

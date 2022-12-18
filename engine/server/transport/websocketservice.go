@@ -59,10 +59,10 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn) {
 	fmt.Println("handleconn")
 
 	conn := &conn{
-		rwc:               rawConn,
-		ctx:               context.Background(),
-		messageReadWriter: codec.NewMessageReadWriter(context.Background(), rawConn),
-		MessageHandler:    NewServerMessageHandler(context.Background(), rawConn),
+		rwc:              rawConn,
+		ctx:              context.Background(),
+		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
+		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn),
 	}
 	conn.Serve()
 

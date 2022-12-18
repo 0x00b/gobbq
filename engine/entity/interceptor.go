@@ -36,7 +36,7 @@ type UnaryServerInfo struct {
 //
 // If a UnaryHandler returns an error, it should either be produced by the
 // status package, or be one of the context errors. Otherwise, gRPC will use
-// codes.Unknown as the status code and err.Error() as the status message of the
+// codes.Unknown as the status code and err.Error() as the status packet of the
 // RPC.
 type UnaryHandler func(ctx context.Context, req interface{}) (interface{}, error)
 
