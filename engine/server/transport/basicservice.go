@@ -9,8 +9,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/engine/server/transport/kcp"
-	"github.com/0x00b/gobbq/engine/server/transport/tcp"
 )
 
 // type Transport interface {
@@ -60,9 +58,9 @@ func (t *service) listenAndServe(network server.NetWorkName, address string, opt
 
 	switch network {
 	case server.KCP:
-		ln, err = kcp.NewDefaultKCPListener().Listen(network, address, opts)
+		ln, err = NewDefaultKCPListener().Listen(network, address, opts)
 	case server.TCP, server.TCP6:
-		ln, err = tcp.NewTCPListener(network).Listen(network, address, opts)
+		ln, err = NewTCPListener(network).Listen(network, address, opts)
 	default:
 		panic(fmt.Sprintf("unkown network:%s", network))
 	}
