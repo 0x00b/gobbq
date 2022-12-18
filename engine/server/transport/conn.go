@@ -17,6 +17,7 @@ type PacketHandler interface {
 }
 
 type conn struct {
+	clientID         server.GameClient
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	ctx              context.Context
