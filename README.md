@@ -107,3 +107,7 @@ ABTest能力：从框架层面支持用户/请求/功能系统/服务节点的AB
 # components
 gate必要
 proxy - sidecar ？
+
+
+一个链接一个actor，客户端是一个actor，客户端对应的server也是一个actor
+actor上下文全都通过一个context来表示
