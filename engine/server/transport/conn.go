@@ -10,7 +10,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/proto"
 )
 
 type conn struct {
@@ -77,11 +76,5 @@ func (st *conn) Serve() {
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	switch pkt.GetHeader().CallType {
-	case proto.CallType_entity:
-		st.PacketHandler.HandlePacket(c, pkt)
-	case proto.CallType_service:
-	default:
-	}
-	return nil
+	return st.PacketHandler.HandlePacket(c, pkt)
 }

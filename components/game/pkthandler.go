@@ -26,6 +26,12 @@ func NewServerPacketHandler(ctx context.Context, conn net.Conn, opts *server.Ser
 
 func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
+	switch pkt.GetHeader().CallType {
+	case proto.CallType_entity:
+	case proto.CallType_service:
+	default:
+	}
+
 	// hdr := &proto.Header{}
 
 	hdr := pkt.GetHeader()
@@ -54,7 +60,7 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 	mt := ed.Methods[method]
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()
-		err := codec.GetCodec(proto.ContentType(hdr.GetContentType())).Unmarshal(reqbuf, v)
+		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
 		return err
 	}
 
