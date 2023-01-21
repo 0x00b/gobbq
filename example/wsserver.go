@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/0x00b/gobbq"
-	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/proto"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 
 	go svr.ListenAndServe(server.TCP, ":1234")
 	go svr.ListenAndServe(server.KCP, ":1235")
-	err := svr.ListenAndServe(server.WebSocket, ":80")
+	err := svr.ListenAndServe(server.WebSocket, ":8080")
 
 	fmt.Println(err)
 }
@@ -25,11 +25,11 @@ type TestEntity struct {
 }
 
 type TestEntityInterface interface {
-	SayHello(c context.Context, req *bbqpb.RequestHeader) (*bbqpb.ResponseHeader, error)
+	SayHello(c context.Context, req *proto.Header) (*proto.Header, error)
 }
 
-func (*TestEntity) SayHello(c context.Context, req *bbqpb.RequestHeader) (*bbqpb.ResponseHeader, error) {
-	return &bbqpb.ResponseHeader{
+func (*TestEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header, error) {
+	return &proto.Header{
 		Method: "hello",
 	}, nil
 }
@@ -39,7 +39,7 @@ func RegisterTestEntity(s *server.Server, srv TestEntityInterface) {
 }
 
 func _SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor server.UnaryServerInterceptor) (interface{}, error) {
-	in := new(bbqpb.RequestHeader)
+	in := new(proto.Header)
 	if err := dec(in); err != nil {
 		return nil, err
 	}

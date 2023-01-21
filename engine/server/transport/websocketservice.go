@@ -38,11 +38,10 @@ func (ws *WebSocketService) ListenAndServe(network server.NetWorkName, address s
 	// http.Handle("/ws", h)
 
 	if opts.TLSKeyFile == "" && opts.TLSCertFile == "" {
-		ws.server.ListenAndServe()
-	} else {
-		ws.server.ListenAndServeTLS(opts.CACertFile, opts.TLSKeyFile)
+		return ws.server.ListenAndServe()
 	}
-	return nil
+
+	return ws.server.ListenAndServeTLS(opts.CACertFile, opts.TLSKeyFile)
 }
 
 func (ws *WebSocketService) Close(chan struct{}) error {
@@ -62,7 +61,7 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *server.ServerOpti
 		rwc:              rawConn,
 		ctx:              context.Background(),
 		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn, opts),
+		PacketHandler:    opts.PacketHandler, //NewServerPacketHandler(context.Background(), rawConn, opts),
 		opts:             opts,
 	}
 	conn.Serve()

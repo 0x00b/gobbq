@@ -2,12 +2,13 @@ package codec
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/bytespool"
+	"github.com/0x00b/gobbq/proto"
 )
 
 // Packet is a packet for sending data
@@ -16,24 +17,19 @@ type Packet struct {
 
 	Src *PacketReadWriter // not nil indicates this is request packet
 
-	// members:
-	// _ uint32 // total len
-	// _ PacketType
-	// _ Flags
-	// _ uint32 // request header len
+	// header:
+	header *proto.Header
 
-	// data
+	totalLen  uint32
+	headerLen uint32
+
+	// data(header + body)
 	bytes *bytespool.Bytes
 }
 
 const (
-
-	// packet = packet header + message header + message body
-	// packet header = (4 byte total len) + (1 byte msg type) + (1 byte flag) + (4 byte header len)
-	packetHeaderSize = 10
-
 	minPacketBufferLen  = bytespool.MinBufferCap
-	MaxPacketBodyLength = bytespool.MaxBufferCap - packetHeaderSize
+	MaxPacketBodyLength = bytespool.MaxBufferCap
 )
 
 var (
@@ -41,7 +37,6 @@ var (
 	packetPool   = &sync.Pool{
 		New: func() interface{} {
 			p := &Packet{}
-			p.bytes = bytespool.Get(minPacketBufferLen)
 			return p
 		},
 	}
@@ -66,36 +61,14 @@ func (t PacketType) String() string {
 	return fmt.Sprintf("UNKNOWN_MESSAGE_TYPE_%d", uint8(t))
 }
 
-// depend on PacketType
-type Flags uint8
-
 // Has reports whether f contains all (0 or more) flags in v.
-func (f Flags) Has(v Flags) bool {
-	return (f & v) == v
-}
-
-// Has reports whether f contains all (0 or more) flags in v.
-func (f *Flags) Set(v Flags) *Flags {
-	*f = *f | v
-	return f
+func HasFlags(v, flags uint32) bool {
+	return (v & flags) == flags
 }
 
 const (
-	//PacketRPC
-	FlagDataRpcResponse  Flags = 0x01 // 0x00：request， 0x01：response
-	FlagDataZipCompress  Flags = 0x02 // 留两位来代表压缩算法 {0x2,0x4,0x6}
-	FlagDataChecksumIEEE Flags = 0x08
-	FlagDataProtoBuf     Flags = 0x10
+	FlagDataChecksumIEEE uint32 = 0x01
 )
-
-var flagName = map[PacketType]map[Flags]string{
-	PacketRPC: {
-		FlagDataRpcResponse:  "RpcResponse",
-		FlagDataZipCompress:  "ZipCompress",
-		FlagDataChecksumIEEE: "ChecksumIEEE",
-		FlagDataProtoBuf:     "ProtoBuf",
-	},
-}
 
 func allocPacket() *Packet {
 	pkt := packetPool.Get().(*Packet)
@@ -128,107 +101,81 @@ func (p *Packet) Release() {
 }
 
 // WriteBytes appends slice of bytes to the end of packetBody
-func (p *Packet) WriteBytes(b []byte) {
-	pl := p.extendPacketBody(len(b))
-	copy(pl, b)
+func (p *Packet) WriteBody(b []byte) error {
+	if p.header == nil {
+		return errors.New("set header first")
+	}
+
+	header, err := DefaultCodec.Marshal(p.header)
+	if err != nil {
+		return err
+	}
+
+	p.headerLen = 4 + uint32(len(header))
+	p.totalLen = p.headerLen + uint32(len(b))
+
+	data := p.extendPacketData(p.totalLen)
+
+	packetEndian.PutUint32(data, p.headerLen)
+	copy(data[4:p.headerLen], header)
+	copy(data[p.headerLen:p.totalLen], b)
+
+	return nil
 }
 
 // WriteBytes appends slice of bytes to the end of packetBody
-func (p *Packet) WriteMsgHeader(b []byte) {
-	p.setMsgHeaderLen(uint32(len(b)))
-	p.WriteBytes(b)
+func (p *Packet) SetHeader(header *proto.Header) {
+	p.header = header
+}
+func (p *Packet) GetHeader() *proto.Header {
+	return p.header
 }
 
 // PacketBody returns the total packetBody of packet
 func (p *Packet) PacketBody() []byte {
-	return p.bytes.Bytes()[packetHeaderSize : packetHeaderSize+p.GetPacketBodyLen()]
-}
-
-// GetPacketBodyLen returns the packetBody length
-func (p *Packet) GetPacketBodyLen() uint32 {
-	// _ = p.bytes.Bytes()[3]
-	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[0]))
-}
-
-func (p *Packet) setPacketBodyLen(plen uint32) {
-	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[0]))
-	*pplen = plen
-}
-
-func (p *Packet) GetPacketType() PacketType {
-	// _ = p.bytes.Bytes()[4]
-	return *(*PacketType)(unsafe.Pointer(&p.bytes.Bytes()[4]))
-}
-
-func (p *Packet) SetPacketType(typ PacketType) {
-	pplen := (*PacketType)(unsafe.Pointer(&p.bytes.Bytes()[4]))
-	*pplen = typ
-}
-
-func (p *Packet) GetPacketFlags() Flags {
-	// _ = p.bytes.Bytes()[5]
-	return *(*Flags)(unsafe.Pointer(&p.bytes.Bytes()[5]))
-}
-
-func (p *Packet) SetPacketFlags(flags Flags) {
-	pplen := (*Flags)(unsafe.Pointer(&p.bytes.Bytes()[5]))
-	*pplen = flags
-}
-
-// GetPacketBodyLen returns the packetBody length
-func (p *Packet) GetMsgHeaderLen() uint32 {
-	// _ = p.bytes.Bytes()[3]
-	return *(*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
-}
-
-func (p *Packet) setMsgHeaderLen(plen uint32) {
-	pplen := (*uint32)(unsafe.Pointer(&p.bytes.Bytes()[6]))
-	*pplen = plen
+	return p.bytes.Bytes()[p.headerLen:p.totalLen]
 }
 
 // PacketCap  returns the current packetBody capacity
-func (p *Packet) PacketCap() uint32 {
-	return uint32(len(p.bytes.Bytes()))
+func (p *Packet) GetPacketCap() uint32 {
+	if p.bytes == nil {
+		return 0
+	}
+	return uint32(cap(p.bytes.Bytes()))
 }
 
 func (p *Packet) reset() {
 	p.Src = nil
-	p.setPacketBodyLen(0)
-	p.SetPacketType(0)
-	p.SetPacketFlags(0)
+	p.headerLen = 0
+	p.totalLen = 0
 	p.refcount = 1
 }
 
 func (p *Packet) Data() []byte {
-	return p.bytes.Bytes()[0 : packetHeaderSize+p.GetPacketBodyLen()]
-}
-
-func (p *Packet) packetBodySlice(i, j uint32) []byte {
-	return p.bytes.Bytes()[i+packetHeaderSize : j+packetHeaderSize]
+	if p.bytes == nil {
+		return nil
+	}
+	return p.bytes.Bytes()[:p.totalLen]
 }
 
 // 返回的结果是在header的buf之后
-func (p *Packet) extendPacketBody(size int) []byte {
+func (p *Packet) extendPacketData(size uint32) []byte {
 	if size > MaxPacketBodyLength {
 		panic(ErrPacketBodyTooLarge)
 	}
 
-	packetBodyLen := p.GetPacketBodyLen()
-	newPacketBodyLen := packetBodyLen + uint32(size)
-	newPacketLen := packetHeaderSize + newPacketBodyLen
-	oldCap := p.PacketCap()
+	oldCap := p.GetPacketCap()
 
-	if newPacketLen <= oldCap { // most case
-		p.setPacketBodyLen(newPacketBodyLen)
-		return p.packetBodySlice(packetBodyLen, newPacketBodyLen)
+	if size <= oldCap { // most case
+		return p.Data()
 	}
 
 	// get new buffer
 
-	if newPacketLen > MaxPacketBodyLength {
-		panic(ErrPacketBodyTooLarge)
+	bs := bytespool.Get(size)
+	if bs == nil {
+		panic("bytespool get bytes error")
 	}
-	bs := bytespool.Get(newPacketLen)
 
 	copy(bs.Bytes(), p.Data())
 	oldBytes := p.bytes
@@ -236,6 +183,5 @@ func (p *Packet) extendPacketBody(size int) []byte {
 
 	bytespool.Put(oldBytes)
 
-	p.setPacketBodyLen(newPacketBodyLen)
-	return p.packetBodySlice(packetBodyLen, newPacketBodyLen)
+	return p.Data()
 }

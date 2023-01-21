@@ -19,7 +19,7 @@ func TestTcpClient(m *testing.T) {
 	ws := codec.NewPacketReadWriter(context.Background(), wsc)
 
 	pkt := codec.NewPacket()
-	pkt.WriteBytes([]byte("dsfsdfs"))
+	pkt.WriteBody([]byte("dsfsdfs"))
 	ws.WritePacket(pkt)
 
 	if pkt, err = ws.ReadPacket(); err != nil {

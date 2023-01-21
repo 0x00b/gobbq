@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/0x00b/gobbq/erro"
+	"github.com/0x00b/gobbq/proto"
 	"github.com/pkg/errors"
 )
 
@@ -34,8 +35,6 @@ type PacketReadWriter struct {
 	Config Config
 
 	rw io.ReadWriter
-
-	headerBuff [packetHeaderSize]byte
 
 	// write will inc 1
 	writeMsgCnt uint32
@@ -68,61 +67,71 @@ func NewPacketReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *C
 // WritePacket write packet data to pc.rw, need to initialize the packet by yourself
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 	pdata := packet.Data()
+
+	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
+
 	err := writeFull(pc.rw, pdata)
 	if err != nil {
 		return err
 	}
 
-	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
+	if HasFlags(packet.header.CheckFlags, FlagDataChecksumIEEE) {
 		var crc32Buffer [4]byte
 		packetBodyCrc := crc32.ChecksumIEEE(pdata)
 		packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
 		return writeFull(pc.rw, crc32Buffer[:])
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // recv receives the next packet
 func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	var err error
 
-	_, err = io.ReadFull(pc.rw, pc.headerBuff[:])
+	var tempBuff [4]byte
+
+	_, err = io.ReadFull(pc.rw, tempBuff[:])
 	if err != nil {
 		return nil, err
 	}
 
-	packetBodySize := packetEndian.Uint32(pc.headerBuff[:4])
-	if packetBodySize > MaxPacketBodyLength {
+	packetDataSize := packetEndian.Uint32(tempBuff[:])
+	if packetDataSize > MaxPacketBodyLength {
 		return nil, errPacketBodyTooLarge
 	}
 
 	// allocate a packet to receive packetBody
 	packet := NewPacket()
-	packet.SetPacketType(PacketType(pc.headerBuff[4]))
-	packet.SetPacketFlags(Flags(pc.headerBuff[5]))
-	packet.setMsgHeaderLen(packetEndian.Uint32(pc.headerBuff[6:]))
 	packet.Src = pc
+	packet.totalLen = packetDataSize
 
 	//extendPacketBody 返回的时候已经把header buff排除了
-	packetBody := packet.extendPacketBody(int(packetBodySize))
-	_, err = io.ReadFull(pc.rw, packetBody)
+	packetData := packet.extendPacketData(packetDataSize)
+	_, err = io.ReadFull(pc.rw, packetData)
 	if err != nil {
 		return nil, err
 	}
 
-	packet.setPacketBodyLen(packetBodySize)
+	packet.headerLen = packetEndian.Uint32(packetData[:4])
+	packet.header = &proto.Header{}
+
+	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
+	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.header)
+	if err != nil {
+		return nil, err
+	}
+
 	pc.readMsgCnt++
 
 	// receive checksum (uint32)
-	if packet.GetPacketFlags().Has(FlagDataChecksumIEEE) {
-		_, err = io.ReadFull(pc.rw, pc.headerBuff[:4])
+	if HasFlags(packet.header.CheckFlags, FlagDataChecksumIEEE) {
+		_, err = io.ReadFull(pc.rw, tempBuff[:4])
 		if err != nil {
 			return nil, err
 		}
 
 		packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
-		if packetBodyCrc != packetEndian.Uint32(pc.headerBuff[:4]) {
+		if packetBodyCrc != packetEndian.Uint32(tempBuff[:4]) {
 			return nil, errChecksumError
 		}
 	}

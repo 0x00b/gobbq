@@ -9,7 +9,7 @@ import (
 
 // NewSever return gobbq server
 func NewSever(opts ...server.ServerOption) *server.Server {
-	svr := server.NewServer()
+	svr := server.NewServer(opts...)
 	svr.RegisterService(transport.NewService(context.Background()))
 
 	return svr

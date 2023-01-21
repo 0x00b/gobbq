@@ -118,7 +118,7 @@ func (t *service) handleConn(rawConn net.Conn, opts *server.ServerOptions) {
 		rwc:              rawConn,
 		ctx:              context.Background(),
 		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-		PacketHandler:    NewServerPacketHandler(context.Background(), rawConn, opts),
+		PacketHandler:    opts.PacketHandler, // NewServerPacketHandler(context.Background(), rawConn, opts),
 		opts:             opts,
 	}
 	conn.Serve()

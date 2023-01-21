@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/0x00b/gobbq/bbqpb"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/server/transport"
+	"github.com/0x00b/gobbq/proto"
 	"github.com/xtaci/kcp-go"
 )
 
@@ -25,9 +25,9 @@ func main() {
 
 	pkt := codec.NewPacket()
 
-	hdr := &bbqpb.RequestHeader{
+	hdr := &proto.Header{
 		Version:   1,
-		RequestId: 1,
+		RequestId: "1",
 		Timeout:   1,
 		Method:    "helloworld.Test/SayHello",
 		TransInfo: map[string][]byte{"xxx": []byte("22222")},
@@ -35,18 +35,17 @@ func main() {
 		// CompressType: 1,
 	}
 
-	hdrBytes, err := codec.GetCodec(bbqpb.ContentType_proto).Marshal(hdr)
+	pkt.SetHeader(hdr)
+
+	hdrBytes, err := codec.GetCodec(proto.ContentType_proto).Marshal(hdr)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("len:", pkt.GetMsgHeaderLen(), uint32(len("dsfsdfs")), pkt.GetPacketBodyLen())
 	fmt.Println("raw data:", []byte(hdr.String()), []byte("dsfsdfs"))
 
-	pkt.WriteMsgHeader(hdrBytes)
-
 	// body
-	pkt.WriteBytes(hdrBytes)
+	pkt.WriteBody(hdrBytes)
 
 	fmt.Println("data:", len(pkt.PacketBody()), pkt.PacketBody())
 

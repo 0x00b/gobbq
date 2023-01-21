@@ -5,7 +5,7 @@ package codec
 import (
 	"fmt"
 
-	bp "github.com/0x00b/gobbq/bbqpb"
+	bp "github.com/0x00b/gobbq/proto"
 	"github.com/golang/protobuf/proto"
 )
 

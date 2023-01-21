@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto"
 	"golang.org/x/net/websocket"
 )
 
 func TestWSClient(m *testing.T) {
 
-	origin := "http://localhost/"
-	url := "ws://localhost/ws"
+	origin := "http://localhost:8080/"
+	url := "ws://localhost:8080/ws"
 	wsc, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		log.Fatal(err)
@@ -22,7 +23,30 @@ func TestWSClient(m *testing.T) {
 	ws := codec.NewPacketReadWriter(context.Background(), wsc)
 
 	pkt := codec.NewPacket()
-	pkt.WriteBytes([]byte("test"))
+
+	hdr := &proto.Header{
+		Version:   1,
+		RequestId: "1",
+		Timeout:   1,
+		Method:    "helloworld.Test/SayHello",
+		TransInfo: map[string][]byte{"xxx": []byte("22222")},
+		// ContentType:  1,
+		// CompressType: 1,
+		CheckFlags: codec.FlagDataChecksumIEEE,
+	}
+
+	pkt.SetHeader(hdr)
+
+	hdrBytes, err := codec.GetCodec(proto.ContentType_proto).Marshal(hdr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pkt.WriteBody(hdrBytes)
+
+	fmt.Println("raw data len:", len(pkt.Data()), len(hdrBytes))
+
 	ws.WritePacket(pkt)
 
 	if pkt, err = ws.ReadPacket(); err != nil {

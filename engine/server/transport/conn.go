@@ -10,11 +10,8 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/proto"
 )
-
-type PacketHandler interface {
-	HandlePacket(c context.Context, pkt *codec.Packet) error
-}
 
 type conn struct {
 	clientID         server.GameClient
@@ -23,7 +20,7 @@ type conn struct {
 	ctx              context.Context
 	idleTimeout      time.Duration
 	lastVisited      time.Time
-	PacketHandler    PacketHandler
+	PacketHandler    server.PacketHandler
 	opts             *server.ServerOptions
 }
 
@@ -80,10 +77,10 @@ func (st *conn) Serve() {
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	switch pkt.GetPacketType() {
-	case codec.PacketRPC:
+	switch pkt.GetHeader().CallType {
+	case proto.CallType_entity:
 		st.PacketHandler.HandlePacket(c, pkt)
-	case codec.PacketSys:
+	case proto.CallType_service:
 	default:
 	}
 	return nil

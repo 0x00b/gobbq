@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"time"
 
 	"github.com/0x00b/gobbq/engine/bbqsync"
 )
 
 // NewSever return gobbq server
 func NewServer(opts ...ServerOption) *Server {
+
 	svr := &Server{
 		quit: bbqsync.NewEvent(),
 		done: bbqsync.NewEvent(),
 		opts: &ServerOptions{Entities: make(map[string]*EntityDesc)},
+	}
+
+	for _, opt := range opts {
+		opt.apply(svr.opts)
 	}
 
 	return svr
@@ -39,30 +43,9 @@ type Server struct {
 	service Service
 }
 
-type ServerOptions struct {
-	Network     string
-	Address     string
-	CACertFile  string // ca证书
-	TLSCertFile string // server证书
-	TLSKeyFile  string // server秘钥
-
-	maxSendPacketSize int
-	writeBufferSize   int
-	readBufferSize    int
-	numServerWorkers  uint32
-	connectionTimeout time.Duration
-
-	Entities map[string]*EntityDesc
-}
-
 var ErrServerStopped = errors.New("gobbq: the server has been stopped")
 var ErrNoServive = errors.New("gobbq: no register service")
 var ErrServerUnknown = errors.New("gobbq: the network is unknown")
-
-// A ServerOption sets options such as credentials, codec and keepalive parameters, etc.
-type ServerOption interface {
-	apply(*ServerOptions)
-}
 
 func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...ServerOption) error {
 	if s.service == nil {
