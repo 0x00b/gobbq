@@ -8,7 +8,7 @@ import (
 
 type clientMap map[entity.EntityID]*codec.PacketReadWriter
 
-type clientProxy map[entity.EntityID]entity.Entity
+type clientProxy map[entity.EntityID]entity.NopEntity
 
 var cltmap clientMap
 

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/server"
 )
 
 type ClientTransport struct {
@@ -25,7 +26,7 @@ func NewClientTransport(ctx context.Context, rawConn net.Conn) *ClientTransport 
 	return ct
 }
 
-func (ct *ClientTransport) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (ct *ClientTransport) HandlePacket(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
 
 	// hdr := &proto.ResponseHeader{}
 

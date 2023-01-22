@@ -40,7 +40,7 @@ func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
-	c := GetCompressor(proto.CompressType_gzip).(*compressor)
+	c := GetCompressor(proto.CompressType_Gzip).(*compressor)
 	c.poolCompressor.New = func() interface{} {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {
@@ -103,7 +103,7 @@ func (c *compressor) DecompressedSize(buf []byte) int {
 }
 
 func (c *compressor) Type() proto.CompressType {
-	return proto.CompressType_gzip
+	return proto.CompressType_Gzip
 }
 
 type compressor struct {

@@ -13,7 +13,6 @@ import (
 )
 
 type conn struct {
-	clientID         server.GameClient
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	ctx              context.Context
@@ -69,12 +68,15 @@ func (st *conn) Serve() {
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
-		st.handle(context.Background(), pkt)
+		err = st.handle(context.Background(), pkt)
+		if err != nil {
+			fmt.Println("handle failed", err)
+		}
 	}
 }
 
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	return st.PacketHandler.HandlePacket(c, pkt)
+	return st.PacketHandler.HandlePacket(c, st.opts, pkt)
 }

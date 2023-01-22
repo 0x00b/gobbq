@@ -25,7 +25,7 @@ type service struct {
 	// st Transport
 }
 
-func NewService(ctx context.Context) *service {
+func NewNetService(ctx context.Context) *service {
 	return &service{
 		ctx: ctx,
 		// network:  lis.Name(),

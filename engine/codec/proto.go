@@ -38,5 +38,5 @@ func (protoCodec) Unmarshal(data []byte, v interface{}) error {
 }
 
 func (protoCodec) Type() bp.ContentType {
-	return bp.ContentType_proto
+	return bp.ContentType_Proto
 }

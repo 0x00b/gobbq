@@ -21,12 +21,10 @@ type ServerOptions struct {
 	connectionTimeout time.Duration
 
 	PacketHandler PacketHandler
-
-	Entities map[string]*EntityDesc
 }
 
 type PacketHandler interface {
-	HandlePacket(c context.Context, pkt *codec.Packet) error
+	HandlePacket(c context.Context, opts *ServerOptions, pkt *codec.Packet) error
 }
 
 // A ServerOption sets options such as credentials, codec and keepalive parameters, etc.

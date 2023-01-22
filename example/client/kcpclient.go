@@ -37,7 +37,7 @@ func main() {
 
 	pkt.SetHeader(hdr)
 
-	hdrBytes, err := codec.GetCodec(proto.ContentType_proto).Marshal(hdr)
+	hdrBytes, err := codec.GetCodec(proto.ContentType_Proto).Marshal(hdr)
 	if err != nil {
 		fmt.Println(err)
 		return

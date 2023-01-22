@@ -8,7 +8,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/proto"
 )
 
 var _ server.PacketHandler = &GatePacketHandler{}
@@ -22,7 +21,7 @@ func NewGatePacketHandler() *GatePacketHandler {
 	return st
 }
 
-func (st *GatePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (st *GatePacketHandler) HandlePacket(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
 
 	fmt.Println("recv", string(pkt.PacketBody()))
 
@@ -50,48 +49,6 @@ func (st *GatePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) 
 
 	_ = service
 	_ = method
-	// ed := st.opts.Entities[service]
-	// mt := ed.Methods[method]
-	// dec := func(v interface{}) error {
-	// 	reqbuf := pkt.PacketBody()
-	// 	err := codec.GetCodec(proto.ContentType(hdr.GetContentType())).Unmarshal(reqbuf, v)
-	// 	return err
-	// }
-
-	// rsp, err := mt.Handler(ed.ServiceImpl, c, dec, nil)
-
-	npkt := codec.NewPacket()
-
-	rhdr := &proto.Header{
-		Version:      hdr.Version,
-		RequestId:    hdr.RequestId,
-		Timeout:      hdr.Timeout,
-		Method:       hdr.Method,
-		TransInfo:    hdr.TransInfo,
-		ContentType:  hdr.ContentType,
-		CompressType: hdr.CompressType,
-	}
-	npkt.SetHeader(rhdr)
-
-	rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-	if err != nil {
-		fmt.Println("WritePacket", err)
-		return err
-	}
-	npkt.WriteBody(rbyte)
-
-	rb, err := codec.DefaultCodec.Marshal(rhdr)
-	if err != nil {
-		fmt.Println("Marshal(rsp)", err)
-		return err
-	}
-
-	npkt.WriteBody(rb)
-
-	err = pkt.Src.WritePacket(npkt)
-	if err != nil {
-		fmt.Println("WritePacket", err)
-	}
 
 	// send to dispather
 	return nil

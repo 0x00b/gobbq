@@ -19,7 +19,7 @@ func NewProxyPacketHandler() *ProxyPacketHandler {
 	return st
 }
 
-func (st *ProxyPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (st *ProxyPacketHandler) HandlePacket(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
 
 	fmt.Println("recv", string(pkt.PacketBody()))
 	// send to game

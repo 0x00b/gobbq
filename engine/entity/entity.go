@@ -1,17 +1,24 @@
 package entity
 
+import (
+	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/tool/snowflake"
+)
+
+// just for inner
 type EntityID string
 
-type EntityType string
+// just for inner
+type ServiceType string
 
 // IEntity declares functions that is defined in Entity
 // These functions are mostly component functions
 type IEntity interface {
-	EntityID() EntityID
+	IService
 
-	// Entity Lifetime
-	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
-	OnDestroy() // Called when entity is destroying (just before destroy)
+	// entity 是有ID的service
+	Entity() *proto.Entity
+
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
@@ -19,35 +26,31 @@ type IEntity interface {
 	OnFreeze()   // Called when entity is freezing
 	OnRestored() // Called when entity is restored
 
-	// Type returns the name of the Entity implementation.
-	// the result cannot change between calls.
-	Type() EntityType
-
-	// need
-	// message loop
-	// dispatch message
-	// handle message
 }
 
-// Entity is the basic execution unit in GoWorld server. Entities can be used to
-// represent players, NPCs, monsters. Entities can migrate among spaces.
-type Entity struct {
-	I  IEntity
-	ID EntityID
+var _ IEntity = &NopEntity{}
 
-	typeName EntityType
+type NopEntity struct {
+	NopService
 
-	destroyed bool
-
-	// The pointer to the service interface. Used to check whether the user
-	// provided implementation satisfies the interface requirements.
-	// entityInfo *EntityDesc
-
+	ety *proto.Entity
 }
 
-func NewEntity() {
-	// 需要生成对象
-	// start entity message loop
-	// register entity id to proxy
-	//
+// entity 是有ID的service
+func (n *NopEntity) Entity() *proto.Entity {
+	if n.ety == nil {
+		n.ety = &proto.Entity{
+			ID:   snowflake.GenUUID(),
+			Type: "Entity",
+		}
+
+	}
+	return n.ety
 }
+
+// Migration
+func (n *NopEntity) OnMigrateOut() {} // Called just before entity is migrating out
+func (n *NopEntity) OnMigrateIn()  {} // Called just after entity is migrating in
+// Freeze && Restore
+func (n *NopEntity) OnFreeze()   {} // Called when entity is freezing
+func (n *NopEntity) OnRestored() {} // Called when entity is restored
