@@ -75,6 +75,8 @@ func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 		return err
 	}
 
+	pc.writeMsgCnt++
+
 	if HasFlags(packet.header.CheckFlags, FlagDataChecksumIEEE) {
 		var crc32Buffer [4]byte
 		packetBodyCrc := crc32.ChecksumIEEE(pdata)

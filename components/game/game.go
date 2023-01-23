@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func test() {
+func ConnectToProxy() {
 
 	origin := "http://localhost:8080/"
 	url := "ws://localhost:8080/ws"
@@ -19,5 +19,7 @@ func test() {
 
 	opts := nets.WithPacketHandler(NewGamePacketHandler())
 
-	nets.NewClient(context.Background(), wsc, opts)
+	prxy := nets.NewClient(context.Background(), wsc, opts)
+
+	_ = prxy.SendPackt(nil)
 }

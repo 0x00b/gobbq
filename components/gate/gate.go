@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/0x00b/gobbq/components/proxy/px"
+	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 )
@@ -12,7 +12,7 @@ type clientProxy map[entity.EntityID]entity.NopEntity
 
 var cltmap clientMap
 
-var proxymap px.ProxyMap
+var proxymap ex.ProxyMap
 
 // RegisterEntity register serive
 func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {

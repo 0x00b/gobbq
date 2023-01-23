@@ -67,7 +67,7 @@ func (st *conn) Serve() {
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
-		err = st.handle(context.Background(), pkt)
+		err = st.handle(st.ctx, pkt)
 		if err != nil {
 			fmt.Println("handle failed", err)
 		}
@@ -75,6 +75,9 @@ func (st *conn) Serve() {
 }
 
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
+
+	// todo chan
+
 	defer pkt.Release()
 
 	return st.PacketHandler.HandlePacket(c, pkt)

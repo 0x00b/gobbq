@@ -35,5 +35,6 @@ func NewClient(ctx context.Context, rawConn net.Conn, ops ...Option) *Client {
 }
 
 func (ct *Client) SendPackt(pkt *codec.Packet) error {
+	// todo chan
 	return ct.conn.WritePacket(pkt)
 }
