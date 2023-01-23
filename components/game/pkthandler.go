@@ -28,7 +28,7 @@ func (st *ServerPacketHandler) HandlePacket(c context.Context, opts *server.Serv
 	case proto.CallType_CallEntity:
 		return st.HandleEntity(c, opts, pkt)
 	case proto.CallType_CallService:
-		return st.HandleEntity(c, opts, pkt)
+		return st.HandleService(c, opts, pkt)
 	default:
 	}
 	return errors.New("unknown call type")

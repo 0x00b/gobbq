@@ -32,7 +32,8 @@ func TestWSClient(m *testing.T) {
 		TransInfo: map[string][]byte{"xxx": []byte("22222")},
 		// ContentType:  1,
 		// CompressType: 1,
-		DstEntity:  &proto.Entity{ID: "Y80_q1ZNLX9eAAAB"},
+		CallType: proto.CallType_CallService,
+		// DstEntity:  &proto.Entity{ID: "Y80_q1ZNLX9eAAAB"},
 		CheckFlags: codec.FlagDataChecksumIEEE,
 	}
 
