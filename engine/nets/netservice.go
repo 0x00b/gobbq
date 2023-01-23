@@ -1,4 +1,4 @@
-package server
+package nets
 
 type NetWorkName string
 
@@ -30,7 +30,7 @@ type ServiceName interface {
 type NetService interface {
 	ServiceName
 
-	ListenAndServe(network NetWorkName, address string, opts *ServerOptions) error
+	ListenAndServe(network NetWorkName, address string, opts *Options) error
 
 	Close(chan struct{}) error
 }

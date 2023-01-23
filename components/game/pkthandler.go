@@ -8,33 +8,33 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto"
 )
 
-var _ server.PacketHandler = &ServerPacketHandler{}
+var _ nets.PacketHandler = &GamePacketHandler{}
 
-type ServerPacketHandler struct {
+type GamePacketHandler struct {
 }
 
-func NewServerPacketHandler() *ServerPacketHandler {
-	st := &ServerPacketHandler{}
+func NewGamePacketHandler() *GamePacketHandler {
+	st := &GamePacketHandler{}
 	// st.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, st)
 	return st
 }
 
-func (st *ServerPacketHandler) HandlePacket(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
+func (st *GamePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 	switch pkt.GetHeader().CallType {
 	case proto.CallType_CallEntity:
-		return st.HandleEntity(c, opts, pkt)
+		return st.HandleEntity(c, pkt)
 	case proto.CallType_CallService:
-		return st.HandleService(c, opts, pkt)
+		return st.HandleService(c, pkt)
 	default:
 	}
 	return errors.New("unknown call type")
 }
 
-func (st *ServerPacketHandler) HandleMethod(c context.Context, opts *server.ServerOptions, pkt *codec.Packet, sd *entity.ServiceDesc) error {
+func (st *GamePacketHandler) HandleMethod(c context.Context, pkt *codec.Packet, sd *entity.ServiceDesc) error {
 
 	hdr := pkt.GetHeader()
 
@@ -96,7 +96,7 @@ func (st *ServerPacketHandler) HandleMethod(c context.Context, opts *server.Serv
 	return nil
 }
 
-func (st *ServerPacketHandler) HandleService(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
+func (st *GamePacketHandler) HandleService(c context.Context, pkt *codec.Packet) error {
 
 	hdr := pkt.GetHeader()
 
@@ -119,11 +119,11 @@ func (st *ServerPacketHandler) HandleService(c context.Context, opts *server.Ser
 		return errors.New("unknown service type")
 	}
 
-	return st.HandleMethod(c, opts, pkt, ed)
+	return st.HandleMethod(c, pkt, ed)
 
 }
 
-func (st *ServerPacketHandler) HandleEntity(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
+func (st *GamePacketHandler) HandleEntity(c context.Context, pkt *codec.Packet) error {
 
 	hdr := pkt.GetHeader()
 	ety := hdr.GetDstEntity()
@@ -138,5 +138,5 @@ func (st *ServerPacketHandler) HandleEntity(c context.Context, opts *server.Serv
 		return errors.New("unknown entity id")
 	}
 
-	return st.HandleMethod(c, opts, pkt, sd)
+	return st.HandleMethod(c, pkt, sd)
 }

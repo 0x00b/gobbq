@@ -3,14 +3,13 @@ package gobbq
 import (
 	"context"
 
-	"github.com/0x00b/gobbq/engine/server"
-	"github.com/0x00b/gobbq/engine/server/transport"
+	"github.com/0x00b/gobbq/engine/nets"
 )
 
 // NewSever return gobbq server
-func NewSever(opts ...server.ServerOption) *server.Server {
-	svr := server.NewServer(opts...)
-	svr.RegisterNetService(transport.NewNetService(context.Background()))
+func NewSever(opts ...nets.Option) *nets.Server {
+	svr := nets.NewServer(opts...)
+	svr.RegisterNetService(nets.NewNetService(context.Background()))
 
 	return svr
 }

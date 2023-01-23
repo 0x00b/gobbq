@@ -1,4 +1,4 @@
-package transport
+package nets
 
 import (
 	"context"
@@ -8,32 +8,24 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/server"
 )
-
-// type Transport interface {
-// 	Serve() error
-// }
 
 type service struct {
 	ctx         context.Context
 	idleTimeout time.Duration
 	lastVisited time.Time
 
-	ops *server.ServerOptions
-
-	// st Transport
+	opts *Options
 }
 
 func NewNetService(ctx context.Context) *service {
 	return &service{
 		ctx: ctx,
-		// network:  lis.Name(),
 	}
 }
 
-func (t *service) ListenAndServe(network server.NetWorkName, address string, opts *server.ServerOptions) error {
-	t.ops = opts
+func (t *service) ListenAndServe(network NetWorkName, address string, opts *Options) error {
+	t.opts = opts
 	return t.listenAndServe(network, address, opts)
 }
 
@@ -42,14 +34,14 @@ func (t *service) Close(chan struct{}) error {
 }
 
 func (t *service) Name() string {
-	return ""
+	return "service"
 }
 
 // ===== inner =====
 
-func (t *service) listenAndServe(network server.NetWorkName, address string, opts *server.ServerOptions) error {
+func (t *service) listenAndServe(network NetWorkName, address string, opts *Options) error {
 
-	if network == server.WebSocket {
+	if network == WebSocket {
 		return newWebSocketService().ListenAndServe(network, address, opts)
 	}
 
@@ -57,9 +49,9 @@ func (t *service) listenAndServe(network server.NetWorkName, address string, opt
 	var err error
 
 	switch network {
-	case server.KCP:
+	case KCP:
 		ln, err = NewDefaultKCPListener().Listen(network, address, opts)
-	case server.TCP, server.TCP6:
+	case TCP, TCP6:
 		ln, err = NewTCPListener(network).Listen(network, address, opts)
 	default:
 		panic(fmt.Sprintf("unkown network:%s", network))
@@ -86,9 +78,9 @@ func (t *service) listenAndServe(network server.NetWorkName, address string, opt
 	}
 }
 
-func (t *service) handleConn(rawConn net.Conn, opts *server.ServerOptions) {
-	if t.ops.TLSCertFile != "" && t.ops.TLSKeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(t.ops.TLSCertFile, t.ops.TLSKeyFile)
+func (t *service) handleConn(rawConn net.Conn, opts *Options) {
+	if t.opts.TLSCertFile != "" && t.opts.TLSKeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(t.opts.TLSCertFile, t.opts.TLSKeyFile)
 		if err != nil {
 			fmt.Println(err, "load RSA key & certificate failed")
 			return
@@ -111,14 +103,11 @@ func (t *service) handleConn(rawConn net.Conn, opts *server.ServerOptions) {
 
 	fmt.Println("handleconn")
 
-	// t.st.Serve()
-	// NewServerTransport(context.TODO(), conn).Serve()
-
 	conn := &conn{
 		rwc:              rawConn,
 		ctx:              context.Background(),
 		packetReadWriter: codec.NewPacketReadWriter(context.Background(), rawConn),
-		PacketHandler:    opts.PacketHandler, // NewServerPacketHandler(context.Background(), rawConn, opts),
+		PacketHandler:    opts.PacketHandler,
 		opts:             opts,
 	}
 	conn.Serve()

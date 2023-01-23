@@ -1,4 +1,4 @@
-package server
+package nets
 
 import (
 	"errors"
@@ -8,12 +8,12 @@ import (
 )
 
 // NewSever return gobbq server
-func NewServer(opts ...ServerOption) *Server {
+func NewServer(opts ...Option) *Server {
 
 	svr := &Server{
 		quit: bbqsync.NewEvent(),
 		done: bbqsync.NewEvent(),
-		opts: &ServerOptions{},
+		opts: &Options{},
 	}
 
 	for _, opt := range opts {
@@ -25,7 +25,7 @@ func NewServer(opts ...ServerOption) *Server {
 
 // Server is a gobbq server to serve RPC requests.
 type Server struct {
-	opts *ServerOptions
+	opts *Options
 
 	quit    *bbqsync.Event
 	done    *bbqsync.Event
@@ -38,7 +38,7 @@ var ErrServerStopped = errors.New("gobbq: the server has been stopped")
 var ErrNoServive = errors.New("gobbq: no register service")
 var ErrServerUnknown = errors.New("gobbq: the network is unknown")
 
-func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...ServerOption) error {
+func (s *Server) ListenAndServe(network NetWorkName, address string, ops ...Option) error {
 	if s.netService == nil {
 		return ErrNoServive
 	}

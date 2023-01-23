@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/engine/nets"
 )
 
-var _ server.PacketHandler = &GatePacketHandler{}
+var _ nets.PacketHandler = &GatePacketHandler{}
 
 type GatePacketHandler struct {
 }
@@ -21,7 +21,7 @@ func NewGatePacketHandler() *GatePacketHandler {
 	return st
 }
 
-func (st *GatePacketHandler) HandlePacket(c context.Context, opts *server.ServerOptions, pkt *codec.Packet) error {
+func (st *GatePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
 	fmt.Println("recv", string(pkt.PacketBody()))
 

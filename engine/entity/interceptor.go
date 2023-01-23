@@ -40,7 +40,7 @@ type UnaryServerInfo struct {
 // RPC.
 type UnaryHandler func(ctx context.Context, req interface{}) (interface{}, error)
 
-// UnaryServerInterceptor provides a hook to intercept the execution of a unary RPC on the server. info
+// UnaryServerInterceptor provides a hook to intercept the execution of a unary RPC on the nets. info
 // contains all the information of this RPC the interceptor can operate on. And handler is the wrapper
 // of the service method implementation. It is the responsibility of the interceptor to invoke handler
 // to complete the RPC.

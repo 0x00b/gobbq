@@ -1,4 +1,4 @@
-package transport
+package nets
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/server"
 )
 
 type conn struct {
@@ -18,8 +17,8 @@ type conn struct {
 	ctx              context.Context
 	idleTimeout      time.Duration
 	lastVisited      time.Time
-	PacketHandler    server.PacketHandler
-	opts             *server.ServerOptions
+	PacketHandler    PacketHandler
+	opts             *Options
 }
 
 func (st *conn) Name() string {
@@ -78,5 +77,5 @@ func (st *conn) Serve() {
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	return st.PacketHandler.HandlePacket(c, st.opts, pkt)
+	return st.PacketHandler.HandlePacket(c, pkt)
 }

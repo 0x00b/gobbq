@@ -7,12 +7,12 @@ import (
 	"github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/game"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/engine/server"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto"
 )
 
 func main() {
-	svr := gobbq.NewSever(server.WithPacketHandler(game.NewServerPacketHandler()))
+	svr := gobbq.NewSever(nets.WithPacketHandler(game.NewGamePacketHandler()))
 
 	var te TestEntityInterface = &TestEntity{}
 
@@ -22,9 +22,9 @@ func main() {
 
 	entity.NewEntity(Test_ServiceDesc.TypeName)
 
-	go svr.ListenAndServe(server.TCP, ":1234")
-	go svr.ListenAndServe(server.KCP, ":1235")
-	err := svr.ListenAndServe(server.WebSocket, ":8080")
+	go svr.ListenAndServe(nets.TCP, ":1234")
+	go svr.ListenAndServe(nets.KCP, ":1235")
+	err := svr.ListenAndServe(nets.WebSocket, ":8080")
 
 	fmt.Println(err)
 }
@@ -44,11 +44,11 @@ func (*TestEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header
 	}, nil
 }
 
-func RegisterTestEntity(s *server.Server, svc TestEntityInterface) {
+func RegisterTestEntity(s *nets.Server, svc TestEntityInterface) {
 	entity.Manager.RegisterEntity(&Test_ServiceDesc, svc)
 }
 
-func RegisterTestService(s *server.Server, svc TestEntityInterface) {
+func RegisterTestService(s *nets.Server, svc TestEntityInterface) {
 	entity.Manager.RegisterService(&Test_ServiceDesc, svc)
 }
 

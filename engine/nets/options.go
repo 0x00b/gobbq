@@ -1,4 +1,4 @@
-package server
+package nets
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-type ServerOptions struct {
+type Options struct {
 	Network     string
 	Address     string
 	CACertFile  string // ca证书
@@ -24,12 +24,12 @@ type ServerOptions struct {
 }
 
 type PacketHandler interface {
-	HandlePacket(c context.Context, opts *ServerOptions, pkt *codec.Packet) error
+	HandlePacket(c context.Context, pkt *codec.Packet) error
 }
 
-// A ServerOption sets options such as credentials, codec and keepalive parameters, etc.
-type ServerOption interface {
-	apply(*ServerOptions)
+// A Option sets options such as credentials, codec and keepalive parameters, etc.
+type Option interface {
+	apply(*Options)
 }
 
 type withPacketHandler struct {
@@ -40,6 +40,6 @@ func WithPacketHandler(ph PacketHandler) *withPacketHandler {
 	return &withPacketHandler{ph}
 }
 
-func (w *withPacketHandler) apply(s *ServerOptions) {
+func (w *withPacketHandler) apply(s *Options) {
 	s.PacketHandler = w.PacketHandler
 }
