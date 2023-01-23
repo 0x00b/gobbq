@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
@@ -15,19 +16,22 @@ type ProxyPacketHandler struct {
 
 func NewProxyPacketHandler() *ProxyPacketHandler {
 	st := &ProxyPacketHandler{}
-	// st.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, st)
 	return st
 }
 
 func (st *ProxyPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
 	fmt.Println("recv", string(pkt.PacketBody()))
-	// send to game
-	// or send to gate
 
 	hdr := pkt.GetHeader()
 
-	_ = hdr.Method
+	id := hdr.GetDstEntity().ID
+	rw, ok := cltmap[entity.EntityID(id)]
+	if !ok {
+		fmt.Println("unknown client")
+		return nil
+	}
 
-	return nil
+	return rw.WritePacket(pkt)
+
 }

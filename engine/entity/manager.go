@@ -24,7 +24,7 @@ type EntityManager struct {
 	Entities    map[EntityID]*ServiceDesc    // entity id -> entity impl
 }
 
-func NewEntity(typ ServiceType) *proto.Entity {
+func NewEntity(id EntityID, typ ServiceType) *proto.Entity {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
 		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
@@ -44,7 +44,7 @@ func NewEntity(typ ServiceType) *proto.Entity {
 		fmt.Println("error type", svcType.Name())
 		return nil
 	}
-
+	entity.SetEntityID(id)
 	// init
 	entity.OnInit()
 

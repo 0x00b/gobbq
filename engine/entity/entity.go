@@ -2,7 +2,6 @@ package entity
 
 import (
 	"github.com/0x00b/gobbq/proto"
-	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
 // just for inner
@@ -18,6 +17,8 @@ type IEntity interface {
 
 	// entity 是有ID的service
 	Entity() *proto.Entity
+	// entity 是有ID的service
+	SetEntityID(id EntityID)
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -38,14 +39,18 @@ type NopEntity struct {
 
 // entity 是有ID的service
 func (n *NopEntity) Entity() *proto.Entity {
+	return n.ety
+}
+
+func (n *NopEntity) SetEntityID(id EntityID) {
 	if n.ety == nil {
 		n.ety = &proto.Entity{
-			ID:   snowflake.GenUUID(),
+			ID:   string(id),
 			Type: "Entity",
 		}
 
 	}
-	return n.ety
+	return
 }
 
 // Migration

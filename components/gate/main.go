@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	svr := gobbq.NewSever(nets.WithPacketHandler(NewGatePacketHandler()))
+	svr := gobbq.NewSever(nets.WithPacketHandler(NewClientPacketHandler()))
 
 	// RegisterTestEntity(svr, &TestEntity{})
 
