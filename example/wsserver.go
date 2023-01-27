@@ -1,48 +1,55 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"os"
 
-	"github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/game"
+	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"golang.org/x/net/websocket"
 )
 
 func main() {
-	svr := gobbq.NewSever(nets.WithPacketHandler(game.NewGamePacketHandler()))
+
+	fmt.Println(conf.C)
 
 	var te TestServerInterface = &TestEntity{}
 
-	RegisterTestService(svr, te)
+	RegisterTestService(te)
 
-	RegisterTestEntity(svr, te)
+	RegisterTestEntity(te)
 
-	go svr.ListenAndServe(nets.TCP, ":1234")
-	go svr.ListenAndServe(nets.KCP, ":1235")
-	err := svr.ListenAndServe(nets.WebSocket, ":8080")
+	// svr := gobbq.NewSever(nets.WithPacketHandler(game.NewGamePacketHandler()))
+	// go svr.ListenAndServe(nets.TCP, ":1234")
+	// go svr.ListenAndServe(nets.KCP, ":1235")
+	// err := svr.ListenAndServe(nets.WebSocket, ":8080")
+	game.ConnectProxy()
 
-	fmt.Println(err)
+	testServer()
+
+	bufio.NewReader(os.Stdin).ReadString('\n')
+	// fmt.Println(err)
 }
 
-func testClient() {
-	clientEty := NewTestEntityWithID("1111")
-	rsp, err := clientEty.SayHello(context.Background(), &proto.Header{})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(rsp)
+func testServer() {
+	clientEty := NewTestEntityWithID("111")
+	_ = clientEty
+	// rsp, err := clientEty.SayHello(context.Background(), &proto.Header{})
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// fmt.Println(rsp)
 }
 
 type TestEntity struct {
-	entity.NopEntity
+	entity.Entity
 }
 type TestServerInterface interface {
 	entity.IEntity
@@ -59,11 +66,11 @@ func (*TestEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header
 	}, nil
 }
 
-func RegisterTestEntity(s *nets.Server, svc TestServerInterface) {
+func RegisterTestEntity(svc TestServerInterface) {
 	entity.Manager.RegisterEntity(&Test_ServiceDesc, svc)
 }
 
-func RegisterTestService(s *nets.Server, svc TestServerInterface) {
+func RegisterTestService(svc TestServerInterface) {
 	entity.Manager.RegisterService(&Test_ServiceDesc, svc)
 }
 
@@ -90,21 +97,50 @@ var Test_ServiceDesc = entity.ServiceDesc{
 	Metadata: "examples/helloworld/helloworld/helloworld.proto",
 }
 
-// client
-type testClienEntity struct {
-	entity *proto.Entity
-}
+// func NewTestEntity() *testClienEntity {
+// 	return NewTestEntityWithID(entity.EntityID(snowflake.GenUUID()))
+// }
 
-func NewTestEntity() TestInterface {
-	return NewTestEntityWithID(entity.EntityID(snowflake.GenUUID()))
-}
-
-func NewTestEntityWithID(id entity.EntityID) TestInterface {
+func NewTestEntityWithID(id entity.EntityID) *testClienEntity {
 
 	ety := entity.NewEntity(id, Test_ServiceDesc.TypeName)
 	t := &testClienEntity{entity: ety}
 
 	return t
+}
+
+// client
+
+func testClient() {
+	cli := NewTestClient("id")
+	rsp, err := cli.SayHello(context.Background(), &proto.Header{})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(rsp)
+}
+
+func NewTestClient(id entity.EntityID) TestInterface {
+	c := testClienEntity{
+		entity: &proto.Entity{
+			ID:       string(id),
+			TypeName: string(Test_ServiceDesc.TypeName),
+		},
+	}
+	return &c
+}
+
+type testClienEntity struct {
+	entity *proto.Entity
+}
+
+// 返回内容不可改
+func (t *testClienEntity) GetEntity() *proto.Entity {
+	e := &proto.Entity{}
+	e.ID = t.entity.ID
+	e.TypeName = t.entity.TypeName
+	return e
 }
 
 func (t *testClienEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header, error) {

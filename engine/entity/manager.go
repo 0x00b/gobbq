@@ -5,12 +5,13 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/proto"
 )
 
 var Manager EntityManager = EntityManager{
-	Services:    make(map[ServiceType]*ServiceDesc),
-	entityDescs: make(map[ServiceType]*ServiceDesc),
+	Services:    make(map[TypeName]*ServiceDesc),
+	entityDescs: make(map[TypeName]*ServiceDesc),
 	Entities:    make(map[EntityID]*ServiceDesc),
 }
 
@@ -19,12 +20,12 @@ type EntityManager struct {
 	mu    sync.Mutex // guards following
 	serve bool
 
-	Services    map[ServiceType]*ServiceDesc // service name -> service info
-	entityDescs map[ServiceType]*ServiceDesc // entity name -> entity info
-	Entities    map[EntityID]*ServiceDesc    // entity id -> entity impl
+	Services    map[TypeName]*ServiceDesc // service name -> service info
+	entityDescs map[TypeName]*ServiceDesc // entity name -> entity info
+	Entities    map[EntityID]*ServiceDesc // entity id -> entity impl
 }
 
-func NewEntity(id EntityID, typ ServiceType) *proto.Entity {
+func NewEntity(id EntityID, typ TypeName) *proto.Entity {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
 		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
@@ -48,7 +49,7 @@ func NewEntity(id EntityID, typ ServiceType) *proto.Entity {
 	// init
 	entity.OnInit()
 
-	eid := EntityID(entity.Entity().ID)
+	eid := EntityID(entity.EntityID())
 
 	fmt.Println("register entity id:", eid)
 
@@ -60,7 +61,7 @@ func NewEntity(id EntityID, typ ServiceType) *proto.Entity {
 	// start message loop
 
 	// send to poxy
-	// proxy.RegisterEntity(tity.Entity())
+	ex.RegisterEntity(string(id))
 
 	return nil
 }

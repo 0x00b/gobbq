@@ -9,6 +9,7 @@ type IService interface {
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
 	OnDestroy() // Called when entity is destroying (just before destroy)
 
+	TypeName() TypeName
 }
 
 type methodHandler func(svc interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
@@ -23,7 +24,7 @@ type MethodDesc struct {
 type ServiceDesc struct {
 	ServiceImpl interface{}
 
-	TypeName ServiceType
+	TypeName TypeName
 	// The pointer to the service interface. Used to check whether the user
 	// provided implementation satisfies the interface requirements.
 	HandlerType interface{}
@@ -31,15 +32,20 @@ type ServiceDesc struct {
 	Metadata    interface{}
 }
 
-var _ IService = &NopService{}
+var _ IService = &Service{}
 
-type NopService struct {
+type Service struct {
+	typeName TypeName
 }
 
-func (*NopService) OnInit() {
+func (*Service) OnInit() {
 	// Called when initializing entity struct, override to initialize entity custom fields
 }
 
-func (*NopService) OnDestroy() {
+func (*Service) OnDestroy() {
 	// Called when entity is destroying (just before destroy)
+}
+
+func (s *Service) TypeName() TypeName {
+	return s.typeName
 }

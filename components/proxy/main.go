@@ -4,17 +4,16 @@ import (
 	"fmt"
 
 	"github.com/0x00b/gobbq"
+	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
 func main() {
+	fmt.Println(conf.C)
+
 	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()))
 
-	// RegisterTestEntity(svr, &TestEntity{})
-
-	go svr.ListenAndServe(nets.TCP, ":1234")
-	go svr.ListenAndServe(nets.KCP, ":1235")
-	err := svr.ListenAndServe(nets.WebSocket, ":80")
+	err := svr.ListenAndServe(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))
 
 	fmt.Println(err)
 }

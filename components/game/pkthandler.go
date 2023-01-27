@@ -26,15 +26,15 @@ func NewGamePacketHandler() *GamePacketHandler {
 func (st *GamePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 	switch pkt.GetHeader().CallType {
 	case proto.CallType_CallEntity:
-		return st.HandleEntity(c, pkt)
+		return st.HandleCallEntity(c, pkt)
 	case proto.CallType_CallService:
-		return st.HandleService(c, pkt)
+		return st.HandleCallService(c, pkt)
 	default:
 	}
 	return errors.New("unknown call type")
 }
 
-func (st *GamePacketHandler) HandleMethod(c context.Context, pkt *codec.Packet, sd *entity.ServiceDesc) error {
+func (st *GamePacketHandler) HandleCallMethod(c context.Context, pkt *codec.Packet, sd *entity.ServiceDesc) error {
 
 	hdr := pkt.GetHeader()
 
@@ -68,6 +68,8 @@ func (st *GamePacketHandler) HandleMethod(c context.Context, pkt *codec.Packet, 
 		Timeout:      hdr.Timeout,
 		Method:       hdr.Method,
 		TransInfo:    hdr.TransInfo,
+		SrcEntity:    hdr.DstEntity,
+		DstEntity:    hdr.SrcEntity,
 		ContentType:  hdr.ContentType,
 		CompressType: hdr.CompressType,
 	}
@@ -96,7 +98,7 @@ func (st *GamePacketHandler) HandleMethod(c context.Context, pkt *codec.Packet, 
 	return nil
 }
 
-func (st *GamePacketHandler) HandleService(c context.Context, pkt *codec.Packet) error {
+func (st *GamePacketHandler) HandleCallService(c context.Context, pkt *codec.Packet) error {
 
 	hdr := pkt.GetHeader()
 
@@ -114,16 +116,16 @@ func (st *GamePacketHandler) HandleService(c context.Context, pkt *codec.Packet)
 
 	service := sm[:pos]
 
-	ed, ok := entity.Manager.Services[entity.ServiceType(service)]
+	ed, ok := entity.Manager.Services[entity.TypeName(service)]
 	if !ok {
 		return errors.New("unknown service type")
 	}
 
-	return st.HandleMethod(c, pkt, ed)
+	return st.HandleCallMethod(c, pkt, ed)
 
 }
 
-func (st *GamePacketHandler) HandleEntity(c context.Context, pkt *codec.Packet) error {
+func (st *GamePacketHandler) HandleCallEntity(c context.Context, pkt *codec.Packet) error {
 
 	hdr := pkt.GetHeader()
 	ety := hdr.GetDstEntity()
@@ -138,5 +140,5 @@ func (st *GamePacketHandler) HandleEntity(c context.Context, pkt *codec.Packet) 
 		return errors.New("unknown entity id")
 	}
 
-	return st.HandleMethod(c, pkt, sd)
+	return st.HandleCallMethod(c, pkt, sd)
 }

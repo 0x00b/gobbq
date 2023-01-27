@@ -26,7 +26,7 @@ func (st *ProxyPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet)
 	hdr := pkt.GetHeader()
 
 	id := hdr.GetDstEntity().ID
-	rw, ok := cltmap[entity.EntityID(id)]
+	rw, ok := cltMap[entity.EntityID(id)]
 	if !ok {
 		fmt.Println("unknown client")
 		return nil

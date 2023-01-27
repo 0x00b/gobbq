@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
@@ -25,9 +27,22 @@ func (st *ClientPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 
 	hdr := pkt.GetHeader()
 
-	_ = hdr
+	// new client
+	if hdr.GetMethod() == "new_client" {
+		err := ex.RegisterEntity(hdr.GetSrcEntity().ID)
+
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("register", string(hdr.GetSrcEntity().ID))
+
+		RegisterEntity(entity.EntityID(hdr.GetSrcEntity().ID), pkt.Src)
+
+		return err
+	}
 
 	// send to proxy
+	return ex.SendProxy(pkt)
 
-	return nil
 }

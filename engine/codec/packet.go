@@ -177,7 +177,7 @@ func (p *Packet) extendPacketData(size uint32) []byte {
 		panic("bytespool get bytes error")
 	}
 
-	copy(bs.Bytes(), p.Data())
+	// copy(bs.Bytes(), p.Data())
 	oldBytes := p.bytes
 	p.bytes = bs
 

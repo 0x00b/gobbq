@@ -1,14 +1,10 @@
 package entity
 
-import (
-	"github.com/0x00b/gobbq/proto"
-)
-
 // just for inner
 type EntityID string
 
 // just for inner
-type ServiceType string
+type TypeName string
 
 // IEntity declares functions that is defined in Entity
 // These functions are mostly component functions
@@ -16,9 +12,10 @@ type IEntity interface {
 	IService
 
 	// entity 是有ID的service
-	Entity() *proto.Entity
-	// entity 是有ID的service
+	EntityID() EntityID
 	SetEntityID(id EntityID)
+
+	// 有状态
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -29,33 +26,27 @@ type IEntity interface {
 
 }
 
-var _ IEntity = &NopEntity{}
+var _ IEntity = &Entity{}
 
-type NopEntity struct {
-	NopService
+type Entity struct {
+	Service
 
-	ety *proto.Entity
+	entityID EntityID
 }
 
 // entity 是有ID的service
-func (n *NopEntity) Entity() *proto.Entity {
-	return n.ety
+func (e *Entity) EntityID() EntityID {
+	return e.entityID
 }
 
-func (n *NopEntity) SetEntityID(id EntityID) {
-	if n.ety == nil {
-		n.ety = &proto.Entity{
-			ID:   string(id),
-			Type: "Entity",
-		}
-
-	}
+func (e *Entity) SetEntityID(id EntityID) {
+	e.entityID = id
 	return
 }
 
 // Migration
-func (n *NopEntity) OnMigrateOut() {} // Called just before entity is migrating out
-func (n *NopEntity) OnMigrateIn()  {} // Called just after entity is migrating in
+func (e *Entity) OnMigrateOut() {} // Called just before entity is migrating out
+func (e *Entity) OnMigrateIn()  {} // Called just after entity is migrating in
 // Freeze && Restore
-func (n *NopEntity) OnFreeze()   {} // Called when entity is freezing
-func (n *NopEntity) OnRestored() {} // Called when entity is restored
+func (e *Entity) OnFreeze()   {} // Called when entity is freezing
+func (e *Entity) OnRestored() {} // Called when entity is restored

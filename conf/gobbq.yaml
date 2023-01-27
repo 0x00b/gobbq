@@ -10,6 +10,7 @@ game:
 # game之间、game和gate之间的通讯通过sidecar转发
 # consul or etcd ？
 proxy:
+  inst_num: 1
   common:
     log_file: gate.log
     log_level: debug
@@ -24,12 +25,15 @@ proxy:
   inst:
     - id: 1
       net: "tcp" # kcp, websocket
+      ip: "127.0.0.1"
       port: 49551
     - id: 2
       net: "tcp" # kcp, websocket
+      ip: "127.0.0.1"
       port: 49552
 
 gate:
+  inst_num: 1
   common:
     log_file: gate.log
     log_level: debug
@@ -43,8 +47,10 @@ gate:
     heartbeat_check_interval: 0
   inst:
     - id: 1
-      net: "tcp" # kcp, websocket
+      net: "websocket" # kcp, websocket
+      ip: "127.0.0.1"
       port: 59551
     - id: 2
-      net: "tcp" # kcp, websocket
+      net: "websocket" # kcp, websocket
+      ip: "127.0.0.1"
       port: 59552

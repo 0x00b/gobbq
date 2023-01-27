@@ -7,16 +7,16 @@ import (
 
 type entityMap map[entity.EntityID]*codec.PacketReadWriter
 
-var gameMap entityMap
+var entityMaps entityMap = make(entityMap)
 
 // RegisterEntity register serive
 func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {
-	gameMap[sid] = prw
+	entityMaps[sid] = prw
 }
 
 func Proxy(sid entity.EntityID, pkt *codec.Packet) {
 
-	prw := gameMap[sid]
+	prw := entityMaps[sid]
 
 	prw.WritePacket(pkt)
 }
