@@ -4,15 +4,15 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/0x00b/gobbq/components/game"
+	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto"
-	"golang.org/x/net/websocket"
+	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
 func main() {
@@ -97,9 +97,9 @@ var Test_ServiceDesc = entity.ServiceDesc{
 	Metadata: "examples/helloworld/helloworld/helloworld.proto",
 }
 
-// func NewTestEntity() *testClienEntity {
-// 	return NewTestEntityWithID(entity.EntityID(snowflake.GenUUID()))
-// }
+func NewTestEntity() *testClienEntity {
+	return NewTestEntityWithID(entity.EntityID(snowflake.GenUUID()))
+}
 
 func NewTestEntityWithID(id entity.EntityID) *testClienEntity {
 
@@ -145,15 +145,6 @@ func (t *testClienEntity) GetEntity() *proto.Entity {
 
 func (t *testClienEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header, error) {
 
-	origin := "http://localhost:8080/"
-	url := "ws://localhost:8080/ws"
-	wsc, err := websocket.Dial(url, "", origin)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ws := codec.NewPacketReadWriter(context.Background(), wsc)
-
 	pkt := codec.NewPacket()
 
 	hdr := &proto.Header{
@@ -178,15 +169,7 @@ func (t *testClienEntity) SayHello(c context.Context, req *proto.Header) (*proto
 
 	pkt.WriteBody(hdrBytes)
 
-	fmt.Println("raw data len:", len(pkt.Data()), len(hdrBytes))
-
-	// todo proxy send
-	ws.WritePacket(pkt)
-
-	if pkt, err = ws.ReadPacket(); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Received: %s.\n", string(pkt.PacketBody()))
+	ex.SendProxy(pkt)
 
 	return hdr, nil
 }

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com"
 	"github.com/0x00b/gobbq/cmd/bbq/proto/protoc-gen-gobbq/gogen"
@@ -108,6 +107,9 @@ func InitAndGenerate(g com.Generator, plugin *protogen.Plugin) error {
 			if err != nil {
 				return err
 			}
+			// EnumValueDescriptor │ google.protobuf.EnumValueOptions
+			// gs.Desc.Options().ProtoReflect().Get(google.protobuf.EnumValueOptions)
+			// gs.Desc.Options().(*descriptorpb.ServiceOptions).GetDeprecated()
 			svc := &com.Service{
 				Name:     s.Name,
 				Options:  s.Options,
@@ -174,21 +176,12 @@ func getMothed(f *protogen.Service, s *descriptorpb.MethodDescriptorProto) (*pro
 
 // GetGenerator TODO
 func GetGenerator(pp *protogen.Plugin) (com.Generator, error) {
-	var rpc com.RPC
-	for _, plugin := range strings.Split(*plugins, ",") {
-		switch plugin {
-		case "grpc":
-			rpc |= com.GRPC
-		case "trpc":
-			rpc |= com.TRPC
-		default:
-			return nil, fmt.Errorf("protoc-gen-gobbq: unknown plugin %q", plugin)
-		}
-	}
 
 	switch *lang {
 	case "go":
-		return gogen.NewGoGenerator(".", rpc)
+		return gogen.NewGoGenerator(".")
+	case "ts":
+		// todo
 	}
 	return nil, fmt.Errorf("unkown %s", *lang)
 }

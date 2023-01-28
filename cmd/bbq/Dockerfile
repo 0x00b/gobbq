@@ -1,7 +1,7 @@
 FROM ccr.ccs.tencentyun.com/aeras/aeras-ubuntu:v3
 
-# docker build . -t csighub.tencentyun.com/genejli/butchery:v0.0.1
-# docker run -it  -v /your/app/path:/app csighub.tencentyun.com/genejli/butchery:v0.0.1  bbq new your/app/name
+# docker build . -t csighub.tencentyun.com/genejli/gobbq:v0.0.1
+# docker run -it  -v /your/app/path:/app csighub.tencentyun.com/genejli/gobbq:v0.0.1  bbq new your/app/name
 
 # USER root
 WORKDIR /tmp
@@ -26,8 +26,8 @@ ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
 
 # 准备模版 
 # bbq install 
-# cp /usr/local/.butchery .butchery -r
-COPY .butchery /usr/local/.butchery
+# cp /usr/local/.gobbq .gobbq -r
+COPY .gobbq /usr/local/.gobbq
 
 # 生成代码工具
 COPY bbq/bbq /usr/local/go/bin/

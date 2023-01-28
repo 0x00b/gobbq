@@ -1,0 +1,95 @@
+syntax = "proto3";
+option go_package = "github.com/0x00b/gobbq;proto";
+package proto;
+
+// for options
+import "google/protobuf/descriptor.proto";
+
+//protoc --go_out=paths=source_relative:. bbq.proto
+
+enum ContentType {
+	Proto = 0;
+}
+
+enum CompressType {
+	Gzip = 0;
+}
+
+enum CallType {
+	CallEntity = 0;
+	CallService = 1;
+}
+
+message Entity {
+	string ID = 1;
+	string TypeName = 2;
+}
+
+// 请求协议头
+message Header {
+	// 协议版本
+	// 具体值与Version对应
+	uint32  Version = 1;  
+	// 具体值与CallType对应
+ 	// 请求唯一id
+	string RequestId = 2; 
+	// 请求的超时时间，单位ms
+	uint32 Timeout = 3;
+	// call sverice or call entity
+	CallType CallType = 4; 
+	// 调用的原EntityID
+	Entity SrcEntity = 5;
+	// 调用的目的EntityID
+	Entity DstEntity  = 6;
+	// 调用服务的接口名
+	// 规范格式: /package.Service名称/接口名
+	string Method = 7;
+	// 请求数据的序列化类型
+	// 比如: proto/jce/json, 默认proto
+	// 具体值与ContentEncodeType对应
+	ContentType ContentType = 8;
+	// 请求数据使用的压缩方式
+	// 比如: gzip/snappy/..., 默认不使用
+	// 具体值与CompressType对应
+	CompressType CompressType = 9;
+	// 是否检查包是否正确
+	uint32  CheckFlags = 10;
+	// 附加信息
+	map <string, bytes> TransInfo = 11;
+}
+
+// ===========options===========
+
+// message FooOptions {
+// 	optional int32 opt1 = 1;
+// 	optional string opt2 = 2;
+// }
+//   extend google.protobuf.FieldOptions {
+// 		optional FooOptions foo_options = 1234;
+//   }
+// usage:
+// message Bar {
+// 	optional int32 a = 1 [(foo_options).opt1 = 123, (foo_options).opt2 = "baz"];
+// 	// alternative aggregate syntax (uses TextFormat):
+// 	optional int32 b = 2 [(foo_options) = { opt1: 123 opt2: "baz" }];
+//   }
+
+// extend google.protobuf.MessageOptions {
+//   optional string type = 51234;
+// }
+// usage
+// message MyMessage {
+//   option (type) = "service";
+// }
+
+
+extend google.protobuf.ServiceOptions {
+	CallType call_type = 50001;
+}
+
+// usage
+// service MyService {
+// 	option (call_type) = CallEntity;
+// 	rpc MyMethod(RequestType) returns(ResponseType) {
+// 	}
+// }

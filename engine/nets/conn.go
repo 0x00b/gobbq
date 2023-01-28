@@ -54,10 +54,12 @@ func (st *conn) Serve() {
 		pkt, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
+				fmt.Println("transport: tcpconn  EOF ", err)
 				// report.TCPTransportReadEOF.Incr() // 客户端主动断开连接
 				return
 			}
 			if e, ok := err.(net.Error); ok && e.Timeout() { // 客户端超过空闲时间没有发包，服务端主动超时关闭
+				fmt.Println("transport: tcpconn  Time out ", err)
 				// report.TCPTransportIdleTimeout.Incr()
 				return
 			}

@@ -7,8 +7,10 @@ import (
 	"unicode"
 
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com/gorewriter/rewrite"
+	"github.com/0x00b/gobbq/proto"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
+	pb "google.golang.org/protobuf/proto"
 )
 
 // FuncMap 模版中使用的函数列表
@@ -43,6 +45,7 @@ var FuncMap = template.FuncMap{
 	"snakecase":      strcase.ToSnake,
 	"replace":        strings.ReplaceAll,
 	"concat":         Concat,
+	"isService":      IsService,
 }
 
 // GoGetMethodBody 获取函数已实现的函数体
@@ -318,11 +321,6 @@ func CheckSECVTpl(pkgMap map[string]string) bool {
 
 // Camelcase 驼峰处理，特殊case要兼容存量协议，否则转驼峰命名
 func Camelcase(s string) string {
-	// 存量协议驼峰变更不兼容，对全大写字母不做变化
-	// https://git.code.oa.com/trpc-go/trpc-go-cmdline/issues/319
-
-	// 模板对message是全大写字母和下划线的情况，需要保持原文本
-	// https://git.code.oa.com/trpc-go/trpc-go-cmdline/merge_requests/174
 	if len(s) == 0 {
 		return s
 	}
@@ -387,6 +385,19 @@ func Concat(sep string, s ...string) string {
 	ss := []string{}
 	ss = append(ss, s...)
 	return strings.Join(ss, sep)
+}
+
+func IsService(s *Service) bool {
+	if s == nil {
+		return false
+	}
+
+	if s.Options != nil {
+		v := pb.GetExtension(s.Options, proto.E_CallType)
+		return v.(proto.CallType) == proto.CallType_CallService
+	}
+
+	return false
 }
 
 // AStringContains 判断字符串数组中是否包含某个字符串

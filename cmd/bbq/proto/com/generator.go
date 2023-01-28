@@ -7,19 +7,6 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-// RPC represent rpc type
-type RPC int
-
-const (
-	// GRPC gRPC
-	GRPC RPC = 1
-	// TRPC trpc
-	TRPC RPC = 2
-
-	// Other unused
-	Other RPC = 4
-)
-
 // Generator generate code
 type Generator interface {
 

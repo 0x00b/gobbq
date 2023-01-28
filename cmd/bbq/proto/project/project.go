@@ -24,7 +24,7 @@ var CmdNew = &cobra.Command{
 
 func init() {
 	// if repoURL = os.Getenv("BUTC_LAYOUT_REPO"); repoURL == "" {
-	// 	repoURL = "https://git.code.tencent.com/butchery/butchery-template.git"
+	// 	repoURL = "https://git.code.tencent.com/gobbq/gobbq-template.git"
 	// }
 	// CmdNew.Flags().StringVarP(&repoURL, "repo-url", "r", repoURL, "layout repo")
 	// CmdNew.Flags().StringVarP(&branch, "branch", "b", branch, "repo branch")

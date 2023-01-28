@@ -19,7 +19,7 @@ var CmdUpgrade = &cobra.Command{
 
 func upgrade(cmd *cobra.Command, args []string) {
 	err := base.GoInstall(
-		"github.com/0x00b/protoc-gen-gobbq/bbq",
+		"github.com/0x00b/gobbq/cmd/protoc-gen-gobbq",
 	)
 	if err != nil {
 		panic(err)

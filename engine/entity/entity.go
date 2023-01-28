@@ -50,3 +50,8 @@ func (e *Entity) OnMigrateIn()  {} // Called just after entity is migrating in
 // Freeze && Restore
 func (e *Entity) OnFreeze()   {} // Called when entity is freezing
 func (e *Entity) OnRestored() {} // Called when entity is restored
+
+type EntityClient struct {
+	// todo
+	Entity
+}

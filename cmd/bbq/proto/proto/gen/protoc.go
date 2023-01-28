@@ -83,7 +83,7 @@ func walk(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
-	return generateButchery(args, protoFiles)
+	return generateGobbq(args, protoFiles)
 }
 
 // generate is used to execute the generate command for the specified proto file
@@ -108,7 +108,7 @@ func generateRPC(proto string, args []string) error {
 		"--go_out=paths=source_relative:.",
 		// "--go-grpc_out=paths=source_relative:.",
 		// "--grpc-gateway_out=paths=source_relative:.",
-		// "--butchery_out=plugins=grpc,tpl_dir=/root/code/protoc-gen/protoc-gen-gobbq/gogen/tpl:.",
+		// "--gobbq_out=plugins=grpc,tpl_dir=/root/code/protoc-gen/protoc-gen-gobbq/gogen/tpl:.",
 	}
 	input = append(input, inputExt...)
 	protoBytes, err := ioutil.ReadFile(proto)
@@ -135,7 +135,7 @@ func generateRPC(proto string, args []string) error {
 }
 
 // generate is used to execute the generate command for the specified proto file
-func generateButchery(args []string, protoFiles []string) error {
+func generateGobbq(args []string, protoFiles []string) error {
 	input := []string{
 		"--proto_path=.",
 	}
@@ -156,7 +156,7 @@ func generateButchery(args []string, protoFiles []string) error {
 		// "--go_out=paths=source_relative:.",
 		// "--go-grpc_out=paths=source_relative:.",
 		// "--grpc-gateway_out=paths=source_relative:.",
-		"--gobbq_out=plugins=grpc,tpl_dir=/usr/local/.butchery/grpc-go-tpl:.",
+		"--gobbq_out=plugins=grpc,tpl_dir=/usr/local/.gobbq/grpc-go-tpl:.",
 	}
 	input = append(input, inputExt...)
 	// protoBytes, err := ioutil.ReadFile(proto)
@@ -202,10 +202,10 @@ func shouldIncludePath(protoFiles ...string) []string {
 		protoBytes, err := ioutil.ReadFile(protoFile)
 		if err == nil && len(protoBytes) > 0 {
 			if ok := regex.Match(protoBytes); ok {
-				paths["/usr/local/.butchery/api/googleapis"] = true
-				paths["/usr/local/.butchery/api/googleapis/google"] = true
-				paths["/usr/local/.butchery/api/protobuf"] = true
-				// paths["/usr/local/.butchery/api/grpc-gateway"] = true
+				paths["/usr/local/.gobbq/api/googleapis"] = true
+				paths["/usr/local/.gobbq/api/googleapis/google"] = true
+				paths["/usr/local/.gobbq/api/protobuf"] = true
+				// paths["/usr/local/.gobbq/api/grpc-gateway"] = true
 			}
 		}
 	}

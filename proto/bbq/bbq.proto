@@ -1,0 +1,40 @@
+syntax = "proto3";
+option go_package = "github.com/0x00b/gobbq/bbq;bbq";
+package bbq;
+
+import "proto.proto";
+
+message PingPong{
+}
+
+message RegisterEntityRequest{
+	string EntityID = 1;
+}
+
+message RegisterEntityResponse{
+}
+ 
+service Proxy {
+	option (proto.call_type) = CallService;
+
+	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
+	rpc UnregisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
+	rpc Ping(PingPong) returns(PingPong) {}
+}
+
+
+message RegisterClientRequest{
+	string EntityID = 1;
+}
+
+message RegisterClientResponse{
+	string EntityID = 1;
+}
+
+service Gate {
+	option (proto.call_type) = CallEntity;
+
+	rpc RegisterClient(RegisterClientRequest) returns(RegisterClientResponse) {}
+	rpc UnregisterClient(RegisterClientRequest) returns(RegisterClientResponse) {}
+	rpc Ping(PingPong) returns(PingPong) {}
+}

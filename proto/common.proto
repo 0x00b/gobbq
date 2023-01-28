@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option go_package = "github.com/0x00b/gobbq;com";
-package com;
-
-message Error {
-  string Code = 1;
-  string Message = 2;
-}
