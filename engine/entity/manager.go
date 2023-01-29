@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/0x00b/gobbq/components/proxy/ex"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 var Manager EntityManager = EntityManager{
@@ -25,7 +25,7 @@ type EntityManager struct {
 	Entities    map[EntityID]*ServiceDesc // entity id -> entity impl
 }
 
-func NewEntity(id EntityID, typ TypeName) *proto.Entity {
+func NewEntity(id EntityID, typ TypeName) *bbq.EntityID {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
 		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
@@ -66,7 +66,7 @@ func NewEntity(id EntityID, typ TypeName) *proto.Entity {
 	return nil
 }
 
-func (s *EntityManager) RegisterEntity(sd *ServiceDesc, ss IEntity) {
+func (s *EntityManager) RegisterEntity(sd *ServiceDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
@@ -74,10 +74,10 @@ func (s *EntityManager) RegisterEntity(sd *ServiceDesc, ss IEntity) {
 			fmt.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
 		}
 	}
-	s.registerEntity(sd, ss)
+	s.registerEntity(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerEntity(sd *ServiceDesc, ss IEntity) {
+func (s *EntityManager) registerEntity(sd *ServiceDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fmt.Printf("RegisterService(%q)", sd.TypeName)
@@ -89,10 +89,11 @@ func (s *EntityManager) registerEntity(sd *ServiceDesc, ss IEntity) {
 		return
 	}
 	sd.ServiceImpl = ss
+	sd.interceptors = intercepter
 	s.entityDescs[sd.TypeName] = sd
 }
 
-func (s *EntityManager) RegisterService(sd *ServiceDesc, ss IService) {
+func (s *EntityManager) RegisterService(sd *ServiceDesc, ss IService, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
@@ -100,10 +101,10 @@ func (s *EntityManager) RegisterService(sd *ServiceDesc, ss IService) {
 			fmt.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
 		}
 	}
-	s.registerService(sd, ss)
+	s.registerService(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerService(sd *ServiceDesc, ss IService) {
+func (s *EntityManager) registerService(sd *ServiceDesc, ss IService, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fmt.Printf("RegisterService(%q)", sd.TypeName)
@@ -115,5 +116,6 @@ func (s *EntityManager) registerService(sd *ServiceDesc, ss IService) {
 		return
 	}
 	sd.ServiceImpl = ss
+	sd.interceptors = intercepter
 	s.Services[sd.TypeName] = sd
 }

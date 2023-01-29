@@ -1,144 +1,102 @@
 package game
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"strings"
-
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto"
 )
 
 var _ nets.PacketHandler = &GamePacketHandler{}
 
 type GamePacketHandler struct {
+	*entity.MethodPacketHandler
 }
 
 func NewGamePacketHandler() *GamePacketHandler {
-	st := &GamePacketHandler{}
-	// st.ServerTransport = NewServerTransportWithPacketHandler(ctx, conn, st)
+	st := &GamePacketHandler{entity.NewMethodPacketHandler()}
 	return st
 }
 
-func (st *GamePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
-	switch pkt.GetHeader().CallType {
-	case proto.CallType_CallEntity:
-		return st.HandleCallEntity(c, pkt)
-	case proto.CallType_CallService:
-		return st.HandleCallService(c, pkt)
-	default:
-	}
-	return errors.New("unknown call type")
-}
+// func (st *GamePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+// 	switch pkt.GetHeader().ServiceType {
+// 	case bbq.ServiceType_Entity:
+// 		return st.HandleCallEntity(c, pkt)
+// 	case bbq.ServiceType_Service:
+// 		return st.HandleCallService(c, pkt)
+// 	default:
+// 	}
+// 	return errors.New("unknown call type")
+// }
 
-func (st *GamePacketHandler) HandleCallMethod(c context.Context, pkt *codec.Packet, sd *entity.ServiceDesc) error {
+// func (st *GamePacketHandler) HandleCallMethod(c context.Context, pkt *codec.Packet, sd *entity.ServiceDesc) error {
 
-	hdr := pkt.GetHeader()
+// 	hdr := pkt.GetHeader()
 
-	sm := hdr.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		fmt.Println("err mothod")
-		return errors.New("err mothod")
-	}
+// 	sm := hdr.GetMethod()
+// 	if sm != "" && sm[0] == '/' {
+// 		sm = sm[1:]
+// 	}
+// 	pos := strings.LastIndex(sm, "/")
+// 	if pos == -1 {
+// 		fmt.Println("err mothod")
+// 		return errors.New("err mothod")
+// 	}
 
-	// service := sm[:pos]
-	method := sm[pos+1:]
+// 	// service := sm[:pos]
+// 	method := sm[pos+1:]
 
-	mt := sd.Methods[method]
-	dec := func(v interface{}) error {
-		reqbuf := pkt.PacketBody()
-		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
-		return err
-	}
+// 	mt := sd.Methods[method]
+// 	dec := func(v interface{}) error {
+// 		reqbuf := pkt.PacketBody()
+// 		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
+// 		return err
+// 	}
 
-	rsp, err := mt.Handler(sd.ServiceImpl, c, dec, nil)
+// 	mt.Handler(sd.ServiceImpl, c, dec, nil)
 
-	npkt := codec.NewPacket()
+// 	return nil
+// }
 
-	rhdr := &proto.Header{
-		Version:      hdr.Version,
-		RequestId:    hdr.RequestId,
-		Timeout:      hdr.Timeout,
-		Method:       hdr.Method,
-		TransInfo:    hdr.TransInfo,
-		SrcEntity:    hdr.DstEntity,
-		DstEntity:    hdr.SrcEntity,
-		ContentType:  hdr.ContentType,
-		CompressType: hdr.CompressType,
-	}
-	npkt.SetHeader(rhdr)
+// func (st *GamePacketHandler) HandleCallService(c context.Context, pkt *codec.Packet) error {
 
-	rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-	if err != nil {
-		fmt.Println("WritePacket", err)
-		return err
-	}
-	npkt.WriteBody(rbyte)
+// 	hdr := pkt.GetHeader()
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
-	if err != nil {
-		fmt.Println("Marshal(rsp)", err)
-		return err
-	}
+// 	fmt.Println("recv RequestHeader:", hdr.String())
 
-	npkt.WriteBody(rb)
+// 	sm := hdr.GetMethod()
+// 	if sm != "" && sm[0] == '/' {
+// 		sm = sm[1:]
+// 	}
+// 	pos := strings.LastIndex(sm, "/")
+// 	if pos == -1 {
+// 		fmt.Println("err mothod")
+// 		return errors.New("err mothod")
+// 	}
 
-	err = pkt.Src.WritePacket(npkt)
-	if err != nil {
-		fmt.Println("WritePacket", err)
-		return err
-	}
-	return nil
-}
+// 	service := sm[:pos]
 
-func (st *GamePacketHandler) HandleCallService(c context.Context, pkt *codec.Packet) error {
+// 	ed, ok := entity.Manager.Services[entity.TypeName(service)]
+// 	if !ok {
+// 		return errors.New("unknown service type")
+// 	}
 
-	hdr := pkt.GetHeader()
+// 	return st.HandleCallMethod(c, pkt, ed)
 
-	fmt.Println("recv RequestHeader:", hdr.String())
+// }
 
-	sm := hdr.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		fmt.Println("err mothod")
-		return errors.New("err mothod")
-	}
+// func (st *GamePacketHandler) HandleCallEntity(c context.Context, pkt *codec.Packet) error {
 
-	service := sm[:pos]
+// 	hdr := pkt.GetHeader()
+// 	ety := hdr.GetDstEntity()
+// 	if ety == nil {
+// 		return errors.New("bad call, empty dst entity")
+// 	}
 
-	ed, ok := entity.Manager.Services[entity.TypeName(service)]
-	if !ok {
-		return errors.New("unknown service type")
-	}
+// 	fmt.Println("recv RequestHeader:", hdr.String())
 
-	return st.HandleCallMethod(c, pkt, ed)
+// 	sd, ok := entity.Manager.Entities[(entity.EntityID(ety.ID))]
+// 	if !ok {
+// 		return errors.New("unknown entity id")
+// 	}
 
-}
-
-func (st *GamePacketHandler) HandleCallEntity(c context.Context, pkt *codec.Packet) error {
-
-	hdr := pkt.GetHeader()
-	ety := hdr.GetDstEntity()
-	if ety == nil {
-		return errors.New("bad call, empty dst entity")
-	}
-
-	fmt.Println("recv RequestHeader:", hdr.String())
-
-	sd, ok := entity.Manager.Entities[(entity.EntityID(ety.ID))]
-	if !ok {
-		return errors.New("unknown entity id")
-	}
-
-	return st.HandleCallMethod(c, pkt, sd)
-}
+// 	return st.HandleCallMethod(c, pkt, sd)
+// }

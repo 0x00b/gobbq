@@ -7,7 +7,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 type ProxyMap map[uint32]*nets.Client
@@ -43,15 +43,21 @@ func RegisterEntity(eid string) error {
 
 	pkt := codec.NewPacket()
 
-	hdr := &proto.Header{
-		Version:    1,
-		RequestId:  "1",
-		Timeout:    1,
-		Method:     "register_proxy_entity",
-		TransInfo:  map[string][]byte{"xxx": []byte("22222")},
-		CallType:   proto.CallType_CallService,
-		SrcEntity:  &proto.Entity{ID: eid},
-		CheckFlags: codec.FlagDataChecksumIEEE,
+	hdr := &bbq.Header{
+		Version:      1,
+		RequestId:    "1",
+		Timeout:      1,
+		RequestType:  0,
+		ServiceType:  0,
+		SrcEntity:    &bbq.EntityID{ID: eid},
+		DstEntity:    &bbq.EntityID{},
+		Method:       "register_proxy_entity",
+		ContentType:  0,
+		CompressType: 0,
+		CheckFlags:   codec.FlagDataChecksumIEEE,
+		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
+		ErrCode:      0,
+		ErrMsg:       "",
 	}
 
 	pkt.SetHeader(hdr)

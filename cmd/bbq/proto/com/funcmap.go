@@ -7,7 +7,7 @@ import (
 	"unicode"
 
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com/gorewriter/rewrite"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 	pb "google.golang.org/protobuf/proto"
@@ -393,8 +393,8 @@ func IsService(s *Service) bool {
 	}
 
 	if s.Options != nil {
-		v := pb.GetExtension(s.Options, proto.E_CallType)
-		return v.(proto.CallType) == proto.CallType_CallService
+		v := pb.GetExtension(s.Options, bbq.E_ServiceType)
+		return v.(bbq.ServiceType) == bbq.ServiceType_Service
 	}
 
 	return false

@@ -15,7 +15,7 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 func init() {
@@ -40,7 +40,7 @@ func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
-	c := GetCompressor(proto.CompressType_Gzip).(*compressor)
+	c := GetCompressor(bbq.CompressType_Gzip).(*compressor)
 	c.poolCompressor.New = func() interface{} {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {
@@ -102,8 +102,8 @@ func (c *compressor) DecompressedSize(buf []byte) int {
 	return int(binary.LittleEndian.Uint32(buf[last-4 : last]))
 }
 
-func (c *compressor) Type() proto.CompressType {
-	return proto.CompressType_Gzip
+func (c *compressor) Type() bbq.CompressType {
+	return bbq.CompressType_Gzip
 }
 
 type compressor struct {

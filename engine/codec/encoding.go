@@ -10,7 +10,7 @@ package codec
 import (
 	"io"
 
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 // Compressor is used for compressing and decompressing when sending or
@@ -27,7 +27,7 @@ type Compressor interface {
 	// Name is the name of the compression codec and is used to set the content
 	// coding header.  The result must be static; the result cannot change
 	// between calls.
-	Type() proto.CompressType
+	Type() bbq.CompressType
 	// If a Compressor implements
 	// DecompressedSize(compressedBytes []byte) int, gRPC will call it
 	// to determine the size of the buffer allocated for the result of decompression.
@@ -39,7 +39,7 @@ type Compressor interface {
 	// later release.
 }
 
-var registeredCompressor = make(map[proto.CompressType]Compressor)
+var registeredCompressor = make(map[bbq.CompressType]Compressor)
 
 // RegisterCompressor registers the compressor with gRPC by its name.  It can
 // be activated when sending an RPC via grpc.UseCompressor().  It will be
@@ -56,7 +56,7 @@ func RegisterCompressor(c Compressor) {
 }
 
 // GetCompressor returns Compressor for the given compressor name.
-func GetCompressor(name proto.CompressType) Compressor {
+func GetCompressor(name bbq.CompressType) Compressor {
 	return registeredCompressor[name]
 }
 
@@ -71,10 +71,10 @@ type Codec interface {
 	// Name returns the name of the Codec implementation. The returned string
 	// will be used as part of content type in transmission.  The result must be
 	// static; the result cannot change between calls.
-	Type() proto.ContentType
+	Type() bbq.ContentType
 }
 
-var registeredCodecs = make(map[proto.ContentType]Codec)
+var registeredCodecs = make(map[bbq.ContentType]Codec)
 
 // RegisterCodec registers the provided Codec for use with all gRPC clients and
 // servers.
@@ -101,6 +101,6 @@ func RegisterCodec(codec Codec) {
 // registered for the content-subtype.
 //
 // The content-subtype is expected to be lowercase.
-func GetCodec(contentType proto.ContentType) Codec {
+func GetCodec(contentType bbq.ContentType) Codec {
 	return registeredCodecs[contentType]
 }

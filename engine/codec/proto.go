@@ -5,7 +5,7 @@ package codec
 import (
 	"fmt"
 
-	bp "github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -37,6 +37,6 @@ func (protoCodec) Unmarshal(data []byte, v interface{}) error {
 	return proto.Unmarshal(data, vv)
 }
 
-func (protoCodec) Type() bp.ContentType {
-	return bp.ContentType_Proto
+func (protoCodec) Type() bbq.ContentType {
+	return bbq.ContentType_Proto
 }

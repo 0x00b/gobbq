@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/0x00b/gobbq/engine/bytespool"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 // Packet is a packet for sending data
@@ -18,7 +18,7 @@ type Packet struct {
 	Src *PacketReadWriter // not nil indicates this is request packet
 
 	// header:
-	header *proto.Header
+	header *bbq.Header
 
 	totalLen  uint32
 	headerLen uint32
@@ -124,10 +124,10 @@ func (p *Packet) WriteBody(b []byte) error {
 }
 
 // WriteBytes appends slice of bytes to the end of packetBody
-func (p *Packet) SetHeader(header *proto.Header) {
+func (p *Packet) SetHeader(header *bbq.Header) {
 	p.header = header
 }
-func (p *Packet) GetHeader() *proto.Header {
+func (p *Packet) GetHeader() *bbq.Header {
 	return p.header
 }
 

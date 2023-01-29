@@ -2,6 +2,8 @@ package entity
 
 import (
 	"context"
+
+	"github.com/0x00b/gobbq/engine/codec"
 )
 
 type IService interface {
@@ -12,12 +14,14 @@ type IService interface {
 	TypeName() TypeName
 }
 
-type methodHandler func(svc interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
+type methodHandler func(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor ServerInterceptor)
+type methodLocalHandler func(svc interface{}, ctx context.Context, in interface{}, callback func(c context.Context, rsp interface{}), interceptor ServerInterceptor)
 
 // MethodDesc represents an RPC service's method specification.
 type MethodDesc struct {
-	MethodName string
-	Handler    methodHandler
+	MethodName   string
+	Handler      methodHandler
+	LocalHandler methodLocalHandler
 }
 
 // ServiceDesc represents an RPC service's specification.
@@ -30,6 +34,8 @@ type ServiceDesc struct {
 	HandlerType interface{}
 	Methods     map[string]MethodDesc
 	Metadata    interface{}
+
+	interceptors []ServerInterceptor
 }
 
 var _ IService = &Service{}

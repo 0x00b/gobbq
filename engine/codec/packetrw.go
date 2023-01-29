@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/0x00b/gobbq/erro"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/pkg/errors"
 )
 
@@ -115,7 +115,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	}
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
-	packet.header = &proto.Header{}
+	packet.header = &bbq.Header{}
 
 	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
 	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.header)

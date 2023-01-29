@@ -11,7 +11,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
@@ -40,12 +40,13 @@ func main() {
 func testServer() {
 	clientEty := NewTestEntityWithID("111")
 	_ = clientEty
-	// rsp, err := clientEty.SayHello(context.Background(), &proto.Header{})
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// fmt.Println(rsp)
+
+	rsp, err := clientEty.SayHello(context.Background(), &bbq.Header{})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(rsp)
 }
 
 type TestEntity struct {
@@ -57,11 +58,12 @@ type TestServerInterface interface {
 }
 
 type TestInterface interface {
-	SayHello(c context.Context, req *proto.Header) (*proto.Header, error)
+	SayHello(c context.Context, req *bbq.Header) (*bbq.Header, error)
 }
 
-func (*TestEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header, error) {
-	return &proto.Header{
+func (*TestEntity) SayHello(c context.Context, req *bbq.Header) (*bbq.Header, error) {
+
+	return &bbq.Header{
 		Method: "hello",
 	}, nil
 }
@@ -74,15 +76,17 @@ func RegisterTestService(svc TestServerInterface) {
 	entity.Manager.RegisterService(&Test_ServiceDesc, svc)
 }
 
-func _SayHello_Handler(svc interface{}, ctx context.Context, dec func(interface{}) error, interceptor entity.UnaryServerInterceptor) (interface{}, error) {
-	in := new(proto.Header)
+func _SayHello_Handler(svc interface{}, ctx context.Context, dec func(interface{}) error, interceptor entity.ServerInterceptor) {
+	in := new(bbq.Header)
 	if err := dec(in); err != nil {
-		return nil, err
+		// return nil, err
+		return
 	}
 	if interceptor == nil {
-		return svc.(*TestEntity).SayHello(ctx, in)
+		svc.(*TestEntity).SayHello(ctx, in)
+		return
 	}
-	return nil, nil
+	return
 }
 
 var Test_ServiceDesc = entity.ServiceDesc{
@@ -91,7 +95,7 @@ var Test_ServiceDesc = entity.ServiceDesc{
 	Methods: map[string]entity.MethodDesc{
 		"SayHello": {
 			MethodName: "SayHello",
-			Handler:    _SayHello_Handler,
+			// Handler:    _SayHello_Handler,
 		},
 	},
 	Metadata: "examples/helloworld/helloworld/helloworld.proto",
@@ -113,7 +117,7 @@ func NewTestEntityWithID(id entity.EntityID) *testClienEntity {
 
 func testClient() {
 	cli := NewTestClient("id")
-	rsp, err := cli.SayHello(context.Background(), &proto.Header{})
+	rsp, err := cli.SayHello(context.Background(), &bbq.Header{})
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -121,9 +125,9 @@ func testClient() {
 	fmt.Println(rsp)
 }
 
-func NewTestClient(id entity.EntityID) TestInterface {
+func NewTestClient(id entity.EntityID) *testClienEntity {
 	c := testClienEntity{
-		entity: &proto.Entity{
+		entity: &bbq.EntityID{
 			ID:       string(id),
 			TypeName: string(Test_ServiceDesc.TypeName),
 		},
@@ -132,36 +136,41 @@ func NewTestClient(id entity.EntityID) TestInterface {
 }
 
 type testClienEntity struct {
-	entity *proto.Entity
+	entity *bbq.EntityID
 }
 
 // 返回内容不可改
-func (t *testClienEntity) GetEntity() *proto.Entity {
-	e := &proto.Entity{}
+func (t *testClienEntity) GetEntity() *bbq.EntityID {
+	e := &bbq.EntityID{}
 	e.ID = t.entity.ID
 	e.TypeName = t.entity.TypeName
 	return e
 }
 
-func (t *testClienEntity) SayHello(c context.Context, req *proto.Header) (*proto.Header, error) {
+func (t *testClienEntity) SayHello(c context.Context, req *bbq.Header) (*bbq.Header, error) {
 
 	pkt := codec.NewPacket()
 
-	hdr := &proto.Header{
-		Version:    1,
-		RequestId:  "1",
-		Timeout:    1,
-		Method:     "helloworld.Test/SayHello",
-		TransInfo:  map[string][]byte{"xxx": []byte("22222")},
-		CallType:   proto.CallType_CallService,
-		SrcEntity:  t.entity,
-		DstEntity:  t.entity,
-		CheckFlags: codec.FlagDataChecksumIEEE,
+	hdr := &bbq.Header{
+		Version:      1,
+		RequestId:    "1",
+		Timeout:      1,
+		RequestType:  0,
+		ServiceType:  0,
+		SrcEntity:    t.entity,
+		DstEntity:    t.entity,
+		Method:       "helloworld.Test/SayHello",
+		ContentType:  0,
+		CompressType: 0,
+		CheckFlags:   codec.FlagDataChecksumIEEE,
+		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
+		ErrCode:      0,
+		ErrMsg:       "",
 	}
 
 	pkt.SetHeader(hdr)
 
-	hdrBytes, err := codec.GetCodec(proto.ContentType_Proto).Marshal(hdr)
+	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(hdr)
 	if err != nil {
 		fmt.Println(err)
 		return hdr, nil

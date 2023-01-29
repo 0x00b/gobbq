@@ -20,12 +20,13 @@ var (
 	}
 )
 
-func OrganizeLogMiddleware(c context.Context, in interface{}, next entity.UnaryHandler) (out interface{}, e error) {
+func OrganizeLogMiddleware(c context.Context, in interface{}, ret entity.RetFunc, next entity.Handler) (out interface{}, e error) {
 
 	if _organizeLog {
 		_, ok := c.Value(_ctxLogKey).(*logrus.Entry)
 		if ok {
-			return next(c, in)
+			next(c, in, ret)
+			return
 		}
 
 		clog, buf := newCtxLog(c)
@@ -38,7 +39,8 @@ func OrganizeLogMiddleware(c context.Context, in interface{}, next entity.UnaryH
 
 	}
 
-	return next(c, in)
+	next(c, in, ret)
+	return
 }
 
 func organizeLog(c context.Context, buf *bytes.Buffer) {

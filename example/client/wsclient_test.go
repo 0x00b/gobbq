@@ -9,7 +9,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 var wg sync.WaitGroup
@@ -19,7 +19,7 @@ type GamePacketHandler struct {
 
 func (st *GamePacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
 
-	hdr := &proto.Header{}
+	hdr := &bbq.Header{}
 
 	err := codec.DefaultCodec.Unmarshal(pkt.Data(), hdr)
 	if err != nil {
@@ -38,17 +38,21 @@ func TestWSClient(m *testing.T) {
 
 	pkt := codec.NewPacket()
 
-	hdr := &proto.Header{
-		Version:   1,
-		RequestId: "1",
-		Timeout:   1,
-		TransInfo: map[string][]byte{"xxx": []byte("22222")},
-		// ContentType:  1,
-		// CompressType: 1,
-		CallType:   proto.CallType_CallService,
-		SrcEntity:  &proto.Entity{ID: "222"},
-		DstEntity:  &proto.Entity{ID: "111"},
-		CheckFlags: codec.FlagDataChecksumIEEE,
+	hdr := &bbq.Header{
+		Version:      1,
+		RequestId:    "1",
+		Timeout:      1,
+		RequestType:  0,
+		ServiceType:  0,
+		SrcEntity:    &bbq.EntityID{ID: "222"},
+		DstEntity:    &bbq.EntityID{ID: "111"},
+		Method:       "",
+		ContentType:  0,
+		CompressType: 0,
+		CheckFlags:   codec.FlagDataChecksumIEEE,
+		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
+		ErrCode:      0,
+		ErrMsg:       "",
 	}
 	hdr.Method = "new_client"
 	pkt.SetHeader(hdr)
@@ -58,7 +62,7 @@ func TestWSClient(m *testing.T) {
 	client.WritePacket(pkt)
 
 	hdr.Method = "helloworld.Test/SayHello"
-	hdrBytes, err := codec.GetCodec(proto.ContentType_Proto).Marshal(hdr)
+	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(hdr)
 	if err != nil {
 		fmt.Println(err)
 		return

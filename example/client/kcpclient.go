@@ -14,7 +14,7 @@ func main() {
 
 	// pkt := codec.NewPacket()
 
-	// hdr := &proto.Header{
+	// hdr := &bbq.Header{
 	// 	Version:   1,
 	// 	RequestId: "1",
 	// 	Timeout:   1,
@@ -26,7 +26,7 @@ func main() {
 
 	// pkt.SetHeader(hdr)
 
-	// hdrBytes, err := codec.GetCodec(proto.ContentType_Proto).Marshal(hdr)
+	// hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(hdr)
 	// if err != nil {
 	// 	fmt.Println(err)
 	// 	return
