@@ -66,7 +66,17 @@ func (t *proxyService) RegisterEntity(c context.Context, req *RegisterEntityRequ
 		pkt.WriteBody(hdrBytes)
 
 		ex.SendProxy(pkt)
+
 		//todo get response
+		var requestMap map[string]func(c context.Context, rsp interface{})
+		requestMap[pkt.Header.RequestId] = itfCallback
+
+		if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
+			cb := requestMap[pkt.Header.RequestId]
+
+			cb(context.Background(), nil)
+
+		}
 
 	}
 
@@ -113,7 +123,17 @@ func (t *proxyService) UnregisterEntity(c context.Context, req *RegisterEntityRe
 		pkt.WriteBody(hdrBytes)
 
 		ex.SendProxy(pkt)
+
 		//todo get response
+		var requestMap map[string]func(c context.Context, rsp interface{})
+		requestMap[pkt.Header.RequestId] = itfCallback
+
+		if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
+			cb := requestMap[pkt.Header.RequestId]
+
+			cb(context.Background(), nil)
+
+		}
 
 	}
 
@@ -160,7 +180,17 @@ func (t *proxyService) Ping(c context.Context, req *PingPong, callback func(c co
 		pkt.WriteBody(hdrBytes)
 
 		ex.SendProxy(pkt)
+
 		//todo get response
+		var requestMap map[string]func(c context.Context, rsp interface{})
+		requestMap[pkt.Header.RequestId] = itfCallback
+
+		if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
+			cb := requestMap[pkt.Header.RequestId]
+
+			cb(context.Background(), nil)
+
+		}
 
 	}
 
@@ -202,12 +232,14 @@ func _ProxyService_RegisterEntity_Handler(svc interface{}, ctx context.Context, 
 }
 
 func _ProxyService_RegisterEntity_Local_Handler(svc interface{}, ctx context.Context, in interface{}, callback func(c context.Context, rsp interface{}), interceptor entity.ServerInterceptor) {
+
 	ret := func(rsp *RegisterEntityResponse, err error) {
 		if err != nil {
 			_ = err
 		}
 		callback(ctx, rsp)
 	}
+
 	_ProxyService_RegisterEntity_Handler(svc, ctx, in.(*RegisterEntityRequest), ret, interceptor)
 	return
 }
@@ -215,12 +247,6 @@ func _ProxyService_RegisterEntity_Local_Handler(svc interface{}, ctx context.Con
 func _ProxyService_RegisterEntity_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
-	dec := func(v interface{}) error {
-		reqbuf := pkt.PacketBody()
-		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
-		return err
-	}
-	in := new(RegisterEntityRequest)
 
 	ret := func(rsp *RegisterEntityResponse, err error) {
 
@@ -257,7 +283,11 @@ func _ProxyService_RegisterEntity_Remote_Handler(svc interface{}, ctx context.Co
 		}
 	}
 
-	if err := dec(in); err != nil {
+	in := new(RegisterEntityRequest)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+
 		ret(nil, err)
 		return
 	}
@@ -286,12 +316,14 @@ func _ProxyService_UnregisterEntity_Handler(svc interface{}, ctx context.Context
 }
 
 func _ProxyService_UnregisterEntity_Local_Handler(svc interface{}, ctx context.Context, in interface{}, callback func(c context.Context, rsp interface{}), interceptor entity.ServerInterceptor) {
+
 	ret := func(rsp *RegisterEntityResponse, err error) {
 		if err != nil {
 			_ = err
 		}
 		callback(ctx, rsp)
 	}
+
 	_ProxyService_UnregisterEntity_Handler(svc, ctx, in.(*RegisterEntityRequest), ret, interceptor)
 	return
 }
@@ -299,12 +331,6 @@ func _ProxyService_UnregisterEntity_Local_Handler(svc interface{}, ctx context.C
 func _ProxyService_UnregisterEntity_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
-	dec := func(v interface{}) error {
-		reqbuf := pkt.PacketBody()
-		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
-		return err
-	}
-	in := new(RegisterEntityRequest)
 
 	ret := func(rsp *RegisterEntityResponse, err error) {
 
@@ -341,7 +367,11 @@ func _ProxyService_UnregisterEntity_Remote_Handler(svc interface{}, ctx context.
 		}
 	}
 
-	if err := dec(in); err != nil {
+	in := new(RegisterEntityRequest)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+
 		ret(nil, err)
 		return
 	}
@@ -370,12 +400,14 @@ func _ProxyService_Ping_Handler(svc interface{}, ctx context.Context, in *PingPo
 }
 
 func _ProxyService_Ping_Local_Handler(svc interface{}, ctx context.Context, in interface{}, callback func(c context.Context, rsp interface{}), interceptor entity.ServerInterceptor) {
+
 	ret := func(rsp *PingPong, err error) {
 		if err != nil {
 			_ = err
 		}
 		callback(ctx, rsp)
 	}
+
 	_ProxyService_Ping_Handler(svc, ctx, in.(*PingPong), ret, interceptor)
 	return
 }
@@ -383,12 +415,6 @@ func _ProxyService_Ping_Local_Handler(svc interface{}, ctx context.Context, in i
 func _ProxyService_Ping_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
-	dec := func(v interface{}) error {
-		reqbuf := pkt.PacketBody()
-		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
-		return err
-	}
-	in := new(PingPong)
 
 	ret := func(rsp *PingPong, err error) {
 
@@ -425,7 +451,11 @@ func _ProxyService_Ping_Remote_Handler(svc interface{}, ctx context.Context, pkt
 		}
 	}
 
-	if err := dec(in); err != nil {
+	in := new(PingPong)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+
 		ret(nil, err)
 		return
 	}

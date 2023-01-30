@@ -120,6 +120,8 @@ type Method struct {
 	GoInput  *protogen.Message
 	GoOutput *protogen.Message
 
+	HasResponse bool
+
 	Location protogen.Location   // location of this method
 	Comments protogen.CommentSet // comments associated with this method
 }

@@ -3,8 +3,6 @@ option go_package = "github.com/0x00b/gobbq/components/proxy/proxypb;proxypb";
 package proxypb;
 
 import "bbq.proto";
-// import "google/protobuf/empty.proto";
-// google.protobuf.Empty
 
 message PingPong{
 }

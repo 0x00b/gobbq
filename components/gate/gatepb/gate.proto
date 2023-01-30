@@ -3,7 +3,7 @@ option go_package = "github.com/0x00b/gobbq/components/gate/gatepb;gatepb";
 package gatepb;
 
 import "bbq.proto";
-// import "google/protobuf/empty.proto";
+import "google/protobuf/empty.proto";
 // google.protobuf.Empty
 
 message PingPong{
@@ -21,6 +21,6 @@ service Gate {
 	option (bbq.service_type) = Entity;
 
 	rpc RegisterClient(RegisterClientRequest) returns(RegisterClientResponse) {}
-	rpc UnregisterClient(RegisterClientRequest) returns(RegisterClientResponse) {}
+	rpc UnregisterClient(RegisterClientRequest) returns(google.protobuf.Empty) {}
 	rpc Ping(PingPong) returns(PingPong) {}
 }

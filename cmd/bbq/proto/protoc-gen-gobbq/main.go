@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com"
 	"github.com/0x00b/gobbq/cmd/bbq/proto/protoc-gen-gobbq/gogen"
@@ -137,6 +138,7 @@ func InitAndGenerate(g com.Generator, plugin *protogen.Plugin) error {
 					GoOutput:        gm.Output,
 					Location:        gm.Location,
 					Comments:        gm.Comments,
+					HasResponse:     hasResponse(gm),
 					// MethodBody:      "",
 				}
 				if protobuf.HasExtension(method.Options, options.E_Http) {
@@ -184,4 +186,14 @@ func GetGenerator(pp *protogen.Plugin) (com.Generator, error) {
 		// todo
 	}
 	return nil, fmt.Errorf("unkown %s", *lang)
+}
+
+func hasResponse(m *protogen.Method) bool {
+
+	ret := true
+	if m.Output.GoIdent.GoName == "Empty" && strings.Contains(m.Output.GoIdent.GoImportPath.String(), "golang/protobuf/ptypes/empty") {
+		ret = false
+	}
+
+	return ret
 }

@@ -18,9 +18,7 @@ var UnknownCallType = errors.New("unknown call type")
 var EmptyEntityID = errors.New("bad call, empty dst entity")
 
 func NotMyMethod(err error) bool {
-	return errors.Is(err, ServiceNotFound) ||
-		errors.Is(err, EntityNotFound) ||
-		errors.Is(err, MethodNotFound)
+	return errors.Is(err, ServiceNotFound) || errors.Is(err, EntityNotFound)
 }
 
 var _ nets.PacketHandler = &MethodPacketHandler{}
