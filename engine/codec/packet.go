@@ -2,7 +2,6 @@ package codec
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -17,8 +16,8 @@ type Packet struct {
 
 	Src *PacketReadWriter // not nil indicates this is request packet
 
-	// header:
-	header *bbq.Header
+	// header: 只能在packet的生命周期内使用
+	Header *bbq.Header
 
 	totalLen  uint32
 	headerLen uint32
@@ -36,7 +35,9 @@ var (
 	packetEndian = binary.LittleEndian
 	packetPool   = &sync.Pool{
 		New: func() interface{} {
-			p := &Packet{}
+			p := &Packet{
+				Header: &bbq.Header{},
+			}
 			return p
 		},
 	}
@@ -70,6 +71,9 @@ const (
 	FlagDataChecksumIEEE uint32 = 0x01
 )
 
+// 获取packet的地方，作为函数返回值，强提醒记得release pkt
+type releasePkt func()
+
 func allocPacket() *Packet {
 	pkt := packetPool.Get().(*Packet)
 
@@ -79,8 +83,9 @@ func allocPacket() *Packet {
 }
 
 // NewPacket allocates a new packet
-func NewPacket() *Packet {
-	return allocPacket()
+func NewPacket() (*Packet, releasePkt) {
+	pkt := allocPacket()
+	return pkt, func() { pkt.Release() }
 }
 
 func (p *Packet) Retain() {
@@ -102,11 +107,8 @@ func (p *Packet) Release() {
 
 // WriteBytes appends slice of bytes to the end of packetBody
 func (p *Packet) WriteBody(b []byte) error {
-	if p.header == nil {
-		return errors.New("set header first")
-	}
 
-	header, err := DefaultCodec.Marshal(p.header)
+	header, err := DefaultCodec.Marshal(p.Header)
 	if err != nil {
 		return err
 	}
@@ -123,14 +125,6 @@ func (p *Packet) WriteBody(b []byte) error {
 	return nil
 }
 
-// WriteBytes appends slice of bytes to the end of packetBody
-func (p *Packet) SetHeader(header *bbq.Header) {
-	p.header = header
-}
-func (p *Packet) GetHeader() *bbq.Header {
-	return p.header
-}
-
 // PacketBody returns the total packetBody of packet
 func (p *Packet) PacketBody() []byte {
 	return p.bytes.Bytes()[p.headerLen:p.totalLen]
@@ -145,6 +139,7 @@ func (p *Packet) GetPacketCap() uint32 {
 }
 
 func (p *Packet) reset() {
+	p.Header.Reset()
 	p.Src = nil
 	p.headerLen = 0
 	p.totalLen = 0

@@ -75,37 +75,34 @@ type {{lowerCamelcase $typeName}} struct{
 {{else}}
 func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c context.Context, req *{{$m.GoInput.GoIdent.GoName}}, callback func(c context.Context, rsp *{{$m.GoOutput.GoIdent.GoName}})) (err error){
 
-	hdr := &bbq.Header{   
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  bbq.RequestType_RequestRequest,
-		ServiceType:  {{- if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end -}},
-		SrcEntity:    nil,
-		DstEntity:   {{- if $isSvc}}nil{{else}}t.entity{{end -}} ,
-		Method:      "{{$.GoPackageName}}.{{$typeName}}/{{$m.GoName}}",
-		ContentType:  bbq.ContentType_Proto,
-		CompressType: bbq.CompressType_None,
-		CheckFlags:   0,
-		TransInfo:    map[string][]byte{},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	pkt, release := codec.NewPacket()
+	defer release()
+ 
+	pkt.Header.Version=      1
+	pkt.Header.RequestId=    "1"
+	pkt.Header.Timeout=      1
+	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
+	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
+	pkt.Header.SrcEntity=    nil 
+	pkt.Header.DstEntity=   {{if $isSvc}}nil{{else}}t.entity{{end}} 
+	pkt.Header.Method=      "{{$.GoPackageName}}.{{$typeName}}/{{$m.GoName}}" 
+	pkt.Header.ContentType=  bbq.ContentType_Proto
+	pkt.Header.CompressType= bbq.CompressType_None
+	pkt.Header.CheckFlags=   0
+	pkt.Header.TransInfo=    map[string][]byte{}
+	pkt.Header.ErrCode=      0
+	pkt.Header.ErrMsg=       "" 
 
 	itfCallback := func(c context.Context, rsp interface{}) {
 		callback(c, rsp.(*{{$m.GoOutput.GoIdent.GoName}}))
 	}
 
-	err = entity.HandleCallLocalMethod(c, hdr, req, itfCallback)
+	err = entity.HandleCallLocalMethod(c, pkt, req, itfCallback)
 	if err == nil {
 		return nil
 	}
 
 	if entity.NotMyMethod(err) {
-
-		pkt := codec.NewPacket()
-
-		pkt.SetHeader(hdr)
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
@@ -182,7 +179,8 @@ func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc interface{}, ctx context.Con
 
 func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
  
-	hdr := pkt.GetHeader()
+
+	hdr := pkt.Header
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()
 		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
@@ -191,32 +189,24 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc interface{}, ctx context.Co
 	in := new({{$m.GoInput.GoIdent.GoName}})
 
 	ret:=func(rsp *{{$m.GoOutput.GoIdent.GoName}},err error){ 
-		npkt := codec.NewPacket()
+  
+		npkt, release := codec.NewPacket()
+		defer release()
 
-		rhdr := &bbq.Header{
-			Version:      hdr.Version,
-			RequestId:    hdr.RequestId,
-			Timeout:      hdr.Timeout,
-			RequestType:  hdr.RequestType,
-			ServiceType:  hdr.ServiceType,
-			SrcEntity:    hdr.DstEntity,
-			DstEntity:    hdr.SrcEntity,
-			Method:       hdr.Method,
-			ContentType:  hdr.ContentType,
-			CompressType: hdr.CompressType,
-			CheckFlags:   0,
-			TransInfo:    hdr.TransInfo,
-			ErrCode: 0,
-			ErrMsg:  "",
-		}
-		npkt.SetHeader(rhdr)
-
-		rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-		if err != nil {
-			fmt.Println("WritePacket", err)
-			return
-		}
-		npkt.WriteBody(rbyte)
+		npkt.Header.Version=      hdr.Version
+		npkt.Header.RequestId=    hdr.RequestId
+		npkt.Header.Timeout=      hdr.Timeout
+		npkt.Header.RequestType=  hdr.RequestType
+		npkt.Header.ServiceType=  hdr.ServiceType
+		npkt.Header.SrcEntity=    hdr.DstEntity
+		npkt.Header.DstEntity=    hdr.SrcEntity
+		npkt.Header.Method=       hdr.Method
+		npkt.Header.ContentType=  hdr.ContentType
+		npkt.Header.CompressType= hdr.CompressType
+		npkt.Header.CheckFlags=   0
+		npkt.Header.TransInfo=    hdr.TransInfo
+		npkt.Header.ErrCode= 0
+		npkt.Header.ErrMsg=  "" 
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {

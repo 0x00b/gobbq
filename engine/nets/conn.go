@@ -51,7 +51,7 @@ func (st *conn) Serve() {
 			}
 		}
 
-		pkt, err := st.packetReadWriter.ReadPacket()
+		pkt, release, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				fmt.Println("transport: tcpconn  EOF ", err)
@@ -69,6 +69,8 @@ func (st *conn) Serve() {
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
+		defer release()
+
 		err = st.handle(st.ctx, pkt)
 		if err != nil {
 			fmt.Println("handle failed", err)
@@ -79,8 +81,6 @@ func (st *conn) Serve() {
 func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
 
 	// todo chan
-
-	defer pkt.Release()
 
 	return st.PacketHandler.HandlePacket(c, pkt)
 }

@@ -29,37 +29,34 @@ type proxyService struct {
 
 func (t *proxyService) RegisterEntity(c context.Context, req *RegisterEntityRequest, callback func(c context.Context, rsp *RegisterEntityResponse)) (err error) {
 
-	hdr := &bbq.Header{
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  bbq.RequestType_RequestRequest,
-		ServiceType:  bbq.ServiceType_Service,
-		SrcEntity:    nil,
-		DstEntity:    nil,
-		Method:       "proxypb.ProxyService/RegisterEntity",
-		ContentType:  bbq.ContentType_Proto,
-		CompressType: bbq.CompressType_None,
-		CheckFlags:   0,
-		TransInfo:    map[string][]byte{},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	pkt, release := codec.NewPacket()
+	defer release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = "1"
+	pkt.Header.Timeout = 1
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Service
+	pkt.Header.SrcEntity = nil
+	pkt.Header.DstEntity = nil
+	pkt.Header.Method = "proxypb.ProxyService/RegisterEntity"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
 
 	itfCallback := func(c context.Context, rsp interface{}) {
 		callback(c, rsp.(*RegisterEntityResponse))
 	}
 
-	err = entity.HandleCallLocalMethod(c, hdr, req, itfCallback)
+	err = entity.HandleCallLocalMethod(c, pkt, req, itfCallback)
 	if err == nil {
 		return nil
 	}
 
 	if entity.NotMyMethod(err) {
-
-		pkt := codec.NewPacket()
-
-		pkt.SetHeader(hdr)
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
@@ -79,37 +76,34 @@ func (t *proxyService) RegisterEntity(c context.Context, req *RegisterEntityRequ
 
 func (t *proxyService) UnregisterEntity(c context.Context, req *RegisterEntityRequest, callback func(c context.Context, rsp *RegisterEntityResponse)) (err error) {
 
-	hdr := &bbq.Header{
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  bbq.RequestType_RequestRequest,
-		ServiceType:  bbq.ServiceType_Service,
-		SrcEntity:    nil,
-		DstEntity:    nil,
-		Method:       "proxypb.ProxyService/UnregisterEntity",
-		ContentType:  bbq.ContentType_Proto,
-		CompressType: bbq.CompressType_None,
-		CheckFlags:   0,
-		TransInfo:    map[string][]byte{},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	pkt, release := codec.NewPacket()
+	defer release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = "1"
+	pkt.Header.Timeout = 1
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Service
+	pkt.Header.SrcEntity = nil
+	pkt.Header.DstEntity = nil
+	pkt.Header.Method = "proxypb.ProxyService/UnregisterEntity"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
 
 	itfCallback := func(c context.Context, rsp interface{}) {
 		callback(c, rsp.(*RegisterEntityResponse))
 	}
 
-	err = entity.HandleCallLocalMethod(c, hdr, req, itfCallback)
+	err = entity.HandleCallLocalMethod(c, pkt, req, itfCallback)
 	if err == nil {
 		return nil
 	}
 
 	if entity.NotMyMethod(err) {
-
-		pkt := codec.NewPacket()
-
-		pkt.SetHeader(hdr)
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
@@ -129,37 +123,34 @@ func (t *proxyService) UnregisterEntity(c context.Context, req *RegisterEntityRe
 
 func (t *proxyService) Ping(c context.Context, req *PingPong, callback func(c context.Context, rsp *PingPong)) (err error) {
 
-	hdr := &bbq.Header{
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  bbq.RequestType_RequestRequest,
-		ServiceType:  bbq.ServiceType_Service,
-		SrcEntity:    nil,
-		DstEntity:    nil,
-		Method:       "proxypb.ProxyService/Ping",
-		ContentType:  bbq.ContentType_Proto,
-		CompressType: bbq.CompressType_None,
-		CheckFlags:   0,
-		TransInfo:    map[string][]byte{},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	pkt, release := codec.NewPacket()
+	defer release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = "1"
+	pkt.Header.Timeout = 1
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Service
+	pkt.Header.SrcEntity = nil
+	pkt.Header.DstEntity = nil
+	pkt.Header.Method = "proxypb.ProxyService/Ping"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
 
 	itfCallback := func(c context.Context, rsp interface{}) {
 		callback(c, rsp.(*PingPong))
 	}
 
-	err = entity.HandleCallLocalMethod(c, hdr, req, itfCallback)
+	err = entity.HandleCallLocalMethod(c, pkt, req, itfCallback)
 	if err == nil {
 		return nil
 	}
 
 	if entity.NotMyMethod(err) {
-
-		pkt := codec.NewPacket()
-
-		pkt.SetHeader(hdr)
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
@@ -223,7 +214,7 @@ func _ProxyService_RegisterEntity_Local_Handler(svc interface{}, ctx context.Con
 
 func _ProxyService_RegisterEntity_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
-	hdr := pkt.GetHeader()
+	hdr := pkt.Header
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()
 		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
@@ -232,32 +223,24 @@ func _ProxyService_RegisterEntity_Remote_Handler(svc interface{}, ctx context.Co
 	in := new(RegisterEntityRequest)
 
 	ret := func(rsp *RegisterEntityResponse, err error) {
-		npkt := codec.NewPacket()
 
-		rhdr := &bbq.Header{
-			Version:      hdr.Version,
-			RequestId:    hdr.RequestId,
-			Timeout:      hdr.Timeout,
-			RequestType:  hdr.RequestType,
-			ServiceType:  hdr.ServiceType,
-			SrcEntity:    hdr.DstEntity,
-			DstEntity:    hdr.SrcEntity,
-			Method:       hdr.Method,
-			ContentType:  hdr.ContentType,
-			CompressType: hdr.CompressType,
-			CheckFlags:   0,
-			TransInfo:    hdr.TransInfo,
-			ErrCode:      0,
-			ErrMsg:       "",
-		}
-		npkt.SetHeader(rhdr)
+		npkt, release := codec.NewPacket()
+		defer release()
 
-		rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-		if err != nil {
-			fmt.Println("WritePacket", err)
-			return
-		}
-		npkt.WriteBody(rbyte)
+		npkt.Header.Version = hdr.Version
+		npkt.Header.RequestId = hdr.RequestId
+		npkt.Header.Timeout = hdr.Timeout
+		npkt.Header.RequestType = hdr.RequestType
+		npkt.Header.ServiceType = hdr.ServiceType
+		npkt.Header.SrcEntity = hdr.DstEntity
+		npkt.Header.DstEntity = hdr.SrcEntity
+		npkt.Header.Method = hdr.Method
+		npkt.Header.ContentType = hdr.ContentType
+		npkt.Header.CompressType = hdr.CompressType
+		npkt.Header.CheckFlags = 0
+		npkt.Header.TransInfo = hdr.TransInfo
+		npkt.Header.ErrCode = 0
+		npkt.Header.ErrMsg = ""
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
@@ -315,7 +298,7 @@ func _ProxyService_UnregisterEntity_Local_Handler(svc interface{}, ctx context.C
 
 func _ProxyService_UnregisterEntity_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
-	hdr := pkt.GetHeader()
+	hdr := pkt.Header
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()
 		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
@@ -324,32 +307,24 @@ func _ProxyService_UnregisterEntity_Remote_Handler(svc interface{}, ctx context.
 	in := new(RegisterEntityRequest)
 
 	ret := func(rsp *RegisterEntityResponse, err error) {
-		npkt := codec.NewPacket()
 
-		rhdr := &bbq.Header{
-			Version:      hdr.Version,
-			RequestId:    hdr.RequestId,
-			Timeout:      hdr.Timeout,
-			RequestType:  hdr.RequestType,
-			ServiceType:  hdr.ServiceType,
-			SrcEntity:    hdr.DstEntity,
-			DstEntity:    hdr.SrcEntity,
-			Method:       hdr.Method,
-			ContentType:  hdr.ContentType,
-			CompressType: hdr.CompressType,
-			CheckFlags:   0,
-			TransInfo:    hdr.TransInfo,
-			ErrCode:      0,
-			ErrMsg:       "",
-		}
-		npkt.SetHeader(rhdr)
+		npkt, release := codec.NewPacket()
+		defer release()
 
-		rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-		if err != nil {
-			fmt.Println("WritePacket", err)
-			return
-		}
-		npkt.WriteBody(rbyte)
+		npkt.Header.Version = hdr.Version
+		npkt.Header.RequestId = hdr.RequestId
+		npkt.Header.Timeout = hdr.Timeout
+		npkt.Header.RequestType = hdr.RequestType
+		npkt.Header.ServiceType = hdr.ServiceType
+		npkt.Header.SrcEntity = hdr.DstEntity
+		npkt.Header.DstEntity = hdr.SrcEntity
+		npkt.Header.Method = hdr.Method
+		npkt.Header.ContentType = hdr.ContentType
+		npkt.Header.CompressType = hdr.CompressType
+		npkt.Header.CheckFlags = 0
+		npkt.Header.TransInfo = hdr.TransInfo
+		npkt.Header.ErrCode = 0
+		npkt.Header.ErrMsg = ""
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
@@ -407,7 +382,7 @@ func _ProxyService_Ping_Local_Handler(svc interface{}, ctx context.Context, in i
 
 func _ProxyService_Ping_Remote_Handler(svc interface{}, ctx context.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
-	hdr := pkt.GetHeader()
+	hdr := pkt.Header
 	dec := func(v interface{}) error {
 		reqbuf := pkt.PacketBody()
 		err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, v)
@@ -416,32 +391,24 @@ func _ProxyService_Ping_Remote_Handler(svc interface{}, ctx context.Context, pkt
 	in := new(PingPong)
 
 	ret := func(rsp *PingPong, err error) {
-		npkt := codec.NewPacket()
 
-		rhdr := &bbq.Header{
-			Version:      hdr.Version,
-			RequestId:    hdr.RequestId,
-			Timeout:      hdr.Timeout,
-			RequestType:  hdr.RequestType,
-			ServiceType:  hdr.ServiceType,
-			SrcEntity:    hdr.DstEntity,
-			DstEntity:    hdr.SrcEntity,
-			Method:       hdr.Method,
-			ContentType:  hdr.ContentType,
-			CompressType: hdr.CompressType,
-			CheckFlags:   0,
-			TransInfo:    hdr.TransInfo,
-			ErrCode:      0,
-			ErrMsg:       "",
-		}
-		npkt.SetHeader(rhdr)
+		npkt, release := codec.NewPacket()
+		defer release()
 
-		rbyte, err := codec.DefaultCodec.Marshal(rhdr)
-		if err != nil {
-			fmt.Println("WritePacket", err)
-			return
-		}
-		npkt.WriteBody(rbyte)
+		npkt.Header.Version = hdr.Version
+		npkt.Header.RequestId = hdr.RequestId
+		npkt.Header.Timeout = hdr.Timeout
+		npkt.Header.RequestType = hdr.RequestType
+		npkt.Header.ServiceType = hdr.ServiceType
+		npkt.Header.SrcEntity = hdr.DstEntity
+		npkt.Header.DstEntity = hdr.SrcEntity
+		npkt.Header.Method = hdr.Method
+		npkt.Header.ContentType = hdr.ContentType
+		npkt.Header.CompressType = hdr.CompressType
+		npkt.Header.CheckFlags = 0
+		npkt.Header.TransInfo = hdr.TransInfo
+		npkt.Header.ErrCode = 0
+		npkt.Header.ErrMsg = ""
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {

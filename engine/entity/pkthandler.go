@@ -34,7 +34,7 @@ func NewMethodPacketHandler() *MethodPacketHandler {
 }
 
 func (st *MethodPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
-	switch pkt.GetHeader().ServiceType {
+	switch pkt.Header.ServiceType {
 	case bbq.ServiceType_Entity:
 		return st.handleCallEntity(c, pkt)
 	case bbq.ServiceType_Service:
@@ -46,10 +46,8 @@ func (st *MethodPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet
 
 func (st *MethodPacketHandler) handleCallMethod(c context.Context, pkt *codec.Packet, sd *ServiceDesc) error {
 
-	hdr := pkt.GetHeader()
-
 	// todo method name repeat get
-	sm := hdr.GetMethod()
+	sm := pkt.Header.GetMethod()
 	if sm != "" && sm[0] == '/' {
 		sm = sm[1:]
 	}
@@ -73,9 +71,7 @@ func (st *MethodPacketHandler) handleCallMethod(c context.Context, pkt *codec.Pa
 
 func (st *MethodPacketHandler) handleCallService(c context.Context, pkt *codec.Packet) error {
 
-	hdr := pkt.GetHeader()
-
-	sm := hdr.GetMethod()
+	sm := pkt.Header.GetMethod()
 	if sm != "" && sm[0] == '/' {
 		sm = sm[1:]
 	}
@@ -97,8 +93,7 @@ func (st *MethodPacketHandler) handleCallService(c context.Context, pkt *codec.P
 
 func (st *MethodPacketHandler) handleCallEntity(c context.Context, pkt *codec.Packet) error {
 
-	hdr := pkt.GetHeader()
-	ety := hdr.GetDstEntity()
+	ety := pkt.Header.GetDstEntity()
 	if ety == nil {
 		return EmptyEntityID
 	}
@@ -113,8 +108,8 @@ func (st *MethodPacketHandler) handleCallEntity(c context.Context, pkt *codec.Pa
 
 // =========
 
-func HandleCallLocalMethod(c context.Context, hdr *bbq.Header, in interface{}, callback func(c context.Context, rsp interface{})) error {
-
+func HandleCallLocalMethod(c context.Context, pkt *codec.Packet, in interface{}, callback func(c context.Context, rsp interface{})) error {
+	hdr := pkt.Header
 	switch hdr.ServiceType {
 	case bbq.ServiceType_Entity:
 		return handleCallEntity(c, hdr, in, callback)

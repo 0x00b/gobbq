@@ -32,7 +32,7 @@ func ConnProxy(ops ...nets.Option) {
 }
 
 func SendProxy(pkt *codec.Packet) error {
-	_ = pkt.GetHeader().GetDstEntity().ID
+	_ = pkt.Header.GetDstEntity().ID
 	// hash id , lb proxy
 
 	return proxyMap[1].SendPackt(pkt)
@@ -41,29 +41,27 @@ func SendProxy(pkt *codec.Packet) error {
 
 func RegisterEntity(eid string) error {
 
-	pkt := codec.NewPacket()
+	pkt, release := codec.NewPacket()
+	defer release()
 
-	hdr := &bbq.Header{
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  0,
-		ServiceType:  0,
-		SrcEntity:    &bbq.EntityID{ID: eid},
-		DstEntity:    &bbq.EntityID{},
-		Method:       "register_proxy_entity",
-		ContentType:  0,
-		CompressType: 0,
-		CheckFlags:   codec.FlagDataChecksumIEEE,
-		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = "1"
+	pkt.Header.Timeout = 1
+	pkt.Header.RequestType = 0
+	pkt.Header.ServiceType = 0
+	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid}
+	pkt.Header.DstEntity = &bbq.EntityID{}
+	pkt.Header.Method = "register_proxy_entity"
+	pkt.Header.ContentType = 0
+	pkt.Header.CompressType = 0
+	pkt.Header.CheckFlags = codec.FlagDataChecksumIEEE
+	pkt.Header.TransInfo = map[string][]byte{"xxx": []byte("22222")}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
 
-	pkt.SetHeader(hdr)
 	pkt.WriteBody(nil)
 
-	fmt.Println("register", string(hdr.GetSrcEntity().ID))
+	fmt.Println("register", string(pkt.Header.GetSrcEntity().ID))
 
 	return proxyMap[1].SendPackt(pkt)
 

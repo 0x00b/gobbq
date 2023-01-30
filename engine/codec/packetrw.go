@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/0x00b/gobbq/erro"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/pkg/errors"
 )
 
@@ -77,7 +76,7 @@ func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 
 	pc.writeMsgCnt++
 
-	if HasFlags(packet.header.CheckFlags, FlagDataChecksumIEEE) {
+	if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
 		var crc32Buffer [4]byte
 		packetBodyCrc := crc32.ChecksumIEEE(pdata)
 		packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
@@ -87,23 +86,23 @@ func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 }
 
 // recv receives the next packet
-func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
+func (pc *PacketReadWriter) ReadPacket() (*Packet, releasePkt, error) {
 	var err error
 
 	var tempBuff [4]byte
 
 	_, err = io.ReadFull(pc.rw, tempBuff[:])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	packetDataSize := packetEndian.Uint32(tempBuff[:])
 	if packetDataSize > MaxPacketBodyLength {
-		return nil, errPacketBodyTooLarge
+		return nil, nil, errPacketBodyTooLarge
 	}
 
 	// allocate a packet to receive packetBody
-	packet := NewPacket()
+	packet, release := NewPacket()
 	packet.Src = pc
 	packet.totalLen = packetDataSize
 
@@ -111,34 +110,37 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	packetData := packet.extendPacketData(packetDataSize)
 	_, err = io.ReadFull(pc.rw, packetData)
 	if err != nil {
-		return nil, err
+		release()
+		return nil, nil, err
 	}
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
-	packet.header = &bbq.Header{}
 
 	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
-	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.header)
+	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.Header)
 	if err != nil {
-		return nil, err
+		release()
+		return nil, nil, err
 	}
 
 	pc.readMsgCnt++
 
 	// receive checksum (uint32)
-	if HasFlags(packet.header.CheckFlags, FlagDataChecksumIEEE) {
+	if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
 		_, err = io.ReadFull(pc.rw, tempBuff[:4])
 		if err != nil {
-			return nil, err
+			release()
+			return nil, nil, err
 		}
 
 		packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
 		if packetBodyCrc != packetEndian.Uint32(tempBuff[:4]) {
-			return nil, errChecksumError
+			release()
+			return nil, nil, errChecksumError
 		}
 	}
 
-	return packet, nil
+	return packet, release, nil
 }
 
 func writeFull(conn io.Writer, data []byte) error {

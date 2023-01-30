@@ -18,12 +18,16 @@ func TestTcpClient(m *testing.T) {
 	}
 	ws := codec.NewPacketReadWriter(context.Background(), wsc)
 
-	pkt := codec.NewPacket()
+	pkt, release := codec.NewPacket()
+	defer release()
+
 	pkt.WriteBody([]byte("dsfsdfs"))
 	ws.WritePacket(pkt)
 
-	if pkt, err = ws.ReadPacket(); err != nil {
+	if pkt, release, err = ws.ReadPacket(); err != nil {
 		log.Fatal(err)
 	}
+	defer release()
+
 	fmt.Printf("Received: %s.\n", string(pkt.PacketBody()))
 }

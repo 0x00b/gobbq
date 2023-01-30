@@ -36,26 +36,26 @@ func TestWSClient(m *testing.T) {
 	client, err := nets.Connect(context.Background(),
 		nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, nets.WithPacketHandler(&GamePacketHandler{}))
 
-	pkt := codec.NewPacket()
+	pkt, release := codec.NewPacket()
+	defer release()
 
-	hdr := &bbq.Header{
-		Version:      1,
-		RequestId:    "1",
-		Timeout:      1,
-		RequestType:  0,
-		ServiceType:  0,
-		SrcEntity:    &bbq.EntityID{ID: "222"},
-		DstEntity:    &bbq.EntityID{ID: "111"},
-		Method:       "",
-		ContentType:  0,
-		CompressType: 0,
-		CheckFlags:   codec.FlagDataChecksumIEEE,
-		TransInfo:    map[string][]byte{"xxx": []byte("22222")},
-		ErrCode:      0,
-		ErrMsg:       "",
-	}
+	hdr := pkt.Header
+
+	hdr.Version = 1
+	hdr.RequestId = "1"
+	hdr.Timeout = 1
+	hdr.RequestType = 0
+	hdr.ServiceType = 0
+	hdr.SrcEntity = &bbq.EntityID{ID: "222"}
+	hdr.DstEntity = &bbq.EntityID{ID: "111"}
 	hdr.Method = "new_client"
-	pkt.SetHeader(hdr)
+	hdr.ContentType = 0
+	hdr.CompressType = 0
+	hdr.CheckFlags = codec.FlagDataChecksumIEEE
+	hdr.TransInfo = map[string][]byte{"xxx": []byte("22222")}
+	hdr.ErrCode = 0
+	hdr.ErrMsg = ""
+
 	pkt.WriteBody(nil)
 
 	wg.Add(1)

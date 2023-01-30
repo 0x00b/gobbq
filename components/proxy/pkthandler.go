@@ -28,7 +28,7 @@ func (st *ProxyPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet)
 	}
 
 	if entity.NotMyMethod(err) {
-		hdr := pkt.GetHeader()
+		hdr := pkt.Header
 		// send to game
 		// or send to gate
 		Proxy(entity.EntityID(hdr.DstEntity.ID), pkt)
