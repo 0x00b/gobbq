@@ -11,7 +11,7 @@ func (c AInt32) Value() (driver.Value, error) {
 	b, err := json.Marshal(c)
 	return string(b), err
 }
-func (c *AInt32) Scan(input interface{}) error {
+func (c *AInt32) Scan(input any) error {
 	return json.Unmarshal(input.([]byte), c)
 }
 
@@ -21,7 +21,7 @@ func (c AInt64) Value() (driver.Value, error) {
 	b, err := json.Marshal(c)
 	return string(b), err
 }
-func (c *AInt64) Scan(input interface{}) error {
+func (c *AInt64) Scan(input any) error {
 	return json.Unmarshal(input.([]byte), c)
 }
 
@@ -32,6 +32,6 @@ func (c AString) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-func (c *AString) Scan(input interface{}) error {
+func (c *AString) Scan(input any) error {
 	return json.Unmarshal(input.([]byte), c)
 }

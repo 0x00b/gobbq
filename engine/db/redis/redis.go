@@ -1,8 +1,7 @@
 package redis
 
 import (
-	"context"
-
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/log"
 	"github.com/0x00b/gobbq/tool/sync2"
 	"github.com/go-redis/redis/v8"
@@ -36,13 +35,13 @@ func initClient() error {
 type DefaultHook struct{}
 
 // BeforeProcess 前回调
-func (DefaultHook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+func (DefaultHook) BeforeProcess(ctx *entity.Context, cmd redis.Cmder) (*entity.Context, error) {
 	log.Info(ctx, cmd.String())
 	return ctx, nil
 }
 
 // AfterProcess 后回调
-func (DefaultHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
+func (DefaultHook) AfterProcess(ctx *entity.Context, cmd redis.Cmder) error {
 	e := cmd.Err()
 	if e != nil {
 		log.Errorln(ctx, e)
@@ -51,7 +50,7 @@ func (DefaultHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 }
 
 // BeforeProcessPipeline 前pipeline
-func (DefaultHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
+func (DefaultHook) BeforeProcessPipeline(ctx *entity.Context, cmds []redis.Cmder) (*entity.Context, error) {
 	for _, cmd := range cmds {
 		log.Info(ctx, cmd.String())
 	}
@@ -60,7 +59,7 @@ func (DefaultHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder
 }
 
 // AfterProcessPipeline 后pipeline
-func (DefaultHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
+func (DefaultHook) AfterProcessPipeline(ctx *entity.Context, cmds []redis.Cmder) error {
 	for _, cmd := range cmds {
 		e := cmd.Err()
 		if e != nil {
@@ -70,14 +69,14 @@ func (DefaultHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder)
 	return nil
 }
 
-func (DefaultHook) beforeAction(ctx context.Context, cmd redis.Cmder) context.Context {
+func (DefaultHook) beforeAction(ctx *entity.Context, cmd redis.Cmder) *entity.Context {
 	// log
 
 	// metric
 	return nil
 }
 
-func (DefaultHook) afterAction(ctx context.Context, cmd redis.Cmder) {
+func (DefaultHook) afterAction(ctx *entity.Context, cmd redis.Cmder) {
 	// log
 
 	// metric

@@ -1,11 +1,11 @@
 package gorm
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/log"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
@@ -71,26 +71,27 @@ func ParseGormLevel(lvl string) logger.LogLevel {
 }
 
 func (m *GormLog) LogMode(logger.LogLevel) logger.Interface {
-	return m
+	// return m
+	return nil
 }
 
-func (m *GormLog) Info(c context.Context, s string, p ...interface{}) {
+func (m *GormLog) Info(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Info {
 	// 	//log.Infof(s, p...)
 	// }
 }
-func (m *GormLog) Warn(c context.Context, s string, p ...interface{}) {
+func (m *GormLog) Warn(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Warn {
 	// 	//log.Warnf(s, p...)
 	// }
 }
-func (m *GormLog) Error(c context.Context, s string, p ...interface{}) {
+func (m *GormLog) Error(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Error {
 	// 	//log.Errorf(s, p...)
 	// }
 }
 
-func (m *GormLog) Trace(c context.Context,
+func (m *GormLog) Trace(c *entity.Context,
 	begin time.Time, fc func() (string, int64), err error) {
 	if m.LogLevel <= 0 {
 		return

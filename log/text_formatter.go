@@ -73,10 +73,10 @@ type TagSourceFormatter interface {
 	Format(file, fun string, line int) (tag, value string)
 }
 
-//HandlerFormatFunc format function name
+// HandlerFormatFunc format function name
 type HandlerFormatFunc func(funcName string) string
 
-//HandlerFormatFile format file name
+// HandlerFormatFile format file name
 type HandlerFormatFile func(fileName string) string
 
 func defaultFormatFunc(funcName string) string {
@@ -174,7 +174,7 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return f.FormatHook(hook)
 }
 
-//nolint
+// nolint
 func (f *TextFormatter) FormatHook(hook *Hook) ([]byte, error) {
 	var buf *bytes.Buffer
 	if hook.Buffer != nil {
@@ -402,7 +402,7 @@ func (f *TextFormatter) needsQuoting(text string) bool {
 	return false
 }
 
-func (f *TextFormatter) quoteValue(value interface{}) string {
+func (f *TextFormatter) quoteValue(value any) string {
 	stringVal, ok := value.(string)
 	if !ok {
 		stringVal = fmt.Sprint(value)

@@ -1,12 +1,12 @@
 package gorm
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -78,10 +78,10 @@ func NewOnlyReadGormDB(c Config) *GormDB {
 		c.SlowThreshold = 2 * time.Second
 	}
 
-	db.Logger = NewGormLog(LogConfig{
-		SlowThreshold: (c.SlowThreshold),
-		LogLevel:      ParseGormLevel(c.LogLevel),
-	})
+	// db.Logger = NewGormLog(LogConfig{
+	// 	SlowThreshold: (c.SlowThreshold),
+	// 	LogLevel:      ParseGormLevel(c.LogLevel),
+	// })
 
 	gdb := &GormDB{
 		Config: &c,
@@ -91,7 +91,7 @@ func NewOnlyReadGormDB(c Config) *GormDB {
 	return gdb
 }
 
-//CheckMysqlDatabase 检查数据库是否存在，不存在则创建, for mysql
+// CheckMysqlDatabase 检查数据库是否存在，不存在则创建, for mysql
 func CheckMysqlDatabase(c Config) error {
 	dbURL := c.UserName + ":" + c.Password + "@tcp(" + c.Host + ")/?charset=" + c.Charset
 	conn, err := sql.Open("mysql", dbURL)
@@ -110,7 +110,7 @@ func CheckMysqlDatabase(c Config) error {
 	return nil
 }
 
-func (c *GormDB) C(ctx context.Context, forupdate ...int) *gorm.DB {
+func (c *GormDB) C(ctx *entity.Context, forupdate ...int) *gorm.DB {
 	db := c.db.WithContext(ctx)
 	if len(forupdate) > 0 {
 		// db = db.Set("gorm:query_option", "FOR UPDATE")
@@ -139,7 +139,7 @@ func (c *GormDB) begin() *GormDB {
 	}
 }
 
-func (c *GormDB) Model(ctx context.Context, model interface{}, forupdate ...int) *gorm.DB {
+func (c *GormDB) Model(ctx *entity.Context, model any, forupdate ...int) *gorm.DB {
 	//tableName := c.DB.NewScope(model).TableName()
 	db := c.db.WithContext(ctx).Scopes(c.Table(ctx, model)).Model(model)
 

@@ -14,12 +14,11 @@ import (
 // curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host: example.com:80" --header "Origin: http://example.com:80" --header "Sec-WebSocketService-Key: SGVsbG8sIHdvcmxkIQ==" --header "Sec-WebSocketService-Version: 13" localhost:80
 
 type WebSocketService struct {
-	hs  http.Server
-	ctx context.Context
+	hs http.Server
 }
 
-func newWebSocketService(ctx context.Context) *WebSocketService {
-	return &WebSocketService{ctx: ctx}
+func newWebSocketService() *WebSocketService {
+	return &WebSocketService{}
 }
 
 func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, opts *Options) error {
@@ -45,7 +44,7 @@ func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, 
 }
 
 func (ws *WebSocketService) Close(chan struct{}) error {
-	ws.hs.Shutdown(ws.ctx)
+	ws.hs.Shutdown(context.Background())
 	return nil
 }
 
@@ -59,8 +58,7 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
 
 	conn := &conn{
 		rwc:              rawConn,
-		ctx:              ws.ctx,
-		packetReadWriter: codec.NewPacketReadWriter(ws.ctx, rawConn),
+		packetReadWriter: codec.NewPacketReadWriter(rawConn),
 		PacketHandler:    opts.PacketHandler,
 		opts:             opts,
 	}

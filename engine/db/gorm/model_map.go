@@ -1,9 +1,9 @@
 package gorm
 
 import (
-	"context"
 	"reflect"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"gorm.io/gorm/schema"
 )
 
@@ -11,15 +11,15 @@ var (
 	naming = schema.NamingStrategy{}
 )
 
-//ModelMap 把model转换成map， 为了能够更新空字段
-func ModelMap(c context.Context, i interface{}) map[string]interface{} {
+// ModelMap 把model转换成map， 为了能够更新空字段
+func ModelMap(c *entity.Context, i any) map[string]any {
 
 	vv := reflect.ValueOf(i)
 	vt := reflect.TypeOf(i)
 
 	table := naming.TableName(vt.Name())
 
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	mLevel := make(map[string]int)
 
 	getFiled(vt, vv, table, m, 0, mLevel)
@@ -27,7 +27,7 @@ func ModelMap(c context.Context, i interface{}) map[string]interface{} {
 	return m
 }
 
-func getFiled(vt reflect.Type, vv reflect.Value, table string, m map[string]interface{}, level int, mLevel map[string]int) {
+func getFiled(vt reflect.Type, vv reflect.Value, table string, m map[string]any, level int, mLevel map[string]int) {
 	for vt.Kind() == reflect.Ptr {
 		vv = vv.Elem()
 		vt = vt.Elem()

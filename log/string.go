@@ -20,7 +20,7 @@ import (
 //
 // String 入参换成可打印的json string，包括protobuf和普通结构体，或者其他类型
 // 返回 fmt.Stringer， 防止日志级别不够时，还执行这个很消耗资源的操作
-func String(i interface{}) fmt.Stringer {
+func String(i any) fmt.Stringer {
 	return &defaultStringer{i}
 }
 
@@ -43,7 +43,7 @@ type DealStringHookFunc func(string) string
 var nilstr = "nil"
 
 type defaultStringer struct {
-	i interface{}
+	i any
 }
 
 func (d *defaultStringer) String() string {
@@ -70,13 +70,13 @@ func (d *defaultStringer) String() string {
 }
 
 // 把定义了Json字段的结构本转换为Json字符串输出
-func JsonString(r interface{}) string {
+func JsonString(r any) string {
 	b, _ := json.Marshal(r)
 	return string(b)
 }
 
 // String 把i转换成string
-func FmtString(i interface{}) string {
+func FmtString(i any) string {
 	typ := reflect.TypeOf(i)
 	if typ.Kind() == reflect.String {
 		return reflect.ValueOf(i).String()
@@ -111,7 +111,7 @@ func ProtoToPrintString(p proto.Message) string {
 }
 
 // StructToPrintString 结构体转换成可打印的json string，会对超长内容截断
-func StructToString(p interface{}) string {
+func StructToString(p any) string {
 	if p == nil {
 		return nilstr
 	}
@@ -129,7 +129,7 @@ func StructToString(p interface{}) string {
 }
 
 //
-//func handleString(m map[string]interface{}, key string, s interface{}) {
+//func handleString(m map[string]any, key string, s any) {
 //	if s, ok := s.(string); ok {
 //		if len(s) < PrintStringLen {
 //			m[key] = s
@@ -157,7 +157,7 @@ func getStringSlice(s string) string {
 }
 
 // nolint
-func handlerField(fields map[string]interface{},
+func handlerField(fields map[string]any,
 	fieldName string, field reflect.Value, t reflect.Type, anonymous bool) {
 	// type field
 	if _, ok := fields[fieldName]; ok {
@@ -166,7 +166,7 @@ func handlerField(fields map[string]interface{},
 	kind := t.Kind()
 	switch kind {
 	case reflect.Slice, reflect.Array:
-		var values []interface{}
+		var values []any
 		moreFields := false
 		fLen := field.Len()
 		if PrintSliceLen > 0 && fLen > PrintSliceLen {
@@ -219,7 +219,7 @@ func handlerField(fields map[string]interface{},
 			}
 		case reflect.Struct:
 			for i := 0; i < field.Len(); i++ {
-				t := make(map[string]interface{})
+				t := make(map[string]any)
 				if field.Type().Elem().Kind() == reflect.Ptr {
 					if !field.Index(i).IsNil() {
 						handlerStruct(t, reflect.ValueOf(field.Index(i).Elem().Interface()),
@@ -235,7 +235,7 @@ func handlerField(fields map[string]interface{},
 			}
 		case reflect.Interface:
 			for i := 0; i < field.Len(); i++ {
-				t := make(map[string]interface{})
+				t := make(map[string]any)
 				if !field.Index(i).IsNil() {
 					handlerField(t, fieldName, field.Index(i).Elem(), field.Index(i).Elem().Type(), false)
 				}
@@ -245,7 +245,7 @@ func handlerField(fields map[string]interface{},
 			}
 		case reflect.Map:
 			for i := 0; i < field.Len(); i++ {
-				t := make(map[string]interface{})
+				t := make(map[string]any)
 				if field.Type().Elem().Kind() == reflect.Ptr {
 					if !field.Index(i).IsNil() {
 						handlerField(t, fieldName, field.Index(i).Elem(), field.Index(i).Elem().Type(), false)
@@ -276,7 +276,7 @@ func handlerField(fields map[string]interface{},
 		if anonymous {
 			handlerStruct(fields, reflect.ValueOf(field.Interface()), reflect.TypeOf(field.Interface()))
 		} else {
-			temp := make(map[string]interface{})
+			temp := make(map[string]any)
 			handlerStruct(temp, reflect.ValueOf(field.Interface()), reflect.TypeOf(field.Interface()))
 			fields[fieldName] = temp
 		}
@@ -290,7 +290,7 @@ func handlerField(fields map[string]interface{},
 		}
 	case reflect.Map:
 		if !field.IsNil() {
-			temp := make(map[string]interface{})
+			temp := make(map[string]any)
 			for _, key := range field.MapKeys() {
 				handlerField(temp, formatAtom(key), field.MapIndex(key), field.MapIndex(key).Type(), false)
 			}
@@ -326,7 +326,7 @@ func formatAtom(v reflect.Value) string {
 		return v.Type().String() + " value"
 	}
 }
-func handlerStruct(fields map[string]interface{}, v reflect.Value, t reflect.Type) {
+func handlerStruct(fields map[string]any, v reflect.Value, t reflect.Type) {
 	for i := 0; i < v.Type().NumField(); i++ {
 		if !v.Field(i).CanInterface() || !v.Field(i).IsValid() ||
 			(isOmitEmpty(v.Type().Field(i)) && utils.IsEmptyValue(v.Field(i))) {
@@ -345,8 +345,8 @@ func isOmitEmpty(field reflect.StructField) bool {
 }
 
 // GetStructFields 把结构体转换成一个map
-func GetStructFields(st interface{}) (fields map[string]interface{}, err error) {
-	fields = make(map[string]interface{})
+func GetStructFields(st any) (fields map[string]any, err error) {
+	fields = make(map[string]any)
 	if st == nil {
 		return
 	}

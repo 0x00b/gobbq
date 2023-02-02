@@ -18,7 +18,7 @@ message RegisterClientResponse{
 }
 
 service Gate {
-	option (bbq.service_type) = Entity;
+	option (bbq.service_type) = Service;
 
 	rpc RegisterClient(RegisterClientRequest) returns(RegisterClientResponse) {}
 	rpc UnregisterClient(RegisterClientRequest) returns(google.protobuf.Empty) {}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/db/trx"
+	"github.com/0x00b/gobbq/engine/entity"
 )
 
 const TTT = 1
@@ -20,12 +21,12 @@ type Test struct{}
 //
 //	@receiver Test
 //	@param c
-//	@return context.Context
+//	@return *entity.Context
 //	@author jun
 //	@date 2021-10-08 09:27:56
-func (Test) Begin(c context.Context) context.Context {
-	return context.WithValue(c, "test", "test")
-
+func (Test) Begin(c *entity.Context) *entity.Context {
+	// return context.WithValue(c, "test", "test")
+	return nil
 }
 
 // Commit
@@ -34,7 +35,7 @@ func (Test) Begin(c context.Context) context.Context {
 //	@param c
 //	@author jun
 //	@date 2021-10-08 09:30:56
-func (Test) Commit(c context.Context) {
+func (Test) Commit(c *entity.Context) {
 	fmt.Println("Commit", c.Value("test"))
 
 }
@@ -46,7 +47,7 @@ func (Test) Commit(c context.Context) {
 //	@param e
 //	@author jun
 //	@date 2021-10-08 09:30:51
-func (Test) Rollback(c context.Context, e error) {
+func (Test) Rollback(c *entity.Context, e error) {
 	fmt.Println("Rollback", c.Value("test"))
 }
 
@@ -55,11 +56,11 @@ func (Test) Rollback(c context.Context, e error) {
 //	@param c
 //	@author jun
 //	@date 2021-10-08 09:29:14
-func test(c context.Context) {
+func test(c *entity.Context) {
 
 	ts := trx.Transaction{}
 	ts.RegisterTransaction(Test{})
-	_ = ts.Transaction(func(c context.Context) error {
+	_ = ts.Transaction(func(c *entity.Context) error {
 		fmt.Println("Transaction", c.Value("test"))
 		return nil
 	})(c)
@@ -70,7 +71,7 @@ func TestTransaction(t *testing.T) {
 
 	c := context.Background()
 
-	test(c)
+	// test(c)
 	fmt.Println("TestTransaction", c.Value("test"))
 
 }

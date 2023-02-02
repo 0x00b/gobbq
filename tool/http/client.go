@@ -2,13 +2,13 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,7 +22,7 @@ type HttpParam struct {
 }
 
 type HttpHooker interface {
-	Before(context.Context, *http.Request) (After func(interface{}, error) error)
+	Before(*entity.Context, *http.Request) (After func(any, error) error)
 }
 
 var (
@@ -30,8 +30,8 @@ var (
 )
 
 // HTTP http远程调用
-func HTTP(ctx context.Context, method, url string,
-	request interface{}, response interface{}, params ...*HttpParam) (rspByte []byte, e error) {
+func HTTP(ctx *entity.Context, method, url string,
+	request any, response any, params ...*HttpParam) (rspByte []byte, e error) {
 	var requestBody []byte
 	if request != nil {
 		if p, ok := request.(proto.Message); ok {
@@ -91,7 +91,7 @@ func HTTP(ctx context.Context, method, url string,
 
 	var responseBody []byte
 
-	after := func(interface{}, error) error { return nil }
+	after := func(any, error) error { return nil }
 	if Hooker != nil {
 		// ctx := WithMeta(ctx, &ago.MetaInfo{
 		// 	Action: url,

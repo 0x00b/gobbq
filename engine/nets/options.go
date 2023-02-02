@@ -1,7 +1,6 @@
 package nets
 
 import (
-	"context"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
@@ -24,7 +23,7 @@ type Options struct {
 }
 
 type PacketHandler interface {
-	HandlePacket(c context.Context, pkt *codec.Packet) error
+	HandlePacket(pkt *codec.Packet) error
 }
 
 // A Option sets options such as credentials, codec and keepalive parameters, etc.

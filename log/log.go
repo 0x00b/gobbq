@@ -1,135 +1,135 @@
 package log
 
-import "context"
+import "github.com/0x00b/gobbq/engine/entity"
 
-func Tracef(ctx context.Context, format string, args ...interface{}) {
+func Tracef(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Tracef(format, args...)
 }
 
-func Debugf(ctx context.Context, format string, args ...interface{}) {
+func Debugf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Debugf(format, args...)
 }
 
-func Infof(ctx context.Context, format string, args ...interface{}) {
+func Infof(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Infof(format, args...)
 }
 
-func Printf(ctx context.Context, format string, args ...interface{}) {
+func Printf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Printf(format, args...)
 }
 
-func Warnf(ctx context.Context, format string, args ...interface{}) {
+func Warnf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Warnf(format, args...)
 }
 
-func Warningf(ctx context.Context, format string, args ...interface{}) {
+func Warningf(ctx *entity.Context, format string, args ...any) {
 	Warnf(ctx, format, args...)
 }
 
-func Errorf(ctx context.Context, format string, args ...interface{}) {
+func Errorf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Errorf(format, args...)
 }
 
-func Fatalf(ctx context.Context, format string, args ...interface{}) {
+func Fatalf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Fatalf(format, args...)
 }
 
-func Panicf(ctx context.Context, format string, args ...interface{}) {
+func Panicf(ctx *entity.Context, format string, args ...any) {
 	//ctx, format, args := handleLogfParameter(args)
 	log(ctx).Panicf(format, args...)
 }
 
-func Trace(ctx context.Context, args ...interface{}) {
+func Trace(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Trace(args...)
 }
 
-func Debug(ctx context.Context, args ...interface{}) {
+func Debug(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Debug(args...)
 }
 
-func Info(ctx context.Context, args ...interface{}) {
+func Info(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Info(args...)
 }
 
-func Print(ctx context.Context, args ...interface{}) {
+func Print(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Print(args...)
 }
 
-func Warn(ctx context.Context, args ...interface{}) {
+func Warn(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Warn(args...)
 }
 
-func Warning(ctx context.Context, args ...interface{}) {
+func Warning(ctx *entity.Context, args ...any) {
 	Warn(ctx, args...)
 }
 
-func Error(ctx context.Context, args ...interface{}) {
+func Error(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Error(args...)
 }
 
-func Fatal(ctx context.Context, args ...interface{}) {
+func Fatal(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Fatal(args...)
 }
 
-func Panic(ctx context.Context, args ...interface{}) {
+func Panic(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Panic(args...)
 }
 
-func Traceln(ctx context.Context, args ...interface{}) {
+func Traceln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Traceln(args...)
 }
 
-func Debugln(ctx context.Context, args ...interface{}) {
+func Debugln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Debugln(args...)
 }
 
-func Infoln(ctx context.Context, args ...interface{}) {
+func Infoln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Infoln(args...)
 }
 
-func Println(ctx context.Context, args ...interface{}) {
+func Println(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Println(args...)
 }
 
-func Warnln(ctx context.Context, args ...interface{}) {
+func Warnln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Warnln(args...)
 }
 
-func Warningln(ctx context.Context, args ...interface{}) {
+func Warningln(ctx *entity.Context, args ...any) {
 	Warnln(ctx, args...)
 }
 
-func Errorln(ctx context.Context, args ...interface{}) {
+func Errorln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Errorln(args...)
 }
 
-func Fatalln(ctx context.Context, args ...interface{}) {
+func Fatalln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Fatalln(args...)
 }
 
-func Panicln(ctx context.Context, args ...interface{}) {
+func Panicln(ctx *entity.Context, args ...any) {
 	//ctx, args := handleLogParameter(args)
 	log(ctx).Panicln(args...)
 }

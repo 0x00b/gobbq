@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
@@ -20,9 +18,9 @@ func NewClientPacketHandler() *ClientPacketHandler {
 	return st
 }
 
-func (st *ClientPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (st *ClientPacketHandler) HandlePacket(pkt *codec.Packet) error {
 
-	err := st.MethodPacketHandler.HandlePacket(c, pkt)
+	err := st.MethodPacketHandler.HandlePacket(pkt)
 	if err == nil {
 		// handle succ
 		return nil

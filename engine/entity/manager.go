@@ -5,27 +5,34 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
 var Manager EntityManager = EntityManager{
-	Services:    make(map[TypeName]*ServiceDesc),
+	Services:    make(map[TypeName]IService),
 	entityDescs: make(map[TypeName]*ServiceDesc),
-	Entities:    make(map[EntityID]*ServiceDesc),
+	Entities:    make(map[EntityID]IEntity),
+}
+var ProxyRegister RegisterProxy
+
+type RegisterProxy interface {
+	RegisterEntityToProxy(eid EntityID) error
+	RegisterServiceToProxy(svcName TypeName) error
 }
 
 // EntityManager manage entity lifecycle
 type EntityManager struct {
-	mu    sync.Mutex // guards following
+	mu    sync.RWMutex // guards following
 	serve bool
 
-	Services    map[TypeName]*ServiceDesc // service name -> service info
+	Services    map[TypeName]IService     // service name -> service info
 	entityDescs map[TypeName]*ServiceDesc // entity name -> entity info
-	Entities    map[EntityID]*ServiceDesc // entity id -> entity impl
+	Entities    map[EntityID]IEntity      // entity id -> entity impl
+
 }
 
-func NewEntity(id EntityID, typ TypeName) *bbq.EntityID {
+func NewEntity(c *Context, id EntityID, typ TypeName) *bbq.EntityID {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
 		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
@@ -45,25 +52,41 @@ func NewEntity(id EntityID, typ TypeName) *bbq.EntityID {
 		fmt.Println("error type", svcType.Name())
 		return nil
 	}
-	entity.SetEntityID(id)
 	// init
-	entity.OnInit()
 
-	eid := EntityID(entity.EntityID())
+	if id == "" {
+		id = EntityID(snowflake.GenUUID())
+	}
 
-	fmt.Println("register entity id:", eid)
+	fmt.Println("register entity id:", id)
 
 	newDesc := *desc
 	newDesc.ServiceImpl = entity
+	entity.setDesc(&newDesc)
 
-	Manager.Entities[eid] = &newDesc
+	ctx := allocContext()
+	ctx.Service = entity
+	ctx.entityID = id
+	entity.onInit(ctx)
+
+	if c != nil {
+		entity.setParant(c.Service)
+		c.Service.addChildren(entity)
+	}
+
+	Manager.mu.Lock()
+	defer Manager.mu.Unlock()
+	Manager.Entities[id] = entity
 
 	// start message loop
+	go entity.messageLoop()
 
 	// send to poxy
-	ex.RegisterEntity(string(id))
+	if ProxyRegister != nil {
+		ProxyRegister.RegisterEntityToProxy(id)
+	}
 
-	return nil
+	return &bbq.EntityID{ID: string(id), TypeName: string(desc.TypeName)}
 }
 
 func (s *EntityManager) RegisterEntity(sd *ServiceDesc, ss IEntity, intercepter ...ServerInterceptor) {
@@ -117,5 +140,16 @@ func (s *EntityManager) registerService(sd *ServiceDesc, ss IService, intercepte
 	}
 	sd.ServiceImpl = ss
 	sd.interceptors = intercepter
-	s.Services[sd.TypeName] = sd
+	ss.setDesc(sd)
+	ctx := allocContext()
+	ctx.Service = ss
+	ss.onInit(ctx)
+	s.Services[sd.TypeName] = ss
+
+	// start msg loop
+	go ss.messageLoop()
+
+	if ProxyRegister != nil {
+		ProxyRegister.RegisterServiceToProxy(sd.TypeName)
+	}
 }

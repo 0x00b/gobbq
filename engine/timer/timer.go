@@ -62,11 +62,11 @@ func (h *_TimerHeap) Swap(i, j int) {
 	h.timers[j] = tmp
 }
 
-func (h *_TimerHeap) Push(x interface{}) {
+func (h *_TimerHeap) Push(x any) {
 	h.timers = append(h.timers, x.(*Timer))
 }
 
-func (h *_TimerHeap) Pop() (ret interface{}) {
+func (h *_TimerHeap) Pop() (ret any) {
 	l := len(h.timers)
 	h.timers, ret = h.timers[:l-1], h.timers[l-1]
 	return

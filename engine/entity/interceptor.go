@@ -1,21 +1,21 @@
 package entity
 
-import (
-	"context"
-)
-
 type ServerInfo struct {
 	// Server is the service implementation the user provides. This is read-only.
-	Server interface{}
+	Server any
 	// FullMethod is the full RPC method string, i.e., /package.service/method.
 	FullMethod string
 }
 
-type RetFunc func(interface{}, error)
+// 请求回调
+type Callback func(c *Context, rsp any)
 
-type Handler func(ctx context.Context, req interface{}, ret RetFunc)
+// 函数返回参数
+type RetFunc func(any, error)
 
-type ServerInterceptor func(ctx context.Context, req interface{}, info *ServerInfo, ret RetFunc, next Handler)
+type Handler func(ctx *Context, req any, ret RetFunc)
+
+type ServerInterceptor func(ctx *Context, req any, info *ServerInfo, ret RetFunc, next Handler)
 
 // chainServerInterceptors chains all  server interceptors into one.
 func chainServerInterceptors(interceptors []ServerInterceptor) ServerInterceptor {
@@ -35,7 +35,7 @@ func chainServerInterceptors(interceptors []ServerInterceptor) ServerInterceptor
 }
 
 func chainInterceptors(interceptors []ServerInterceptor) ServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *ServerInfo, ret RetFunc, handler Handler) {
+	return func(ctx *Context, req any, info *ServerInfo, ret RetFunc, handler Handler) {
 		interceptors[0](ctx, req, info, ret, getChainHandler(interceptors, 0, info, ret, handler))
 		return
 	}
@@ -45,7 +45,7 @@ func getChainHandler(interceptors []ServerInterceptor, curr int, info *ServerInf
 	if curr == len(interceptors)-1 {
 		return finalHandler
 	}
-	return func(ctx context.Context, req interface{}, ret RetFunc) {
+	return func(ctx *Context, req any, ret RetFunc) {
 		interceptors[curr+1](ctx, req, info, ret, getChainHandler(interceptors, curr+1, info, ret, finalHandler))
 		return
 	}

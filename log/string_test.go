@@ -38,7 +38,7 @@ type TestPint struct {
 	In4  *[]*Inner
 	Data []byte
 	Inner
-	Interface interface{}
+	Interface any
 	Int       []*int32
 }
 
@@ -104,13 +104,13 @@ func TestGetStructFields(t *testing.T) {
 		In4:  nil,
 		Int:  []*int32{proto.Int32(1), proto.Int32(2), proto.Int32(2), proto.Int32(2), proto.Int32(2), proto.Int32(2)},
 		Data: []byte("testttttttttttttttttttttttttttttttt"),
-		//Interface: &[]interface{}{proto.String("sss"),map[string]interface{}{"m1":"test"}},
-		Interface: &[]map[interface{}]interface{}{{"str": proto.String("sss")},
+		//Interface: &[]any{proto.String("sss"),map[string]any{"m1":"test"}},
+		Interface: &[]map[any]any{{"str": proto.String("sss")},
 			{5: proto.String("sss")},
-			{nil: map[string]interface{}{"m1": "test"}}, nil},
+			{nil: map[string]any{"m1": "test"}}, nil},
 		Float: 10e7,
 	}
-	//DealStringHook = func(i interface{}) interface{} {
+	//DealStringHook = func(i any) any {
 	//	return i
 	//}
 

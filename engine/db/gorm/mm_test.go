@@ -1,7 +1,6 @@
 package gorm_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -35,6 +34,6 @@ func TestT(t *testing.T) {
 		},
 	}
 
-	fmt.Println(gorm.ModelMap(context.Background(), cc))
+	fmt.Println(gorm.ModelMap(nil, cc))
 
 }

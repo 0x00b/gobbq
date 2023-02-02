@@ -1,7 +1,6 @@
 package log_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/0x00b/gobbq/log"
@@ -18,5 +17,5 @@ func TestFileLogger(t *testing.T) {
 		LocalTime: true,
 	}, "", log.DefaultLogTag{})
 
-	log.Infoln(context.Background(), "test")
+	log.Infoln(nil, "test")
 }

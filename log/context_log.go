@@ -2,7 +2,6 @@ package log
 
 import (
 	"bytes"
-	"context"
 	"sync"
 
 	"github.com/0x00b/gobbq/engine/entity"
@@ -14,36 +13,36 @@ type ctxLogKey struct{}
 var (
 	_ctxLogKey ctxLogKey
 	bufPool    = &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return new(bytes.Buffer)
 		},
 	}
 )
 
-func OrganizeLogMiddleware(c context.Context, in interface{}, ret entity.RetFunc, next entity.Handler) (out interface{}, e error) {
+// func OrganizeLogMiddleware(c *entity.Context, in any, ret entity.RetFunc, next entity.Handler) (out any, e error) {
 
-	if _organizeLog {
-		_, ok := c.Value(_ctxLogKey).(*logrus.Entry)
-		if ok {
-			next(c, in, ret)
-			return
-		}
+// 	if _organizeLog {
+// 		_, ok := c.Value(_ctxLogKey).(*logrus.Entry)
+// 		if ok {
+// 			next(c, in, ret)
+// 			return
+// 		}
 
-		clog, buf := newCtxLog(c)
+// 		clog, buf := newCtxLog(c)
 
-		defer func() {
-			organizeLog(c, buf)
-		}()
+// 		defer func() {
+// 			organizeLog(c, buf)
+// 		}()
 
-		c = context.WithValue(c, _ctxLogKey, clog)
+// 		c = context.WithValue(c, _ctxLogKey, clog)
 
-	}
+// 	}
 
-	next(c, in, ret)
-	return
-}
+// 	next(c, in, ret)
+// 	return
+// }
 
-func organizeLog(c context.Context, buf *bytes.Buffer) {
+func organizeLog(c *entity.Context, buf *bytes.Buffer) {
 
 	bufStr := buf.String()
 	if len(bufStr) == 0 {
@@ -61,7 +60,7 @@ func organizeLog(c context.Context, buf *bytes.Buffer) {
 	bufPool.Put(buf)
 }
 
-func newCtxLog(c context.Context) (*logrus.Entry, *bytes.Buffer) {
+func newCtxLog(c *entity.Context) (*logrus.Entry, *bytes.Buffer) {
 
 	logger := logrus.New()
 	stdLogger := logrus.StandardLogger()
@@ -81,7 +80,7 @@ func newCtxLog(c context.Context) (*logrus.Entry, *bytes.Buffer) {
 
 }
 
-func log(c context.Context) *logrus.Entry {
+func log(c *entity.Context) *logrus.Entry {
 	log, ok := c.Value(_ctxLogKey).(*logrus.Entry)
 	if ok {
 		return log.WithContext(c)

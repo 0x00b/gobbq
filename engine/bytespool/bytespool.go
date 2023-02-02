@@ -31,7 +31,7 @@ func init() {
 		tempBufferCap := bufferCap
 		key := CalcBufferCapKey(bufferCap)
 		bufferPools[key] = &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				bs := &Bytes{}
 				bs.bytes = make([]byte, tempBufferCap)
 				return bs

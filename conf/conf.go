@@ -59,7 +59,7 @@ func init() {
 	}
 }
 
-func ParseYamlConf(fpath string, cfg interface{}) error {
+func ParseYamlConf(fpath string, cfg any) error {
 
 	data, err := ioutil.ReadFile(fpath)
 	if err != nil {

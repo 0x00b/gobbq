@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 
 	"github.com/0x00b/gobbq/engine/codec"
@@ -20,9 +19,9 @@ func NewProxyPacketHandler() *ProxyPacketHandler {
 	return st
 }
 
-func (st *ProxyPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 
-	err := st.MethodPacketHandler.HandlePacket(c, pkt)
+	err := st.MethodPacketHandler.HandlePacket(pkt)
 	if err == nil {
 		// handle succ
 		return nil

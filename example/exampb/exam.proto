@@ -1,0 +1,25 @@
+syntax = "proto3";
+option go_package = "github.com/0x00b/gobbq/example/exampb;exampb";
+package exampb;
+
+import "bbq.proto";
+ 
+message SayHelloRequest{
+	string text = 1;
+}
+
+message SayHelloResponse{
+	string text = 1;
+}
+ 
+service Echo {
+	option (bbq.service_type) = Service;
+
+	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
+}
+
+service EchoEty {
+	option (bbq.service_type) = Entity;
+
+	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
+}

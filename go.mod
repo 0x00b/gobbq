@@ -41,7 +41,6 @@ require (
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
-	github.com/elastic/go-elasticsearch/v8 v8.0.0-20210317102009-a9d74cec0186
 	github.com/fatih/color v1.13.0
 	github.com/golang/protobuf v1.5.2
 	github.com/iancoleman/strcase v0.2.0

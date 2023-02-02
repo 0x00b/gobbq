@@ -16,7 +16,7 @@ package log_test
 
 // 	c := context.Background()
 
-// 	log.Wrapper(func(ctx context.Context) {
+// 	log.Wrapper(func(ctx *entity.Context) {
 
 // 		// organize log
 // 		log.Infoln(ctx, "test in ")
@@ -39,7 +39,7 @@ package log_test
 // 	c := context.Background()
 // 	wg := sync.WaitGroup{}
 // 	wg.Add(1)
-// 	go log.Wrapper(func(ctx context.Context) {
+// 	go log.Wrapper(func(ctx *entity.Context) {
 
 // 		// organize log
 // 		log.Infoln(ctx, "test in ")

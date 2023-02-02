@@ -1,19 +1,19 @@
 package gorm
 
 import (
-	"context"
 	"reflect"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
 type Tabler interface {
-	TableName(c context.Context, i interface{}) string
+	TableName(c *entity.Context, i any) string
 }
 
-// func TableName(c context.Context, i interface{}) string {
+// func TableName(c *entity.Context, i any) string {
 // 	vt := reflect.TypeOf(i)
 // 	vv := reflect.ValueOf(i)
 // 	for vt.Kind() == reflect.Ptr {
@@ -38,13 +38,13 @@ type Tabler interface {
 
 var tableNameCache *cache.Cache = cache.New(0, 0)
 
-func (gdb *GormDB) Table(c context.Context, i interface{}) func(db *gorm.DB) *gorm.DB {
+func (gdb *GormDB) Table(c *entity.Context, i any) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Table(gdb.TableName(c, i))
 	}
 }
 
-func RawTableName(i interface{}) string {
+func RawTableName(i any) string {
 	v := reflect.TypeOf(i)
 	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -54,6 +54,6 @@ func RawTableName(i interface{}) string {
 
 type defaultTabler struct{}
 
-func (defaultTabler) TableName(c context.Context, i interface{}) string {
+func (defaultTabler) TableName(c *entity.Context, i any) string {
 	return RawTableName(i)
 }

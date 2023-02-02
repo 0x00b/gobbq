@@ -21,7 +21,7 @@ var DefaultCodec = protoCodec{}
 // codec is a Codec implementation with protobuf. It is the default codec for gRPC.
 type protoCodec struct{}
 
-func (protoCodec) Marshal(v interface{}) ([]byte, error) {
+func (protoCodec) Marshal(v any) ([]byte, error) {
 	vv, ok := v.(proto.Message)
 	if !ok {
 		return nil, fmt.Errorf("failed to marshal, packet is %T, want proto.Packet", v)
@@ -29,7 +29,7 @@ func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 	return proto.Marshal(vv)
 }
 
-func (protoCodec) Unmarshal(data []byte, v interface{}) error {
+func (protoCodec) Unmarshal(data []byte, v any) error {
 	vv, ok := v.(proto.Message)
 	if !ok {
 		return fmt.Errorf("failed to unmarshal, packet is %T, want proto.Packet", v)

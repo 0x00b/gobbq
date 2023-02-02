@@ -20,7 +20,7 @@ import (
 
 func init() {
 	c := &compressor{}
-	c.poolCompressor.New = func() interface{} {
+	c.poolCompressor.New = func() any {
 		return &writer{Writer: gzip.NewWriter(ioutil.Discard), pool: &c.poolCompressor}
 	}
 	RegisterCompressor(c)
@@ -41,7 +41,7 @@ func SetLevel(level int) error {
 		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
 	}
 	c := GetCompressor(bbq.CompressType_Gzip).(*compressor)
-	c.poolCompressor.New = func() interface{} {
+	c.poolCompressor.New = func() any {
 		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
 		if err != nil {
 			panic(err)

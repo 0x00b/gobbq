@@ -14,10 +14,19 @@ message RegisterEntityRequest{
 message RegisterEntityResponse{
 }
  
+message RegisterServiceRequest{
+	string ServiceName = 1;
+}
+
+message RegisterServiceResponse{
+}
+ 
 service Proxy {
 	option (bbq.service_type) = Service;
 
 	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
+	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
 	rpc UnregisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
+	rpc UnregisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
 	rpc Ping(PingPong) returns(PingPong) {}
 }

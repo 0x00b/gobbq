@@ -2,7 +2,6 @@ package log
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +27,7 @@ type Formatter interface {
 
 // TagGetter
 type TagGetter interface {
-	GetTags(c context.Context) map[string]string
+	GetTags(c *entity.Context) map[string]string
 }
 
 // goroutine unsafe, 里面的变量只能在初始化时赋值
@@ -56,7 +56,7 @@ type Hook struct {
 	Message string
 
 	// Contains the context set by the user. Useful for hook processing etc.
-	Context context.Context
+	Context *entity.Context
 
 	// When formatter is called in entry.log(), a Buffer may be set to entry
 	Buffer *bytes.Buffer
@@ -80,7 +80,7 @@ func copyEntry(entry *logrus.Entry, hook *Hook) {
 	hook.Time = entry.Time
 	hook.Level = entry.Level
 	hook.Message = entry.Message
-	hook.Context = entry.Context
+	// hook.Context = entry.Context
 }
 
 func (h *Hook) Fire(entry *logrus.Entry) error {

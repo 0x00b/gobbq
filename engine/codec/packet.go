@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"sync"
@@ -24,6 +25,8 @@ type Packet struct {
 
 	// data(header + body)
 	bytes *bytespool.Bytes
+
+	ctx context.Context
 }
 
 const (
@@ -34,7 +37,7 @@ const (
 var (
 	packetEndian = binary.LittleEndian
 	packetPool   = &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			p := &Packet{
 				Header: &bbq.Header{},
 			}
@@ -88,6 +91,7 @@ func NewPacket() (*Packet, releasePkt) {
 	return pkt, func() { pkt.Release() }
 }
 
+// 想持有pkt，需要自行Retain/Release
 func (p *Packet) Retain() {
 	atomic.AddInt32(&p.refcount, 1)
 }
@@ -151,6 +155,10 @@ func (p *Packet) Data() []byte {
 		return nil
 	}
 	return p.bytes.Bytes()[:p.totalLen]
+}
+
+func (p *Packet) Context() context.Context {
+	return p.ctx
 }
 
 // 返回的结果是在header的buf之后

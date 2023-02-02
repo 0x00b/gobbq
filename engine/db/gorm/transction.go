@@ -1,9 +1,8 @@
 package gorm
 
 import (
-	"context"
-
 	"github.com/0x00b/gobbq/engine/db/trx"
+	"github.com/0x00b/gobbq/engine/entity"
 )
 
 type dbKeyType struct{}
@@ -21,7 +20,7 @@ func NewTransaction(db *GormDB) *Transaction {
 }
 
 // for get GormDB
-func (t *Transaction) DB(c context.Context) *GormDB {
+func (t *Transaction) DB(c *entity.Context) *GormDB {
 	db, ok := c.Value(DBKey).(*GormDB)
 	if ok {
 		return db
@@ -31,19 +30,20 @@ func (t *Transaction) DB(c context.Context) *GormDB {
 
 // transaction
 
-func (t *Transaction) Begin(c context.Context) context.Context {
-	db := t.db.begin()
-	return context.WithValue(c, DBKey, db)
+func (t *Transaction) Begin(c *entity.Context) *entity.Context {
+	// db := t.db.begin()
+	// return c. DBKey, db)
+	return nil
 }
 
-func (t *Transaction) Commit(c context.Context) {
+func (t *Transaction) Commit(c *entity.Context) {
 	db, ok := c.Value(DBKey).(*GormDB)
 	if ok {
 		db.db.Commit()
 	}
 }
 
-func (t *Transaction) Rollback(c context.Context, e error) {
+func (t *Transaction) Rollback(c *entity.Context, e error) {
 	db, ok := c.Value(DBKey).(*GormDB)
 	if ok {
 		db.db.Rollback()

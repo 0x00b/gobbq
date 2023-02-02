@@ -1,9 +1,8 @@
 package entity
 
 import (
-	"context"
 	"errors"
-	"strings"
+	"fmt"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
@@ -31,149 +30,129 @@ func NewMethodPacketHandler() *MethodPacketHandler {
 	return st
 }
 
-func (st *MethodPacketHandler) HandlePacket(c context.Context, pkt *codec.Packet) error {
+func (st *MethodPacketHandler) HandlePacket(pkt *codec.Packet) error {
 	switch pkt.Header.ServiceType {
 	case bbq.ServiceType_Entity:
-		return st.handleCallEntity(c, pkt)
+		return st.handleCallEntity(pkt)
 	case bbq.ServiceType_Service:
-		return st.handleCallService(c, pkt)
+		return st.handleCallService(pkt)
 	default:
 	}
 	return UnknownCallType
 }
 
-func (st *MethodPacketHandler) handleCallMethod(c context.Context, pkt *codec.Packet, sd *ServiceDesc) error {
+func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 
-	// todo method name repeat get
-	sm := pkt.Header.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		return MethodNameError
-	}
+	hdr := pkt.Header
+	service := hdr.ServiceName
 
-	// service := sm[:pos]
-	method := sm[pos+1:]
-
-	mt, ok := sd.Methods[method]
-	if !ok {
-		return MethodNotFound
-	}
-
-	mt.Handler(sd.ServiceImpl, c, pkt, chainServerInterceptors(sd.interceptors))
-
-	return nil
-}
-
-func (st *MethodPacketHandler) handleCallService(c context.Context, pkt *codec.Packet) error {
-
-	sm := pkt.Header.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		return MethodNameError
-	}
-
-	service := sm[:pos]
-
-	ed, ok := Manager.Services[TypeName(service)]
+	svc, ok := Manager.Services[TypeName(service)]
 	if !ok {
 		return ServiceNotFound
 	}
 
-	return st.handleCallMethod(c, pkt, ed)
+	svc.dispatchPkt(pkt)
 
+	return nil
 }
 
-func (st *MethodPacketHandler) handleCallEntity(c context.Context, pkt *codec.Packet) error {
+func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	ety := pkt.Header.GetDstEntity()
 	if ety == nil {
+		fmt.Println("recv header:", pkt.Header.String())
 		return EmptyEntityID
 	}
 
-	sd, ok := Manager.Entities[(EntityID(ety.ID))]
+	Manager.mu.RLock()
+	defer Manager.mu.RUnlock()
+	entity, ok := Manager.Entities[(EntityID(ety.ID))]
 	if !ok {
 		return EntityNotFound
 	}
 
-	return st.handleCallMethod(c, pkt, sd)
+	entity.dispatchPkt(pkt)
+
+	return nil
 }
 
 // =========
 
-func HandleCallLocalMethod(c context.Context, pkt *codec.Packet, in interface{}, callback func(c context.Context, rsp interface{})) error {
-	hdr := pkt.Header
-	switch hdr.ServiceType {
-	case bbq.ServiceType_Entity:
-		return handleCallEntity(c, hdr, in, callback)
-	case bbq.ServiceType_Service:
-		return handleCallService(c, hdr, in, callback)
-	default:
-	}
-	return UnknownCallType
-}
+// func HandleCallLocalMethod(pkt *codec.Packet, in any, callback func(c *Context, rsp any)) error {
+// 	hdr := pkt.Header
+// 	switch hdr.ServiceType {
+// 	case bbq.ServiceType_Entity:
+// 		return handleLocalCallEntity(hdr, in, callback)
+// 	case bbq.ServiceType_Service:
+// 		return handleLocalCallService(hdr, in, callback)
+// 	default:
+// 	}
+// 	return UnknownCallType
+// }
 
-func handleCallService(c context.Context, hdr *bbq.Header, in interface{}, callback func(c context.Context, rsp interface{})) error {
-	sm := hdr.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		return MethodNameError
-	}
+// func handleLocalCallService(hdr *bbq.Header, in any, callback func(c *Context, rsp any)) error {
+// 	sm := hdr.GetMethod()
+// 	if sm != "" && sm[0] == '/' {
+// 		sm = sm[1:]
+// 	}
+// 	pos := strings.LastIndex(sm, "/")
+// 	if pos == -1 {
+// 		return MethodNameError
+// 	}
 
-	service := sm[:pos]
+// 	service := sm[:pos]
 
-	ed, ok := Manager.Services[TypeName(service)]
-	if !ok {
-		return ServiceNotFound
-	}
+// 	ss, ok := Manager.Services[TypeName(service)]
+// 	if !ok {
+// 		return ServiceNotFound
+// 	}
 
-	return handleCallMethod(c, hdr, in, callback, ed)
+// 	ss.dispatchPkt(pkt)
 
-}
+// 	return nil
+// 	// return handleCallMethod(nil, hdr, in, callback, ed.Desc())
 
-func handleCallEntity(c context.Context, hdr *bbq.Header, in interface{}, callback func(c context.Context, rsp interface{})) error {
+// }
 
-	ety := hdr.GetDstEntity()
-	if ety == nil {
-		return EmptyEntityID
-	}
+// func handleLocalCallEntity(hdr *bbq.Header, in any, callback func(c *Context, rsp any)) error {
 
-	sd, ok := Manager.Entities[(EntityID(ety.ID))]
-	if !ok {
-		return EntityNotFound
-	}
+// 	ety := hdr.GetDstEntity()
+// 	if ety == nil {
+// 		return EmptyEntityID
+// 	}
 
-	return handleCallMethod(c, hdr, in, callback, sd)
-}
+// 	Manager.mu.RLock()
+// 	defer Manager.mu.RUnlock()
+// 	entity, ok := Manager.Entities[(EntityID(ety.ID))]
+// 	if !ok {
+// 		return EntityNotFound
+// 	}
+// 	entity.dispatchPkt(pkt)
+// 	return nil
 
-func handleCallMethod(c context.Context, hdr *bbq.Header, in interface{}, callback func(c context.Context, rsp interface{}), sd *ServiceDesc) error {
+// 	// return handleCallMethod(entity.Context(), hdr, in, callback, entity.Desc())
+// }
 
-	sm := hdr.GetMethod()
-	if sm != "" && sm[0] == '/' {
-		sm = sm[1:]
-	}
-	pos := strings.LastIndex(sm, "/")
-	if pos == -1 {
-		return MethodNameError
-	}
+// func handleCallMethod(c *Context, hdr *bbq.Header, in any, callback func(c *Context, rsp any), sd *ServiceDesc) error {
 
-	// service := sm[:pos]
-	method := sm[pos+1:]
+// 	sm := hdr.GetMethod()
+// 	if sm != "" && sm[0] == '/' {
+// 		sm = sm[1:]
+// 	}
+// 	pos := strings.LastIndex(sm, "/")
+// 	if pos == -1 {
+// 		return MethodNameError
+// 	}
 
-	mt, ok := sd.Methods[method]
-	if !ok {
-		return MethodNotFound
-	}
+// 	// service := sm[:pos]
+// 	method := sm[pos+1:]
 
-	mt.LocalHandler(sd.ServiceImpl, c, in, callback, chainServerInterceptors(sd.interceptors))
+// 	mt, ok := sd.Methods[method]
+// 	if !ok {
+// 		return MethodNotFound
+// 	}
 
-	return nil
-}
+// 	mt.LocalHandler(sd.ServiceImpl, c, in, callback, chainServerInterceptors(sd.interceptors))
+
+// 	return nil
+// }

@@ -1,7 +1,6 @@
 package nets
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -46,17 +45,14 @@ type NetService interface {
 }
 
 type service struct {
-	ctx         context.Context
 	idleTimeout time.Duration
 	lastVisited time.Time
 
 	opts *Options
 }
 
-func NewNetService(ctx context.Context) *service {
-	return &service{
-		ctx: ctx,
-	}
+func NewNetService() *service {
+	return &service{}
 }
 
 func (s *service) ListenAndServe(network NetWorkName, address string, opts *Options) error {
@@ -77,7 +73,7 @@ func (s *service) Name() string {
 func (s *service) listenAndServe(network NetWorkName, address string, opts *Options) error {
 
 	if network == WebSocket {
-		return newWebSocketService(s.ctx).ListenAndServe(network, address, opts)
+		return newWebSocketService().ListenAndServe(network, address, opts)
 	}
 
 	var ln net.Listener
@@ -140,8 +136,7 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 
 	conn := &conn{
 		rwc:              rawConn,
-		ctx:              s.ctx,
-		packetReadWriter: codec.NewPacketReadWriter(s.ctx, rawConn),
+		packetReadWriter: codec.NewPacketReadWriter(rawConn),
 		PacketHandler:    opts.PacketHandler,
 		opts:             opts,
 	}

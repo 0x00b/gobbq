@@ -5,12 +5,12 @@ import (
 	"os"
 )
 
-func ShowMsgAndQuit(format string, a ...interface{}) {
+func ShowMsgAndQuit(format string, a ...any) {
 	fmt.Fprintf(os.Stderr, "! "+format+"\n", a...)
 	os.Exit(2)
 }
 
-func ShowMsg(format string, a ...interface{}) {
+func ShowMsg(format string, a ...any) {
 	fmt.Fprintf(os.Stderr, "> "+format+"\n", a...)
 }
 

@@ -1,7 +1,6 @@
 package nets
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +13,6 @@ import (
 type conn struct {
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
-	ctx              context.Context
 	idleTimeout      time.Duration
 	lastVisited      time.Time
 	PacketHandler    PacketHandler
@@ -26,6 +24,7 @@ func (st *conn) Name() string {
 }
 
 func (st *conn) WritePacket(pkt *codec.Packet) error {
+	fmt.Println("write header:", pkt.Header.String())
 	return st.packetReadWriter.WritePacket(pkt)
 }
 
@@ -33,11 +32,11 @@ func (st *conn) Serve() {
 	// defer st.Close()
 	for {
 		// 检查上游是否关闭
-		select {
-		case <-st.ctx.Done():
-			return
-		default:
-		}
+		// select {
+		// case <-st.ctx.Done():
+		// 	return
+		// default:
+		// }
 
 		if st.idleTimeout > 0 {
 			now := time.Now()
@@ -71,16 +70,16 @@ func (st *conn) Serve() {
 
 		defer release()
 
-		err = st.handle(st.ctx, pkt)
+		err = st.handle(pkt)
 		if err != nil {
 			fmt.Println("handle failed", err)
 		}
 	}
 }
 
-func (st *conn) handle(c context.Context, pkt *codec.Packet) error {
+func (st *conn) handle(pkt *codec.Packet) error {
 
 	// todo chan
 
-	return st.PacketHandler.HandlePacket(c, pkt)
+	return st.PacketHandler.HandlePacket(pkt)
 }

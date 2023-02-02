@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"context"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -42,11 +41,11 @@ type PacketReadWriter struct {
 }
 
 // NewPacketReadWriter creates a packet connection based on network connection
-func NewPacketReadWriter(ctx context.Context, rw io.ReadWriter) *PacketReadWriter {
-	return NewPacketReadWriterWithConfig(ctx, rw, DefaultConfig())
+func NewPacketReadWriter(rw io.ReadWriter) *PacketReadWriter {
+	return NewPacketReadWriterWithConfig(rw, DefaultConfig())
 }
 
-func NewPacketReadWriterWithConfig(ctx context.Context, rw io.ReadWriter, cfg *Config) *PacketReadWriter {
+func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWriter {
 	if rw == nil {
 		panic(fmt.Errorf("conn is nil"))
 	}
