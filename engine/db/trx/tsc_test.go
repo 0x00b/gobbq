@@ -2,11 +2,11 @@ package trx_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/db/trx"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 const TTT = 1
@@ -36,7 +36,7 @@ func (Test) Begin(c *entity.Context) *entity.Context {
 //	@author jun
 //	@date 2021-10-08 09:30:56
 func (Test) Commit(c *entity.Context) {
-	fmt.Println("Commit", c.Value("test"))
+	xlog.Println("Commit", c.Value("test"))
 
 }
 
@@ -48,7 +48,7 @@ func (Test) Commit(c *entity.Context) {
 //	@author jun
 //	@date 2021-10-08 09:30:51
 func (Test) Rollback(c *entity.Context, e error) {
-	fmt.Println("Rollback", c.Value("test"))
+	xlog.Println("Rollback", c.Value("test"))
 }
 
 // test
@@ -61,10 +61,10 @@ func test(c *entity.Context) {
 	ts := trx.Transaction{}
 	ts.RegisterTransaction(Test{})
 	_ = ts.Transaction(func(c *entity.Context) error {
-		fmt.Println("Transaction", c.Value("test"))
+		xlog.Println("Transaction", c.Value("test"))
 		return nil
 	})(c)
-	fmt.Println("test", c.Value("test"))
+	xlog.Println("test", c.Value("test"))
 }
 
 func TestTransaction(t *testing.T) {
@@ -72,6 +72,6 @@ func TestTransaction(t *testing.T) {
 	c := context.Background()
 
 	// test(c)
-	fmt.Println("TestTransaction", c.Value("test"))
+	xlog.Println("TestTransaction", c.Value("test"))
 
 }

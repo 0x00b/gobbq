@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type clientMap map[entity.EntityID]*codec.PacketReadWriter
@@ -21,12 +21,22 @@ func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {
 
 // GateService
 type GateService struct {
-	entity.Service
+	entity.Entity
 }
 
 // RegisterClient
 func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterClientRequest, ret func(*gatepb.RegisterClientResponse, error)) {
-	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
+	eid := snowflake.GenUUID()
+
+	RegisterEntity(entity.EntityID(eid), c.Packet().Src)
+
+	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
+	client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(eid)},
+		func(c *entity.Context, rsp *proxypb.RegisterEntityResponse) {
+			xlog.Println("register proxy entity resp")
+		},
+	)
+	ret(&gatepb.RegisterClientResponse{EntityID: eid}, nil)
 }
 
 // UnregisterClient
@@ -47,7 +57,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 
 	client.RegisterEntity(nil, &proxypb.RegisterEntityRequest{EntityID: string(eid)},
 		func(c *entity.Context, rsp *proxypb.RegisterEntityResponse) {
-			fmt.Println("register proxy entity resp")
+			xlog.Println("register proxy entity resp")
 		},
 	)
 
@@ -61,7 +71,7 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 	client.RegisterService(nil, &proxypb.RegisterServiceRequest{ServiceName: string(svcName)},
 		func(c *entity.Context, rsp *proxypb.RegisterServiceResponse) {
 
-			fmt.Println("register proxy service resp")
+			xlog.Println("register proxy service resp")
 		},
 	)
 

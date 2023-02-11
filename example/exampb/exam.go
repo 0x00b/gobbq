@@ -5,15 +5,13 @@
 package exampb
 
 import (
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"fmt"
-
+	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/xlog"
 	// exampb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -38,6 +36,10 @@ type echoService struct {
 
 func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback func(c *entity.Context, rsp *SayHelloResponse)) (err error) {
 
+	eid := ""
+	if c != nil {
+		eid = string(c.EntityID())
+	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -46,8 +48,8 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = nil
-	pkt.Header.DstEntity = nil
+	pkt.Header.SrcEntity = eid
+	pkt.Header.DstEntity = ""
 	pkt.Header.ServiceName = "exampb.EchoService"
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -78,8 +80,19 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback
 
 	t.client.WritePacket(pkt)
 
-	// register callback for request
-	// c.Service.RegisterCallback(pkt.Header.RequestId, itfCallback)
+	// register callback
+	if c != nil {
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
+			in := new(SayHelloResponse)
+			reqbuf := pkt.PacketBody()
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			if err != nil {
+				return
+			}
+
+			callback(c, in)
+		})
+	}
 
 	// }
 
@@ -89,7 +102,7 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback
 
 // EchoService
 type EchoService interface {
-	entity.IService
+	entity.IEntity
 
 	// SayHello
 	SayHello(c *entity.Context, req *SayHelloRequest, ret func(*SayHelloResponse, error))
@@ -111,7 +124,7 @@ func _EchoService_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloReq
 	}
 
 	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*SayHelloResponse), err) }, handler)
-	return
+
 }
 
 func _EchoService_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
@@ -124,14 +137,19 @@ func _EchoService_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, c
 	}
 
 	_EchoService_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), ret, interceptor)
-	return
+
 }
 
 func _EchoService_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
+	srcPrw := pkt.Src
 	ret := func(rsp *SayHelloResponse, err error) {
+		if err != nil {
+			xlog.Errorln("err", err)
+			return
+		}
 
 		npkt, release := codec.NewPacket()
 		defer release()
@@ -154,15 +172,15 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *cod
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			fmt.Println("Marshal(rsp)", err)
+			xlog.Errorln("Marshal(rsp)", err)
 			return
 		}
 
 		npkt.WriteBody(rb)
 
-		err = pkt.Src.WritePacket(npkt)
+		err = srcPrw.WritePacket(npkt)
 		if err != nil {
-			fmt.Println("WritePacket", err)
+			xlog.Errorln("WritePacket", err)
 			return
 		}
 	}
@@ -171,15 +189,15 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *cod
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
+		xlog.Errorln("unmarshal err:", pkt.String())
 		ret(nil, err)
-		return
 	}
 
 	_EchoService_SayHello_Handler(svc, ctx, in, ret, interceptor)
-	return
+
 }
 
-var EchoServiceDesc = entity.ServiceDesc{
+var EchoServiceDesc = entity.EntityDesc{
 	TypeName:    "exampb.EchoService",
 	HandlerType: (*EchoService)(nil),
 	Methods: map[string]entity.MethodDesc{
@@ -198,7 +216,7 @@ func RegisterEchoEtyEntity(impl EchoEtyEntity) {
 	entity.Manager.RegisterEntity(&EchoEtyEntityDesc, impl)
 }
 
-func NewEchoEtyEntityClient(client *nets.Client, entity *bbq.EntityID) *echoEtyEntity {
+func NewEchoEtyEntityClient(client *nets.Client, entity entity.EntityID) *echoEtyEntity {
 	t := &echoEtyEntity{client: client, entity: entity}
 	return t
 }
@@ -209,20 +227,28 @@ func NewEchoEtyEntity(c *entity.Context, client *nets.Client) *echoEtyEntity {
 
 func NewEchoEtyEntityWithID(c *entity.Context, id entity.EntityID, client *nets.Client) *echoEtyEntity {
 
-	ety := entity.NewEntity(c, id, EchoEtyEntityDesc.TypeName)
-	t := &echoEtyEntity{entity: ety, client: client}
+	err := entity.NewEntity(c, &id, EchoEtyEntityDesc.TypeName)
+	if err != nil {
+		xlog.Println("new entity err")
+		return nil
+	}
+	t := &echoEtyEntity{entity: id, client: client}
 
 	return t
 }
 
 type echoEtyEntity struct {
-	entity *bbq.EntityID
+	entity entity.EntityID
 
 	client *nets.Client
 }
 
 func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callback func(c *entity.Context, rsp *SayHelloResponse)) (err error) {
 
+	eid := ""
+	if c != nil {
+		eid = string(c.EntityID())
+	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -231,8 +257,8 @@ func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callba
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = nil
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.SrcEntity = eid
+	pkt.Header.DstEntity = string(t.entity)
 	pkt.Header.ServiceName = "exampb.EchoEtyEntity"
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -263,8 +289,19 @@ func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callba
 
 	t.client.WritePacket(pkt)
 
-	// register callback for request
-	// c.Service.RegisterCallback(pkt.Header.RequestId, itfCallback)
+	// register callback
+	if c != nil {
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
+			in := new(SayHelloResponse)
+			reqbuf := pkt.PacketBody()
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			if err != nil {
+				return
+			}
+
+			callback(c, in)
+		})
+	}
 
 	// }
 
@@ -296,7 +333,7 @@ func _EchoEtyEntity_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloR
 	}
 
 	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*SayHelloResponse), err) }, handler)
-	return
+
 }
 
 func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
@@ -309,14 +346,19 @@ func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx *entity.Context, in any,
 	}
 
 	_EchoEtyEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), ret, interceptor)
-	return
+
 }
 
 func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
+	srcPrw := pkt.Src
 	ret := func(rsp *SayHelloResponse, err error) {
+		if err != nil {
+			xlog.Println("err", err)
+			return
+		}
 
 		npkt, release := codec.NewPacket()
 		defer release()
@@ -339,15 +381,15 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *c
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			fmt.Println("Marshal(rsp)", err)
+			xlog.Println("Marshal(rsp)", err)
 			return
 		}
 
 		npkt.WriteBody(rb)
 
-		err = pkt.Src.WritePacket(npkt)
+		err = srcPrw.WritePacket(npkt)
 		if err != nil {
-			fmt.Println("WritePacket", err)
+			xlog.Println("WritePacket", err)
 			return
 		}
 	}
@@ -357,14 +399,13 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *c
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
 		ret(nil, err)
-		return
 	}
 
 	_EchoEtyEntity_SayHello_Handler(svc, ctx, in, ret, interceptor)
-	return
+
 }
 
-var EchoEtyEntityDesc = entity.ServiceDesc{
+var EchoEtyEntityDesc = entity.EntityDesc{
 	TypeName:    "exampb.EchoEtyEntity",
 	HandlerType: (*EchoEtyEntity)(nil),
 	Methods: map[string]entity.MethodDesc{

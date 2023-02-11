@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/log"
+	"github.com/0x00b/gobbq/xlog"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 )
@@ -77,17 +77,17 @@ func (m *GormLog) LogMode(logger.LogLevel) logger.Interface {
 
 func (m *GormLog) Info(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Info {
-	// 	//log.Infof(s, p...)
+	// 	//xlog.Infof(s, p...)
 	// }
 }
 func (m *GormLog) Warn(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Warn {
-	// 	//log.Warnf(s, p...)
+	// 	//xlog.Warnf(s, p...)
 	// }
 }
 func (m *GormLog) Error(c *entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Error {
-	// 	//log.Errorf(s, p...)
+	// 	//xlog.Errorf(s, p...)
 	// }
 }
 
@@ -101,29 +101,29 @@ func (m *GormLog) Trace(c *entity.Context,
 	case err != nil && m.LogLevel >= logger.Error:
 		sql, rows := fc()
 		if rows == -1 {
-			log.Errorf(c, m.traceErrStr, sql,
+			xlog.Errorf(c, m.traceErrStr, sql,
 				err, float64(elapsed.Nanoseconds())/1e6, "-", utils.FileWithLineNum())
 		} else {
-			log.Errorf(c, m.traceErrStr, sql,
+			xlog.Errorf(c, m.traceErrStr, sql,
 				err, float64(elapsed.Nanoseconds())/1e6, rows, utils.FileWithLineNum())
 		}
 	case elapsed > m.SlowThreshold && m.SlowThreshold != 0 && m.LogLevel >= logger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprint("SLOW SQL >= ", m.SlowThreshold)
 		if rows == -1 {
-			log.Warnf(c, m.traceWarnStr, sql,
+			xlog.Warnf(c, m.traceWarnStr, sql,
 				slowLog, float64(elapsed.Nanoseconds())/1e6, "-", utils.FileWithLineNum())
 		} else {
-			log.Warnf(c, m.traceWarnStr, sql,
+			xlog.Warnf(c, m.traceWarnStr, sql,
 				slowLog, float64(elapsed.Nanoseconds())/1e6, rows, utils.FileWithLineNum())
 		}
 	case m.LogLevel >= logger.Info:
 		sql, rows := fc()
 		if rows == -1 {
-			log.Infof(c, m.traceStr, sql,
+			xlog.Infof(c, m.traceStr, sql,
 				float64(elapsed.Nanoseconds())/1e6, "-", utils.FileWithLineNum())
 		} else {
-			log.Infof(c, m.traceStr, sql,
+			xlog.Infof(c, m.traceStr, sql,
 				float64(elapsed.Nanoseconds())/1e6, rows, utils.FileWithLineNum())
 		}
 	default:

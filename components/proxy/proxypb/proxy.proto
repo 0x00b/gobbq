@@ -7,8 +7,17 @@ import "bbq.proto";
 message PingPong{
 }
 
+message RegisterInstRequest{
+	string EntityID = 1;
+	string InstID = 2;
+}
+message RegisterInstResponse{
+}
+ 
+
 message RegisterEntityRequest{
 	string EntityID = 1;
+	string InstID = 2;
 }
 
 message RegisterEntityResponse{
@@ -16,6 +25,7 @@ message RegisterEntityResponse{
  
 message RegisterServiceRequest{
 	string ServiceName = 1;
+	string InstID = 2;
 }
 
 message RegisterServiceResponse{
@@ -24,9 +34,13 @@ message RegisterServiceResponse{
 service Proxy {
 	option (bbq.service_type) = Service;
 
+	rpc RegisterInst(RegisterInstRequest) returns(RegisterInstResponse) {}
+
 	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
+
 	rpc UnregisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc UnregisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
+
 	rpc Ping(PingPong) returns(PingPong) {}
 }

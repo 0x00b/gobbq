@@ -1,10 +1,10 @@
 package gorm_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/db/gorm"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type B struct {
@@ -34,6 +34,6 @@ func TestT(t *testing.T) {
 		},
 	}
 
-	fmt.Println(gorm.ModelMap(nil, cc))
+	xlog.Println(gorm.ModelMap(nil, cc))
 
 }

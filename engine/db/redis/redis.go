@@ -2,8 +2,8 @@ package redis
 
 import (
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/log"
 	"github.com/0x00b/gobbq/tool/sync2"
+	"github.com/0x00b/gobbq/xlog"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -36,7 +36,7 @@ type DefaultHook struct{}
 
 // BeforeProcess 前回调
 func (DefaultHook) BeforeProcess(ctx *entity.Context, cmd redis.Cmder) (*entity.Context, error) {
-	log.Info(ctx, cmd.String())
+	xlog.Info(ctx, cmd.String())
 	return ctx, nil
 }
 
@@ -44,7 +44,7 @@ func (DefaultHook) BeforeProcess(ctx *entity.Context, cmd redis.Cmder) (*entity.
 func (DefaultHook) AfterProcess(ctx *entity.Context, cmd redis.Cmder) error {
 	e := cmd.Err()
 	if e != nil {
-		log.Errorln(ctx, e)
+		xlog.Errorln(ctx, e)
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ func (DefaultHook) AfterProcess(ctx *entity.Context, cmd redis.Cmder) error {
 // BeforeProcessPipeline 前pipeline
 func (DefaultHook) BeforeProcessPipeline(ctx *entity.Context, cmds []redis.Cmder) (*entity.Context, error) {
 	for _, cmd := range cmds {
-		log.Info(ctx, cmd.String())
+		xlog.Info(ctx, cmd.String())
 	}
 
 	return ctx, nil
@@ -63,7 +63,7 @@ func (DefaultHook) AfterProcessPipeline(ctx *entity.Context, cmds []redis.Cmder)
 	for _, cmd := range cmds {
 		e := cmd.Err()
 		if e != nil {
-			log.Errorln(ctx, e)
+			xlog.Errorln(ctx, e)
 		}
 	}
 	return nil

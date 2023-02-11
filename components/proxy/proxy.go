@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"sync"
 
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
@@ -9,6 +9,7 @@ import (
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type entityMap map[entity.EntityID]*codec.PacketReadWriter
@@ -16,75 +17,89 @@ type serviceMap map[string][]*codec.PacketReadWriter
 
 var entityMaps entityMap = make(entityMap)
 var svcMap serviceMap = make(serviceMap)
+var etyMtx sync.RWMutex
 
 // RegisterEntity register serive
-func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {
-	entityMaps[sid] = prw
+func RegisterEntity(eid entity.EntityID, prw *codec.PacketReadWriter) {
+	etyMtx.Lock()
+	defer etyMtx.Unlock()
+	xlog.Println("register entity id:", eid)
+	entityMaps[eid] = prw
 }
 
 // RegisterEntity register serive
 func RegisterService(svcName string, prw *codec.PacketReadWriter) {
+	etyMtx.RLock()
+	defer etyMtx.RUnlock()
 	svcMap[svcName] = append(svcMap[svcName], prw)
 }
 
-func ProxyToEntity(sid entity.EntityID, pkt *codec.Packet) {
-	prw, ok := entityMaps[sid]
+func ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
+	etyMtx.RLock()
+	defer etyMtx.RUnlock()
+	prw, ok := entityMaps[eid]
 	if !ok {
-		fmt.Println("unknown entity id")
+		xlog.Println("unknown entity id", eid)
 		return
 	}
+	xlog.Println("proxy to id:", eid)
 	prw.WritePacket(pkt)
 }
 
 func ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 	prws, ok := svcMap[hdr.ServiceName]
 	if !ok {
-		fmt.Println("unknown entity id")
+		xlog.Println("unknown entity id", hdr.ServiceName)
 		return
 	}
-	if hdr.SrcEntity != nil {
+	if hdr.SrcEntity != "" {
 		// hash
 		prws[0].WritePacket(pkt)
+		// return
 	}
 	// random
 	prws[0].WritePacket(pkt)
 }
 
 type ProxyService struct {
-	entity.Service
+	entity.Entity
+}
+
+// RegisterInst
+func (ps *ProxyService) RegisterInst(c *entity.Context, req *proxypb.RegisterInstRequest, ret func(*proxypb.RegisterInstResponse, error)) {
+
+	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
+
 }
 
 // RegisterEntity
 func (ps *ProxyService) RegisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest, ret func(*proxypb.RegisterEntityResponse, error)) {
 
-	fmt.Println("register entity id:", req.EntityID)
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
-	return
 }
 
 // RegisterEntity
 func (ps *ProxyService) RegisterService(c *entity.Context, req *proxypb.RegisterServiceRequest, ret func(*proxypb.RegisterServiceResponse, error)) {
 
-	fmt.Println("register service:", req.ServiceName)
+	xlog.Println("register service:", req.ServiceName)
 	RegisterService(req.ServiceName, c.Packet().Src)
 
-	return
 }
 
 // UnregisterEntity
 func (ps *ProxyService) UnregisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest, ret func(*proxypb.RegisterEntityResponse, error)) {
-	return
+
 }
 
 // RegisterEntity
 func (ps *ProxyService) UnregisterService(c *entity.Context, req *proxypb.RegisterServiceRequest, ret func(*proxypb.RegisterServiceResponse, error)) {
-	return
+
 }
 
 // Ping
 func (ps *ProxyService) Ping(c *entity.Context, req *proxypb.PingPong, ret func(*proxypb.PingPong, error)) {
-	return
+
 }
 
 type ProxyMap map[uint32]*nets.Client
@@ -114,7 +129,7 @@ func ConnProxy(ops ...nets.Option) {
 }
 
 func SendProxy(pkt *codec.Packet) error {
-	_ = pkt.Header.GetDstEntity().ID
+	_ = pkt.Header.GetDstEntity()
 	// hash id , lb proxy
 
 	return proxyMap[1].SendPackt(pkt)

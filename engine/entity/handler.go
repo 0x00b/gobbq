@@ -11,7 +11,7 @@ package entity
 // 		return errors.New("handler wrong parameter")
 // 	}
 // 	// p1 := handler.Type().In(0)
-// 	// fmt.Println(handler.Type().In(0).Kind(), reflect.TypeOf((**entity.Context)(nil)).Elem().Kind())
+// 	// xlog.Println(handler.Type().In(0).Kind(), reflect.TypeOf((**entity.Context)(nil)).Elem().Kind())
 // 	if !handler.Type().In(0).Implements(reflect.TypeOf((**entity.Context)(nil)).Elem()) {
 // 		return errors.New("handler wrong parameter, first param must be *entity.Context")
 // 	}

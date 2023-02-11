@@ -43,9 +43,10 @@ func NewContext() (*Context, releaseCtx) {
 }
 
 type Context struct {
-	Service  IService
-	entityID EntityID
+	// 属于这个entity
+	Entity IEntity
 
+	// 当前正在处理的pkt
 	pkt *codec.Packet
 
 	err error
@@ -74,8 +75,7 @@ func (c *Context) reset() {
 	// if c.pkt != nil {
 	// 	c.pkt.Release()
 	// }
-	c.entityID = ""
-	c.Service = nil
+	c.Entity = nil
 	c.pkt = nil
 	c.err = nil
 }
@@ -85,7 +85,7 @@ func (c *Context) Packet() *codec.Packet {
 }
 
 func (c *Context) EntityID() EntityID {
-	return c.entityID
+	return c.Entity.EntityID()
 }
 
 func (c *Context) Error(err error) {
@@ -93,7 +93,6 @@ func (c *Context) Error(err error) {
 		panic("err is nil")
 	}
 	c.err = err
-	return
 }
 
 /************************************/

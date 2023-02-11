@@ -75,25 +75,38 @@ const (
 )
 
 // 获取packet的地方，作为函数返回值，强提醒记得release pkt
-type releasePkt func()
+type ReleasePkt func()
 
 func allocPacket() *Packet {
 	pkt := packetPool.Get().(*Packet)
 
 	pkt.reset()
 
+	// xlog.Printf("pkt pool get: %d", unsafe.Pointer(pkt))
+
 	return pkt
 }
 
 // NewPacket allocates a new packet
-func NewPacket() (*Packet, releasePkt) {
+func NewPacket() (*Packet, ReleasePkt) {
 	pkt := allocPacket()
-	return pkt, func() { pkt.Release() }
+	return pkt, func() {
+		// xlog.Printf("release callback %d", unsafe.Pointer(pkt))
+		pkt.Release()
+	}
+}
+
+func (p *Packet) String() string {
+	return fmt.Sprintf("hdrlen:%d, totallen:%d, hdr[%s] body[%s]", p.headerLen, p.totalLen, p.Header.String(), p.PacketBody())
 }
 
 // 想持有pkt，需要自行Retain/Release
 func (p *Packet) Retain() {
-	atomic.AddInt32(&p.refcount, 1)
+
+	refcount := atomic.AddInt32(&p.refcount, 1)
+	_ = refcount
+	// xlog.Printf("retain pkt:%d, %d", unsafe.Pointer(p), refcount)
+
 }
 
 // Release releases the packet to packet pool
@@ -101,7 +114,11 @@ func (p *Packet) Release() {
 
 	refcount := atomic.AddInt32(&p.refcount, -1)
 
+	// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), refcount)
+
 	if refcount == 0 {
+		// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), unsafe.Pointer(p.bytes))
+
 		bytespool.Put(p.bytes)
 		packetPool.Put(p)
 	} else if refcount < 0 {
@@ -148,6 +165,8 @@ func (p *Packet) reset() {
 	p.headerLen = 0
 	p.totalLen = 0
 	p.refcount = 1
+	p.bytes = nil
+	p.ctx = context.Background()
 }
 
 func (p *Packet) Data() []byte {
@@ -179,6 +198,8 @@ func (p *Packet) extendPacketData(size uint32) []byte {
 	if bs == nil {
 		panic("bytespool get bytes error")
 	}
+
+	// xlog.Printf("bytes pool get: %d %d", unsafe.Pointer(p), unsafe.Pointer(bs))
 
 	// copy(bs.Bytes(), p.Data())
 	oldBytes := p.bytes

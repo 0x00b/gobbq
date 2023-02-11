@@ -133,7 +133,7 @@ func Tick() {
 		}
 
 		nextFireTime := timerHeap.timers[0].fireTime
-		//fmt.Printf(">>> nextFireTime %s, now is %s\n", nextFireTime, now)
+		//xlog.Printf(">>> nextFireTime %s, now is %s\n", nextFireTime, now)
 		if nextFireTime.After(now) {
 			break
 		}

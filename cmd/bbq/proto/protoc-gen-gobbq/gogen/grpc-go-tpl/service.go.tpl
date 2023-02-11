@@ -16,7 +16,7 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"fmt"
+	"github.com/0x00b/gobbq/xlog"
 
 	// {{$.GoPackageName}} "{{$.GoImportPath}}"
 {{end}}
@@ -57,7 +57,7 @@ func Register{{$typeName}}(impl {{$typeName}}) {
 	entity.Manager.RegisterEntity(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *nets.Client, entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(client *nets.Client, entity entity.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client, entity:entity}
 	return t
 }
@@ -68,14 +68,18 @@ func New{{$typeName}}(c *entity.Context, client *nets.Client) *{{lowerCamelcase 
 
 func New{{$typeName}}WithID(c *entity.Context, id entity.EntityID, client *nets.Client) *{{lowerCamelcase $typeName}}  {
 
-	ety := entity.NewEntity(c, id, {{$typeName}}Desc.TypeName)
-	t := &{{lowerCamelcase $typeName}}{entity: ety, client:client}
+	err := entity.NewEntity(c, &id, {{$typeName}}Desc.TypeName)
+	if err != nil {
+		xlog.Errorln("new entity err")
+		return nil
+	}
+	t := &{{lowerCamelcase $typeName}}{entity: id, client:client}
 
 	return t
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	entity *bbq.EntityID
+	entity entity.EntityID
 
 	client *nets.Client
 }
@@ -89,6 +93,10 @@ type {{lowerCamelcase $typeName}} struct{
 {{else}}
 func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}} {{if $m.HasResponse}}, callback func(c *entity.Context, rsp *{{$m.GoOutput.GoIdent.GoName}}){{end}}) (err error){
 
+	eid := ""
+	if c != nil {
+		eid = string(c.EntityID())
+	}
 	pkt, release := codec.NewPacket()
 	defer release()
  
@@ -97,8 +105,8 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 	pkt.Header.Timeout=      1
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
-	pkt.Header.SrcEntity=    nil 
-	pkt.Header.DstEntity=    {{if $isSvc}}nil{{else}}t.entity{{end}} 
+	pkt.Header.SrcEntity=    eid
+	pkt.Header.DstEntity=    {{if $isSvc}}""{{else}}string(t.entity){{end}} 
 	pkt.Header.ServiceName=	 "{{$.GoPackageName}}.{{$typeName}}" 
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
@@ -128,9 +136,21 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 		pkt.WriteBody(hdrBytes)
 
 		t.client.WritePacket(pkt)
+
 	{{if $m.HasResponse}}
-		// register callback for request
-		// c.Service.RegisterCallback(pkt.Header.RequestId, itfCallback)
+		// register callback
+		if (c != nil){
+			c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
+				in := new({{$m.GoOutput.GoIdent.GoName}})
+				reqbuf := pkt.PacketBody()
+				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+				if err != nil {
+					return
+				}
+
+				callback(c, in)
+			})
+		}
 	{{end}}
 
 	// }
@@ -143,12 +163,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 
 // {{goComments $typeName $s.Comments}}
 type {{$typeName}} interface {
-
-{{- if $isSvc}}
-	entity.IService
-{{else}}
 	entity.IEntity
-{{end -}}
 
 {{range $midx, $m := $s.Methods}}
 // {{goComments $m.GoName $m.Comments}}
@@ -182,7 +197,7 @@ func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m
 	}
  
 	interceptor(ctx, in, info, {{if $m.HasResponse}}func(i any, err error) {ret(i.(*{{$m.GoOutput.GoIdent.GoName}}), err)}{{else}}nil{{end}}, handler)
-	return
+	
 }
 
 func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
@@ -196,15 +211,20 @@ func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx *entity.Context, in
 	{{end}}
 	
 	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in.(*{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}, ret{{end}}, interceptor)
-	return
+	
 }
 
 func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
  
 	hdr := pkt.Header
 {{if $m.HasResponse}}
+	srcPrw := pkt.Src
 	ret:=func(rsp *{{$m.GoOutput.GoIdent.GoName}},err error){ 
-  
+		if err != nil {
+			xlog.Errorln("err", err)
+			return
+		}
+
 		npkt, release := codec.NewPacket()
 		defer release()
 
@@ -226,15 +246,15 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, p
 
 		rb, err := codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			fmt.Println("Marshal(rsp)", err)
+			xlog.Errorln("Marshal(rsp)", err)
 			return
 		}
 
 		npkt.WriteBody(rb)
 
-		err = pkt.Src.WritePacket(npkt)
+		err = srcPrw.WritePacket(npkt)
 		if err != nil {
-			fmt.Println("WritePacket", err)
+			xlog.Errorln("WritePacket", err)
 			return
 		}
 	}
@@ -247,17 +267,17 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, p
 {{- if $m.HasResponse}}
 		ret(nil, err)
 {{end -}}
-		return
+
 	}
 
 	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in {{if $m.HasResponse}},ret{{end}}, interceptor)
-	return
+
 }
 
 {{end -}}
 {{end -}}
 
-var {{$typeName}}Desc = entity.ServiceDesc{
+var {{$typeName}}Desc = entity.EntityDesc{
 	TypeName:    "{{$.GoPackageName}}.{{$typeName}}",
 	HandlerType: (*{{$typeName}})(nil),
 	Methods: map[string]entity.MethodDesc{

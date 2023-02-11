@@ -22,17 +22,12 @@ enum RequestType {
 }
 
 enum ServiceType {
-	// 请求entity，需要提供entity id， entity是有ID的service
+	// 请求entity，需要提供entity id， entity是有ID的service, entity可以创建很多
 	Entity= 0;
-	// 请求service，只需要提供完整接口名
+	// 请求service，只需要提供完整接口名，service是单例entity，只能有一个
 	Service = 1;
 }
-
-message EntityID {
-	string ID = 1;
-	string TypeName = 2;
-}
-
+ 
 // 请求协议头
 message Header {
 	// 协议版本
@@ -43,32 +38,34 @@ message Header {
 	uint32 Timeout = 3;
 	// 是请求包，还是返回包
 	RequestType RequestType = 4; 
+	// 如果是请求，是否需要回包
+	bool NeedResponse = 5; 
 	// sverice or entity
-	ServiceType ServiceType = 5; 
+	ServiceType ServiceType = 6; 
 	// 调用的原EntityID
-	EntityID SrcEntity = 6;
+	string SrcEntity = 7;
 	// 调用的目的EntityID
-	EntityID DstEntity  = 7;
+	string DstEntity  = 8;
 	// 调用服务的接口名
 	// 规范格式: package.Service名称
-	string ServiceName = 8;
+	string ServiceName = 9;
 	// 规范格式: 接口名
-	string Method = 9;
+	string Method = 10;
 	// 请求数据的序列化类型
 	// 比如: proto/jce/json, 默认proto
 	// 具体值与ContentEncodeType对应
-	ContentType ContentType = 10;
+	ContentType ContentType = 11;
 	// 请求数据使用的压缩方式
 	// 比如: gzip/snappy/..., 默认不使用
 	// 具体值与CompressType对应
-	CompressType CompressType = 11;
+	CompressType CompressType = 12;
 	// 是否检查包是否正确
-	uint32  CheckFlags = 12;
+	uint32  CheckFlags = 13;
 	// 附加信息
-	map <string, bytes> TransInfo = 13;
+	map <string, bytes> TransInfo = 14;
 	// 返回值
-	int32   ErrCode = 14;
-	string  ErrMsg  = 15;
+	int32   ErrCode = 15;
+	string  ErrMsg  = 16;
 }
 
 // ===========options===========

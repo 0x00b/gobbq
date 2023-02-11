@@ -1,5 +1,7 @@
 package entity
 
+import "github.com/0x00b/gobbq/engine/codec"
+
 type ServerInfo struct {
 	// Server is the service implementation the user provides. This is read-only.
 	Server any
@@ -8,7 +10,7 @@ type ServerInfo struct {
 }
 
 // 请求回调
-type Callback func(c *Context, rsp any)
+type Callback func(c *Context, pkt *codec.Packet)
 
 // 函数返回参数
 type RetFunc func(any, error)
@@ -37,7 +39,6 @@ func chainServerInterceptors(interceptors []ServerInterceptor) ServerInterceptor
 func chainInterceptors(interceptors []ServerInterceptor) ServerInterceptor {
 	return func(ctx *Context, req any, info *ServerInfo, ret RetFunc, handler Handler) {
 		interceptors[0](ctx, req, info, ret, getChainHandler(interceptors, 0, info, ret, handler))
-		return
 	}
 }
 
@@ -47,6 +48,5 @@ func getChainHandler(interceptors []ServerInterceptor, curr int, info *ServerInf
 	}
 	return func(ctx *Context, req any, ret RetFunc) {
 		interceptors[curr+1](ctx, req, info, ret, getChainHandler(interceptors, curr+1, info, ret, finalHandler))
-		return
 	}
 }

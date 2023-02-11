@@ -3,11 +3,11 @@ package nets
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/xlog"
 	"golang.org/x/net/websocket"
 )
 
@@ -54,7 +54,7 @@ func (ws *WebSocketService) Name() NetWorkName {
 
 func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
 
-	fmt.Println("handleconn")
+	xlog.Println("handleconn")
 
 	conn := &conn{
 		rwc:              rawConn,

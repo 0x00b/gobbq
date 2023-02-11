@@ -2,7 +2,6 @@ package entity
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
@@ -38,7 +37,8 @@ func (st *MethodPacketHandler) HandlePacket(pkt *codec.Packet) error {
 		return st.handleCallService(pkt)
 	default:
 	}
-	return UnknownCallType
+
+	return nil
 }
 
 func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
@@ -58,15 +58,14 @@ func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 
 func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
-	ety := pkt.Header.GetDstEntity()
-	if ety == nil {
-		fmt.Println("recv header:", pkt.Header.String())
+	eid := pkt.Header.GetDstEntity()
+	if eid == "" {
 		return EmptyEntityID
 	}
 
 	Manager.mu.RLock()
 	defer Manager.mu.RUnlock()
-	entity, ok := Manager.Entities[(EntityID(ety.ID))]
+	entity, ok := Manager.Entities[(EntityID(eid))]
 	if !ok {
 		return EntityNotFound
 	}

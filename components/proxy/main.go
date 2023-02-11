@@ -2,15 +2,19 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 func main() {
 	fmt.Println(conf.C)
+
+	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
 
 	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()))
 

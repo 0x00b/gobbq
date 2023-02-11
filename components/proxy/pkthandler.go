@@ -7,6 +7,7 @@ import (
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 var _ nets.PacketHandler = &ProxyPacketHandler{}
@@ -21,26 +22,32 @@ func NewProxyPacketHandler() *ProxyPacketHandler {
 }
 
 func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
-
-	err := st.MethodPacketHandler.HandlePacket(pkt)
-	if err == nil {
-		// handle succ
-		return nil
-	}
-
-	if entity.NotMyMethod(err) {
-		hdr := pkt.Header
-		// send to game
-		// or send to gate
-		if hdr.ServiceType == bbq.ServiceType_Entity {
-			if hdr.DstEntity == nil {
-				return errors.New("bad call, call entity but no dst entity")
-			}
-			ProxyToEntity(entity.EntityID(hdr.DstEntity.ID), pkt)
+	var err error
+	hdr := pkt.Header
+	if hdr.RequestType == bbq.RequestType_RequestRequest {
+		err := st.MethodPacketHandler.HandlePacket(pkt)
+		if err == nil {
+			// handle succ
 			return nil
 		}
-		// call service
-		ProxyToService(hdr, pkt)
+
+		if entity.NotMyMethod(err) {
+			// request
+			// send to game
+			// or send to gate
+			if hdr.ServiceType == bbq.ServiceType_Entity {
+				if hdr.DstEntity == "" {
+					xlog.Println("bad req header:", hdr.String())
+					return errors.New("bad call, call entity but no dst entity")
+				}
+				ProxyToEntity(entity.EntityID(hdr.DstEntity), pkt)
+			} else {
+				// call service
+				ProxyToService(hdr, pkt)
+			}
+
+			return nil
+		}
 	}
 
 	return err

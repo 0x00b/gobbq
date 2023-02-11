@@ -7,8 +7,8 @@ func RegisterEntityToProxy(eid string) error {
 	// ps.RegisterEntity(nil, &RegisterEntityRequest{
 	// 	EntityID: eid,
 	// }, func(c *entity.Context, rsp *RegisterEntityResponse) {
-	// 	fmt.Println("recv:", string(c.Packet().PacketBody()))
-	// 	fmt.Println(rsp)
+	// 	xlog.Println("recv:", string(c.Packet().PacketBody()))
+	// 	xlog.Println(rsp)
 	// })
 
 	// pkt, release := codec.NewPacket()
@@ -31,7 +31,7 @@ func RegisterEntityToProxy(eid string) error {
 
 	// pkt.WriteBody(nil)
 
-	// fmt.Println("register", string(pkt.Header.GetSrcEntity().ID))
+	// xlog.Println("register", string(pkt.Header.GetSrcEntity().ID))
 
 	// return proxyMap[1].SendPackt(pkt)
 

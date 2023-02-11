@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type NetWorkName string
@@ -104,7 +105,7 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 			}
 		}
 
-		fmt.Printf("Connection from: %s", conn.RemoteAddr())
+		xlog.Printf("Connection from: %s", conn.RemoteAddr())
 		go s.handleConn(conn, opts)
 	}
 }
@@ -113,7 +114,7 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 	if s.opts.TLSCertFile != "" && s.opts.TLSKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(s.opts.TLSCertFile, s.opts.TLSKeyFile)
 		if err != nil {
-			fmt.Println(err, "load RSA key & certificate failed")
+			xlog.Println(err, "load RSA key & certificate failed")
 			return
 		}
 		tlsConfig := &tls.Config{
@@ -132,7 +133,7 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 		rawConn = net.Conn(tlsConn)
 	}
 
-	fmt.Println("handleconn")
+	xlog.Println("handleconn")
 
 	conn := &conn{
 		rwc:              rawConn,

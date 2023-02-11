@@ -3,7 +3,7 @@ package kvdbmongo
 import (
 	"github.com/0x00b/gobbq/engine/db/kv"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/log"
+	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/mgo.v2"
 
 	"io"
@@ -23,7 +23,7 @@ type mongoKVDB struct {
 
 // OpenMongoKVDB opens mongodb as KVDB engine
 func OpenMongoKVDB(url string, dbname string, collectionName string) (kv.KVDBEngine, error) {
-	log.Debugln(nil, "Connecting MongoDB ...")
+	xlog.Debugln(nil, "Connecting MongoDB ...")
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return nil, err

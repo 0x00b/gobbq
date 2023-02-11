@@ -2,12 +2,12 @@ package nets
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type conn struct {
@@ -24,7 +24,7 @@ func (st *conn) Name() string {
 }
 
 func (st *conn) WritePacket(pkt *codec.Packet) error {
-	fmt.Println("write header:", pkt.Header.String())
+	xlog.Println("write header:", pkt.Header.String())
 	return st.packetReadWriter.WritePacket(pkt)
 }
 
@@ -44,7 +44,7 @@ func (st *conn) Serve() {
 				st.lastVisited = now
 				err := st.rwc.SetReadDeadline(now.Add(st.idleTimeout))
 				if err != nil {
-					fmt.Println("transport: tcpconn SetReadDeadline fail ", err)
+					xlog.Println("transport: tcpconn SetReadDeadline fail ", err)
 					return
 				}
 			}
@@ -53,32 +53,31 @@ func (st *conn) Serve() {
 		pkt, release, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
-				fmt.Println("transport: tcpconn  EOF ", err)
+				xlog.Println("transport: tcpconn  EOF ", err)
 				// report.TCPTransportReadEOF.Incr() // 客户端主动断开连接
 				return
 			}
 			if e, ok := err.(net.Error); ok && e.Timeout() { // 客户端超过空闲时间没有发包，服务端主动超时关闭
-				fmt.Println("transport: tcpconn  Time out ", err)
+				xlog.Println("transport: tcpconn  Time out ", err)
 				// report.TCPTransportIdleTimeout.Incr()
 				return
 			}
 			// report.TCPTransportReadFail.Incr()
-			fmt.Println("transport: tcpconn serve ReadFrame fail ", err)
+			xlog.Println("transport: tcpconn serve ReadFrame fail ", err)
 			return
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
-		defer release()
-
-		err = st.handle(pkt)
+		err = st.handle(pkt, release)
 		if err != nil {
-			fmt.Println("handle failed", err)
+			xlog.Println("handle failed", err)
 		}
 	}
 }
 
-func (st *conn) handle(pkt *codec.Packet) error {
+func (st *conn) handle(pkt *codec.Packet, release codec.ReleasePkt) error {
 
+	defer release()
 	// todo chan
 
 	return st.PacketHandler.HandlePacket(pkt)

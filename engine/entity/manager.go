@@ -1,17 +1,16 @@
 package entity
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 var Manager EntityManager = EntityManager{
-	Services:    make(map[TypeName]IService),
-	entityDescs: make(map[TypeName]*ServiceDesc),
+	Services:    make(map[TypeName]IEntity),
+	entityDescs: make(map[TypeName]*EntityDesc),
 	Entities:    make(map[EntityID]IEntity),
 }
 var ProxyRegister RegisterProxy
@@ -26,21 +25,21 @@ type EntityManager struct {
 	mu    sync.RWMutex // guards following
 	serve bool
 
-	Services    map[TypeName]IService     // service name -> service info
-	entityDescs map[TypeName]*ServiceDesc // entity name -> entity info
-	Entities    map[EntityID]IEntity      // entity id -> entity impl
+	Services    map[TypeName]IEntity     // service name -> service info
+	entityDescs map[TypeName]*EntityDesc // entity name -> entity info
+	Entities    map[EntityID]IEntity     // entity id -> entity impl
 
 }
 
-func NewEntity(c *Context, id EntityID, typ TypeName) *bbq.EntityID {
+func NewEntity(c *Context, id *EntityID, typ TypeName) error {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
-		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
+		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
 		return nil
 	}
 
 	// new entity
-	svcType := reflect.TypeOf(desc.ServiceImpl)
+	svcType := reflect.TypeOf(desc.EntityImpl)
 	if svcType.Kind() == reflect.Pointer {
 		svcType = svcType.Elem()
 	}
@@ -49,101 +48,101 @@ func NewEntity(c *Context, id EntityID, typ TypeName) *bbq.EntityID {
 	svc := svcValue.Interface()
 	entity, ok := svc.(IEntity)
 	if !ok {
-		fmt.Println("error type", svcType.Name())
+		xlog.Println("error type", svcType.Name())
 		return nil
 	}
 	// init
 
-	if id == "" {
-		id = EntityID(snowflake.GenUUID())
+	if id == nil || *id == "" {
+		*id = EntityID(snowflake.GenUUID())
 	}
 
-	fmt.Println("register entity id:", id)
+	xlog.Println("register entity id:", *id)
 
 	newDesc := *desc
-	newDesc.ServiceImpl = entity
+	newDesc.EntityImpl = entity
 	entity.setDesc(&newDesc)
 
 	ctx := allocContext()
-	ctx.Service = entity
-	ctx.entityID = id
-	entity.onInit(ctx)
+	ctx.Entity = entity
+	entity.onInit(ctx, *id)
 
 	if c != nil {
-		entity.setParant(c.Service)
-		c.Service.addChildren(entity)
+		entity.setParant(c.Entity)
+		c.Entity.addChildren(entity)
 	}
 
 	Manager.mu.Lock()
 	defer Manager.mu.Unlock()
-	Manager.Entities[id] = entity
+	Manager.Entities[*id] = entity
 
 	// start message loop
 	go entity.messageLoop()
 
 	// send to poxy
 	if ProxyRegister != nil {
-		ProxyRegister.RegisterEntityToProxy(id)
+		ProxyRegister.RegisterEntityToProxy(*id)
 	}
 
-	return &bbq.EntityID{ID: string(id), TypeName: string(desc.TypeName)}
+	return nil
 }
 
-func (s *EntityManager) RegisterEntity(sd *ServiceDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
 		if !st.Implements(ht) {
-			fmt.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
+			xlog.Printf("grpc: EntityManager.RegisterEntity found the handler of type %v that does not satisfy %v", st, ht)
 		}
 	}
 	s.registerEntity(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerEntity(sd *ServiceDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) registerEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Printf("RegisterService(%q)", sd.TypeName)
+	xlog.Printf("registerEntity(%q)", sd.TypeName)
 	if s.serve {
-		fmt.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
+		xlog.Printf("grpc: EntityManager.registerEntity after EntityManager.Serve for %q", sd.TypeName)
 	}
 	if _, ok := s.entityDescs[sd.TypeName]; ok {
-		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
+		xlog.Printf("grpc: EntityManager.registerEntity found duplicate entity registration for %q", sd.TypeName)
 		return
 	}
-	sd.ServiceImpl = ss
+	sd.EntityImpl = ss
 	sd.interceptors = intercepter
 	s.entityDescs[sd.TypeName] = sd
 }
 
-func (s *EntityManager) RegisterService(sd *ServiceDesc, ss IService, intercepter ...ServerInterceptor) {
+func (s *EntityManager) RegisterService(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
 		if !st.Implements(ht) {
-			fmt.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
+			xlog.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
 		}
 	}
 	s.registerService(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerService(sd *ServiceDesc, ss IService, intercepter ...ServerInterceptor) {
+func (s *EntityManager) registerService(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Printf("RegisterService(%q)", sd.TypeName)
+	xlog.Printf("RegisterService(%q)", sd.TypeName)
 	if s.serve {
-		fmt.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
+		xlog.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
 	}
 	if _, ok := s.Services[sd.TypeName]; ok {
-		fmt.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
+		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
 		return
 	}
-	sd.ServiceImpl = ss
+	sd.EntityImpl = ss
 	sd.interceptors = intercepter
 	ss.setDesc(sd)
 	ctx := allocContext()
-	ctx.Service = ss
-	ss.onInit(ctx)
+	ctx.Entity = ss
+	ss.onInit(ctx, EntityID(snowflake.GenUUID()))
+
 	s.Services[sd.TypeName] = ss
 
 	// start msg loop
@@ -151,5 +150,6 @@ func (s *EntityManager) registerService(sd *ServiceDesc, ss IService, intercepte
 
 	if ProxyRegister != nil {
 		ProxyRegister.RegisterServiceToProxy(sd.TypeName)
+		ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
 }

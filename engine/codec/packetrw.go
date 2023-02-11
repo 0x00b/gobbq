@@ -66,6 +66,8 @@ func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWri
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 	pdata := packet.Data()
 
+	// xlog.Println("send raw:", packet.String())
+
 	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
 
 	err := writeFull(pc.rw, pdata)
@@ -85,7 +87,7 @@ func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 }
 
 // recv receives the next packet
-func (pc *PacketReadWriter) ReadPacket() (*Packet, releasePkt, error) {
+func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	var err error
 
 	var tempBuff [4]byte
@@ -121,6 +123,8 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, releasePkt, error) {
 		release()
 		return nil, nil, err
 	}
+
+	// xlog.Println("recv raw:", packet.String())
 
 	pc.readMsgCnt++
 
