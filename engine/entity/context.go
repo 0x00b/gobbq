@@ -18,7 +18,7 @@ type Context interface {
 	/************************************/
 	/******** ENTITY MANAGEMENT********/
 	/************************************/
-	Copy() Context
+	Copy() (Context, releaseCtx)
 
 	Entity() IBaseEntity
 
@@ -140,20 +140,23 @@ func (c *baseContext) Entity() IBaseEntity {
 	return c.entity
 }
 
-func (c *baseContext) Copy() Context {
-	tc := &baseContext{
-		entity: c.entity,
-		pkt:    nil, //&codec.Packet{},
-		err:    c.err,
-		mu:     sync.RWMutex{},
-		Keys:   map[string]any{},
-	}
+func (c *baseContext) Copy() (Context, releaseCtx) {
+
+	tc := allocContext()
+	tc.reset()
+
+	tc.entity = c.entity
+	tc.err = c.err
+	tc.mu = sync.RWMutex{}
+	tc.Keys = map[string]any{}
 
 	for k, v := range c.Keys {
 		tc.Set(k, v)
 	}
 
-	return tc
+	return tc, func() {
+		releaseContext(tc)
+	}
 }
 
 func (c *baseContext) RegisterCallback(requestID string, cb Callback) {

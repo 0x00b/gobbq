@@ -32,12 +32,19 @@ func (e *Service) Run() {
 
 	go func() {
 		for !e.done {
-			pkt := <-e.respChan
-			xlog.Printf("handle: %s", pkt.String())
+			select {
+			case <-e.context.Done():
+				xlog.Println("ctx done", e)
+			case pkt := <-e.respChan:
+				xlog.Printf("handle: %s", pkt.String())
 
-			// 异步
-			// todo copy ctx
-			go e.handleMethodRsp(e.context, pkt)
+				// 异步
+				ctx, release := e.context.Copy()
+				go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
+					defer release()
+					e.handleMethodRsp(ctx, pkt)
+				}(ctx, release, pkt)
+			}
 		}
 	}()
 
@@ -50,8 +57,11 @@ func (e *Service) Run() {
 			xlog.Printf("handle: %s", pkt.String())
 
 			// 异步
-			// todo copy ctx
-			go e.handleCallMethod(e.context, pkt)
+			ctx, release := e.context.Copy()
+			go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
+				defer release()
+				e.handleCallMethod(ctx, pkt)
+			}(ctx, release, pkt)
 		}
 	}
 	xlog.Println("stop message loop", e.EntityID())

@@ -132,9 +132,13 @@ func (e *baseEntity) Run() {
 
 	go func() {
 		for !e.done {
-			pkt := <-e.respChan
-			xlog.Printf("handle: %s", pkt.String())
-			e.handleMethodRsp(e.context, pkt)
+			select {
+			case <-e.context.Done():
+				xlog.Println("ctx done", e)
+			case pkt := <-e.respChan:
+				xlog.Printf("handle: %s", pkt.String())
+				e.handleMethodRsp(e.context, pkt)
+			}
 		}
 	}()
 
