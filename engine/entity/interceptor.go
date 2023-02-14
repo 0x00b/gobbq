@@ -12,9 +12,9 @@ type ServerInfo struct {
 // 请求回调
 type Callback func(pkt *codec.Packet)
 
-type Handler func(ctx *Context, req any) (any, error)
+type Handler func(ctx Context, req any) (any, error)
 
-type ServerInterceptor func(ctx *Context, req any, info *ServerInfo, next Handler) (any, error)
+type ServerInterceptor func(ctx Context, req any, info *ServerInfo, next Handler) (any, error)
 
 // chainServerInterceptors chains all  server interceptors into one.
 func chainServerInterceptors(interceptors []ServerInterceptor) ServerInterceptor {
@@ -34,7 +34,7 @@ func chainServerInterceptors(interceptors []ServerInterceptor) ServerInterceptor
 }
 
 func chainInterceptors(interceptors []ServerInterceptor) ServerInterceptor {
-	return func(ctx *Context, req any, info *ServerInfo, handler Handler) (any, error) {
+	return func(ctx Context, req any, info *ServerInfo, handler Handler) (any, error) {
 		return interceptors[0](ctx, req, info, getChainHandler(interceptors, 0, info, handler))
 	}
 }
@@ -43,7 +43,7 @@ func getChainHandler(interceptors []ServerInterceptor, curr int, info *ServerInf
 	if curr == len(interceptors)-1 {
 		return finalHandler
 	}
-	return func(ctx *Context, req any) (any, error) {
+	return func(ctx Context, req any) (any, error) {
 		return interceptors[curr+1](ctx, req, info, getChainHandler(interceptors, curr+1, info, finalHandler))
 	}
 }

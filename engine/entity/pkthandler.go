@@ -88,7 +88,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 // =========
 
-// func HandleCallLocalMethod(pkt *codec.Packet, in any, callback func(c *Context, rsp any)) error {
+// func HandleCallLocalMethod(pkt *codec.Packet, in any, callback func(c Context, rsp any)) error {
 // 	hdr := pkt.Header
 // 	switch hdr.ServiceType {
 // 	case bbq.ServiceType_Entity:
@@ -100,7 +100,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 // 	return UnknownCallType
 // }
 
-// func handleLocalCallService(hdr *bbq.Header, in any, callback func(c *Context, rsp any)) error {
+// func handleLocalCallService(hdr *bbq.Header, in any, callback func(c Context, rsp any)) error {
 // 	sm := hdr.GetMethod()
 // 	if sm != "" && sm[0] == '/' {
 // 		sm = sm[1:]
@@ -124,7 +124,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 // }
 
-// func handleLocalCallEntity(hdr *bbq.Header, in any, callback func(c *Context, rsp any)) error {
+// func handleLocalCallEntity(hdr *bbq.Header, in any, callback func(c Context, rsp any)) error {
 
 // 	ety := hdr.GetDstEntity()
 // 	if ety == nil {
@@ -143,7 +143,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 // 	// return handleCallMethod(entity.Context(), hdr, in, callback, entity.Desc())
 // }
 
-// func handleCallMethod(c *Context, hdr *bbq.Header, in any, callback func(c *Context, rsp any), sd *ServiceDesc) error {
+// func handleCallMethod(c Context, hdr *bbq.Header, in any, callback func(c Context, rsp any), sd *ServiceDesc) error {
 
 // 	sm := hdr.GetMethod()
 // 	if sm != "" && sm[0] == '/' {

@@ -32,7 +32,7 @@ type EchoService struct {
 	entity.Service
 }
 
-func (*EchoService) SayHello(c *entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+func (*EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	xlog.Println("service", c.Packet().Header.String(), req.String())
 
@@ -50,7 +50,7 @@ type EchoEntity struct {
 	entity.Entity
 }
 
-func (*EchoEntity) SayHello(c *entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+func (*EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 

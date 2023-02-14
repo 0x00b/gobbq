@@ -19,7 +19,7 @@ var (
 	}
 )
 
-// func OrganizeLogMiddleware(c *entity.Context, in any, ret entity.RetFunc, next entity.Handler) (out any, e error) {
+// func OrganizeLogMiddleware(c entity.Context, in any, ret entity.RetFunc, next entity.Handler) (out any, e error) {
 
 // 	if _organizeLog {
 // 		_, ok := c.Value(_ctxLogKey).(*logrus.Entry)
@@ -42,7 +42,7 @@ var (
 // 	return
 // }
 
-// func organizeLog(c *entity.Context, buf *bytes.Buffer) {
+// func organizeLog(c entity.Context, buf *bytes.Buffer) {
 
 // 	bufStr := buf.String()
 // 	if len(bufStr) == 0 {
@@ -60,7 +60,7 @@ var (
 // 	bufPool.Put(buf)
 // }
 
-// func newCtxLog(c *entity.Context) (*logrus.Entry, *bytes.Buffer) {
+// func newCtxLog(c entity.Context) (*logrus.Entry, *bytes.Buffer) {
 
 // 	logger := logrus.New()
 // 	stdLogger := logrus.StandardLogger()

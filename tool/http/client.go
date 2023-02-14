@@ -22,7 +22,7 @@ type HttpParam struct {
 }
 
 type HttpHooker interface {
-	Before(*entity.Context, *http.Request) (After func(any, error) error)
+	Before(entity.Context, *http.Request) (After func(any, error) error)
 }
 
 var (
@@ -30,7 +30,7 @@ var (
 )
 
 // HTTP http远程调用
-func HTTP(ctx *entity.Context, method, url string,
+func HTTP(ctx entity.Context, method, url string,
 	request any, response any, params ...*HttpParam) (rspByte []byte, e error) {
 	var requestBody []byte
 	if request != nil {

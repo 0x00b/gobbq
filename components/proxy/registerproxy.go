@@ -6,7 +6,7 @@ func RegisterEntityToProxy(eid string) error {
 
 	// ps.RegisterEntity(nil, &RegisterEntityRequest{
 	// 	EntityID: eid,
-	// }, func(c *entity.Context, rsp *RegisterEntityResponse) {
+	// }, func(c entity.Context, rsp *RegisterEntityResponse) {
 	// 	xlog.Println("recv:", string(c.Packet().PacketBody()))
 	// 	xlog.Println(rsp)
 	// })

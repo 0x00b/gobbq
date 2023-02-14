@@ -15,7 +15,15 @@ type EntityID string
 // just for inner
 type TypeName string
 
-type IEntity interface {
+var _ IEntity = &Entity{}
+
+type Entity struct {
+	baseEntity
+}
+
+func (e *Entity) entityType() {}
+
+type IBaseEntity interface {
 
 	// EntityID
 	EntityID() EntityID
@@ -26,9 +34,7 @@ type IEntity interface {
 
 	Desc() *EntityDesc
 
-	RegisterCallback(requestID string, cb Callback)
-
-	Context() *Context
+	Context() Context
 
 	Run()
 
@@ -38,20 +44,28 @@ type IEntity interface {
 
 	// for inner
 
+	registerCallback(requestID string, cb Callback)
+
 	setDesc(desc *EntityDesc)
 
-	onInit(c *Context, id EntityID)
+	onInit(c Context, id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
 
-	setParant(s IEntity)
-	addChildren(s IEntity)
+	setParant(s IBaseEntity)
+	addChildren(s IBaseEntity)
 }
 
-type methodHandler func(svc any, ctx *Context, pkt *codec.Packet, interceptor ServerInterceptor)
+type IEntity interface {
+	IBaseEntity
 
-// type methodLocalHandler func(svc any, ctx *Context, in any, interceptor ServerInterceptor) (any, error)
+	entityType()
+}
+
+type methodHandler func(svc any, ctx Context, pkt *codec.Packet, interceptor ServerInterceptor)
+
+// type methodLocalHandler func(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error)
 
 // MethodDesc represents an RPC Entity's method specification.
 type MethodDesc struct {
@@ -74,14 +88,12 @@ type EntityDesc struct {
 	interceptors []ServerInterceptor
 }
 
-var _ IEntity = &Entity{}
-
-type Entity struct {
+type baseEntity struct {
 	// id
 	entityID EntityID
 
 	// context
-	context *Context
+	context Context
 
 	desc *EntityDesc
 
@@ -95,66 +107,27 @@ type Entity struct {
 	callback map[string]Callback
 }
 
-func (e *Entity) OnInit() {
-}
+func (e *baseEntity) OnInit() {}
 
-func (*Entity) OnDestroy() {
-	// Called when entity is destroying (just before destroy)
-}
+func (*baseEntity) OnDestroy() {}
 
-func (e *Entity) Desc() *EntityDesc {
+func (e *baseEntity) Desc() *EntityDesc {
 	return e.desc
 }
 
 // Migration
-func (e *Entity) OnMigrateOut() {} // Called just before entity is migrating out
-func (e *Entity) OnMigrateIn()  {} // Called just after entity is migrating in
+func (e *baseEntity) OnMigrateOut() {} // Called just before entity is migrating out
+func (e *baseEntity) OnMigrateIn()  {} // Called just after entity is migrating in
 
-func (e *Entity) Context() *Context {
+func (e *baseEntity) Context() Context {
 	return e.context
 }
 
-func (e *Entity) onInit(c *Context, id EntityID) {
-	e.context = c
-	e.entityID = id
-	e.callChan = make(chan *codec.Packet, 1000)
-	e.callback = make(map[string]Callback, 1)
-	e.respChan = make(chan *codec.Packet, 1)
-
-	e.OnInit()
+func (e *baseEntity) EntityID() EntityID {
+	return e.entityID
 }
 
-func (e *Entity) onDestroy() {
-	e.done = true
-	e.OnDestroy()
-	releaseContext(e.context)
-}
-
-func (e *Entity) setDesc(desc *EntityDesc) {
-	e.desc = desc
-}
-
-func (e *Entity) dispatchPkt(pkt *codec.Packet) {
-	if pkt != nil {
-		xlog.Println("dispatch:", e, pkt.String())
-		pkt.Retain()
-		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
-			e.callChan <- pkt
-			return
-		}
-		e.respChan <- pkt
-	}
-}
-func (e *Entity) RegisterCallback(requestID string, cb Callback) {
-	if requestID == "" || cb == nil {
-		return
-	}
-	e.cbMtx.Lock()
-	defer e.cbMtx.Unlock()
-	e.callback[requestID] = cb
-}
-
-func (e *Entity) Run() {
+func (e *baseEntity) Run() {
 	xlog.Println("start message loop", e.EntityID())
 
 	go func() {
@@ -167,6 +140,9 @@ func (e *Entity) Run() {
 
 	for !e.done {
 		select {
+		case <-e.context.Done():
+			xlog.Println("ctx done", e)
+
 		case pkt := <-e.callChan:
 			xlog.Printf("handle: %s", pkt.String())
 			e.handleCallMethod(e.context, pkt)
@@ -176,10 +152,53 @@ func (e *Entity) Run() {
 	// todo unregister entity
 }
 
-func (e *Entity) handleMethodRsp(c *Context, pkt *codec.Packet) error {
+//  for inner
+
+func (e *baseEntity) registerCallback(requestID string, cb Callback) {
+	if requestID == "" || cb == nil {
+		return
+	}
+	e.cbMtx.Lock()
+	defer e.cbMtx.Unlock()
+	e.callback[requestID] = cb
+}
+
+func (e *baseEntity) onInit(c Context, id EntityID) {
+	e.context = c
+	e.entityID = id
+	e.callChan = make(chan *codec.Packet, 1000)
+	e.callback = make(map[string]Callback, 1)
+	e.respChan = make(chan *codec.Packet, 1)
+
+	e.OnInit()
+}
+
+func (e *baseEntity) onDestroy() {
+	e.done = true
+	e.OnDestroy()
+	releaseContext(e.context)
+}
+
+func (e *baseEntity) setDesc(desc *EntityDesc) {
+	e.desc = desc
+}
+
+func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
+	if pkt != nil {
+		xlog.Println("dispatch:", e, pkt.String())
+		pkt.Retain()
+		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
+			e.callChan <- pkt
+			return
+		}
+		e.respChan <- pkt
+	}
+}
+
+func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	c.pkt = pkt
+	c.setPacket(pkt)
 
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.callback[pkt.Header.RequestId]
@@ -198,13 +217,12 @@ func (e *Entity) handleMethodRsp(c *Context, pkt *codec.Packet) error {
 	return nil
 }
 
-func (e *Entity) handleCallMethod(c *Context, pkt *codec.Packet) error {
+func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	c.pkt = pkt
-
+	c.setPacket(pkt)
 	sd := e.desc
-	// todo method name repeat get
+
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
@@ -216,14 +234,8 @@ func (e *Entity) handleCallMethod(c *Context, pkt *codec.Packet) error {
 	return nil
 }
 
-func (e *Entity) setParant(svc IEntity) {
-
+func (e *baseEntity) setParant(svc IBaseEntity) {
 }
 
-func (e *Entity) addChildren(ety IEntity) {
-
-}
-
-func (e *Entity) EntityID() EntityID {
-	return e.entityID
+func (e *baseEntity) addChildren(ety IBaseEntity) {
 }

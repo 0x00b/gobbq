@@ -42,14 +42,14 @@ func OpenMongoKVDB(url string, dbname string, collectionName string) (kv.KVDBEng
 	}, nil
 }
 
-func (kvdb *mongoKVDB) Put(ctx *entity.Context, key string, val string) error {
+func (kvdb *mongoKVDB) Put(ctx entity.Context, key string, val string) error {
 	_, err := kvdb.c.UpsertId(key, map[string]string{
 		_VAL_KEY: val,
 	})
 	return err
 }
 
-func (kvdb *mongoKVDB) Get(ctx *entity.Context, key string) (val string, err error) {
+func (kvdb *mongoKVDB) Get(ctx entity.Context, key string) (val string, err error) {
 	q := kvdb.c.FindId(key)
 	var doc map[string]string
 	err = q.One(&doc)
@@ -67,7 +67,7 @@ type mongoKVIterator struct {
 	it *mgo.Iter
 }
 
-func (it *mongoKVIterator) Next(ctx *entity.Context) (kv.KVItem, error) {
+func (it *mongoKVIterator) Next(ctx entity.Context) (kv.KVItem, error) {
 	var doc map[string]string
 	ok := it.it.Next(&doc)
 	if ok {
@@ -84,7 +84,7 @@ func (it *mongoKVIterator) Next(ctx *entity.Context) (kv.KVItem, error) {
 	return kv.KVItem{}, io.EOF
 }
 
-func (kvdb *mongoKVDB) Find(ctx *entity.Context, beginKey string, endKey string) (kv.Iterator, error) {
+func (kvdb *mongoKVDB) Find(ctx entity.Context, beginKey string, endKey string) (kv.Iterator, error) {
 	q := kvdb.c.Find(bson.M{"_id": bson.M{"$gte": beginKey, "$lt": endKey}})
 	it := q.Iter()
 	return &mongoKVIterator{

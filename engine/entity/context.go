@@ -8,43 +8,122 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-var _ context.Context = &Context{}
+type Context interface {
+
+	/************************************/
+	/***** GOLANG.ORG/X/NET/CONTEXT *****/
+	/************************************/
+	context.Context
+
+	/************************************/
+	/******** ENTITY MANAGEMENT********/
+	/************************************/
+	Copy() Context
+
+	Entity() IBaseEntity
+
+	Packet() *codec.Packet
+	setPacket(*codec.Packet)
+
+	EntityID() EntityID
+
+	RegisterCallback(requestID string, cb Callback)
+
+	/************************************/
+	/******** METADATA MANAGEMENT********/
+	/************************************/
+	SetError(err error)
+
+	// Set is used to store a new key/value pair exclusively for this context.
+	// It also lazy initializes  c.Keys if it was not used previously.
+	Set(key string, value any)
+
+	// Get returns the value for the given key, ie: (value, true).
+	// If the value does not exist it returns (nil, false)
+	Get(key string) (value any, exists bool)
+
+	// MustGet returns the value for the given key if it exists, otherwise it panics.
+	MustGet(key string) any
+
+	// GetString returns the value associated with the key as a string.
+	GetString(key string) (s string)
+
+	// GetBool returns the value associated with the key as a boolean.
+	GetBool(key string) (b bool)
+
+	// GetInt returns the value associated with the key as an integer.
+	GetInt(key string) (i int)
+
+	// GetInt64 returns the value associated with the key as an integer.
+	GetInt64(key string) (i64 int64)
+
+	// GetUint returns the value associated with the key as an unsigned integer.
+	GetUint(key string) (ui uint)
+
+	// GetUint64 returns the value associated with the key as an unsigned integer.
+	GetUint64(key string) (ui64 uint64)
+
+	// GetFloat64 returns the value associated with the key as a float64.
+	GetFloat64(key string) (f64 float64)
+	// GetTime returns the value associated with the key as time.
+	GetTime(key string) (t time.Time)
+
+	// GetDuration returns the value associated with the key as a duration.
+	GetDuration(key string) (d time.Duration)
+
+	// GetStringSlice returns the value associated with the key as a slice of strings.
+	GetStringSlice(key string) (ss []string)
+
+	// GetStringMap returns the value associated with the key as a map of interfaces.
+	GetStringMap(key string) (sm map[string]any)
+
+	// GetStringMapString returns the value associated with the key as a map of strings.
+	GetStringMapString(key string) (sms map[string]string)
+
+	// GetStringMapStringSlice returns the value associated with the key as a map to a slice of strings.
+	GetStringMapStringSlice(key string) (smss map[string][]string)
+}
+
+var _ Context = &baseContext{}
 
 var contextPool *sync.Pool = &sync.Pool{
 	New: func() any {
-		c := &Context{}
+		c := &baseContext{}
 		return c
 	},
 }
 
-func allocContext() *Context {
-	c := contextPool.Get().(*Context)
+func allocContext() *baseContext {
+	c := contextPool.Get().(*baseContext)
 
 	c.reset()
 
 	return c
 }
 
-func releaseContext(c *Context) {
+func releaseContext(c Context) {
 	if c != nil {
-		c.reset()
-		contextPool.Put(c)
+		bc, ok := c.(*baseContext)
+		if ok {
+			bc.reset()
+			contextPool.Put(bc)
+		}
 	}
 }
 
 type releaseCtx func()
 
 // NewPacket allocates a new packet
-func NewContext() (*Context, releaseCtx) {
+func NewContext() (Context, releaseCtx) {
 	c := allocContext()
 	return c, func() {
 		releaseContext(c)
 	}
 }
 
-type Context struct {
+type baseContext struct {
 	// 属于这个entity
-	Entity IEntity
+	entity IBaseEntity
 
 	// 当前正在处理的pkt
 	pkt *codec.Packet
@@ -57,38 +136,48 @@ type Context struct {
 	Keys map[string]any
 }
 
-// func (c *Context) Copy() *Context {
-// 	tc := &Context{
-// 		entityID: c.entityID,
-// 		pkt:      c.pkt,
-// 		err:      c.err,
-// 	}
+func (c *baseContext) Entity() IBaseEntity {
+	return c.entity
+}
 
-// 	if c.pkt != nil {
-// 		c.pkt.Retain()
-// 	}
+func (c *baseContext) Copy() Context {
+	tc := &baseContext{
+		entity: c.entity,
+		pkt:    nil, //&codec.Packet{},
+		err:    c.err,
+		mu:     sync.RWMutex{},
+		Keys:   map[string]any{},
+	}
 
-// 	return tc
-// }
+	for k, v := range c.Keys {
+		tc.Set(k, v)
+	}
 
-func (c *Context) reset() {
-	// if c.pkt != nil {
-	// 	c.pkt.Release()
-	// }
-	c.Entity = nil
+	return tc
+}
+
+func (c *baseContext) RegisterCallback(requestID string, cb Callback) {
+	c.entity.registerCallback(requestID, cb)
+}
+
+func (c *baseContext) reset() {
+	c.entity = nil
 	c.pkt = nil
 	c.err = nil
 }
 
-func (c *Context) Packet() *codec.Packet {
+func (c *baseContext) Packet() *codec.Packet {
 	return c.pkt
 }
-
-func (c *Context) EntityID() EntityID {
-	return c.Entity.EntityID()
+func (c *baseContext) setPacket(pkt *codec.Packet) {
+	c.pkt = pkt
 }
 
-func (c *Context) Error(err error) {
+func (c *baseContext) EntityID() EntityID {
+	return c.entity.EntityID()
+}
+
+func (c *baseContext) SetError(err error) {
 	if err == nil {
 		panic("err is nil")
 	}
@@ -101,7 +190,7 @@ func (c *Context) Error(err error) {
 
 // Set is used to store a new key/value pair exclusively for this context.
 // It also lazy initializes  c.Keys if it was not used previously.
-func (c *Context) Set(key string, value any) {
+func (c *baseContext) Set(key string, value any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.Keys == nil {
@@ -113,7 +202,7 @@ func (c *Context) Set(key string, value any) {
 
 // Get returns the value for the given key, ie: (value, true).
 // If the value does not exist it returns (nil, false)
-func (c *Context) Get(key string) (value any, exists bool) {
+func (c *baseContext) Get(key string) (value any, exists bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	value, exists = c.Keys[key]
@@ -121,7 +210,7 @@ func (c *Context) Get(key string) (value any, exists bool) {
 }
 
 // MustGet returns the value for the given key if it exists, otherwise it panics.
-func (c *Context) MustGet(key string) any {
+func (c *baseContext) MustGet(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value
 	}
@@ -129,7 +218,7 @@ func (c *Context) MustGet(key string) any {
 }
 
 // GetString returns the value associated with the key as a string.
-func (c *Context) GetString(key string) (s string) {
+func (c *baseContext) GetString(key string) (s string) {
 	if val, ok := c.Get(key); ok && val != nil {
 		s, _ = val.(string)
 	}
@@ -137,7 +226,7 @@ func (c *Context) GetString(key string) (s string) {
 }
 
 // GetBool returns the value associated with the key as a boolean.
-func (c *Context) GetBool(key string) (b bool) {
+func (c *baseContext) GetBool(key string) (b bool) {
 	if val, ok := c.Get(key); ok && val != nil {
 		b, _ = val.(bool)
 	}
@@ -145,7 +234,7 @@ func (c *Context) GetBool(key string) (b bool) {
 }
 
 // GetInt returns the value associated with the key as an integer.
-func (c *Context) GetInt(key string) (i int) {
+func (c *baseContext) GetInt(key string) (i int) {
 	if val, ok := c.Get(key); ok && val != nil {
 		i, _ = val.(int)
 	}
@@ -153,7 +242,7 @@ func (c *Context) GetInt(key string) (i int) {
 }
 
 // GetInt64 returns the value associated with the key as an integer.
-func (c *Context) GetInt64(key string) (i64 int64) {
+func (c *baseContext) GetInt64(key string) (i64 int64) {
 	if val, ok := c.Get(key); ok && val != nil {
 		i64, _ = val.(int64)
 	}
@@ -161,7 +250,7 @@ func (c *Context) GetInt64(key string) (i64 int64) {
 }
 
 // GetUint returns the value associated with the key as an unsigned integer.
-func (c *Context) GetUint(key string) (ui uint) {
+func (c *baseContext) GetUint(key string) (ui uint) {
 	if val, ok := c.Get(key); ok && val != nil {
 		ui, _ = val.(uint)
 	}
@@ -169,7 +258,7 @@ func (c *Context) GetUint(key string) (ui uint) {
 }
 
 // GetUint64 returns the value associated with the key as an unsigned integer.
-func (c *Context) GetUint64(key string) (ui64 uint64) {
+func (c *baseContext) GetUint64(key string) (ui64 uint64) {
 	if val, ok := c.Get(key); ok && val != nil {
 		ui64, _ = val.(uint64)
 	}
@@ -177,7 +266,7 @@ func (c *Context) GetUint64(key string) (ui64 uint64) {
 }
 
 // GetFloat64 returns the value associated with the key as a float64.
-func (c *Context) GetFloat64(key string) (f64 float64) {
+func (c *baseContext) GetFloat64(key string) (f64 float64) {
 	if val, ok := c.Get(key); ok && val != nil {
 		f64, _ = val.(float64)
 	}
@@ -185,7 +274,7 @@ func (c *Context) GetFloat64(key string) (f64 float64) {
 }
 
 // GetTime returns the value associated with the key as time.
-func (c *Context) GetTime(key string) (t time.Time) {
+func (c *baseContext) GetTime(key string) (t time.Time) {
 	if val, ok := c.Get(key); ok && val != nil {
 		t, _ = val.(time.Time)
 	}
@@ -193,7 +282,7 @@ func (c *Context) GetTime(key string) (t time.Time) {
 }
 
 // GetDuration returns the value associated with the key as a duration.
-func (c *Context) GetDuration(key string) (d time.Duration) {
+func (c *baseContext) GetDuration(key string) (d time.Duration) {
 	if val, ok := c.Get(key); ok && val != nil {
 		d, _ = val.(time.Duration)
 	}
@@ -201,7 +290,7 @@ func (c *Context) GetDuration(key string) (d time.Duration) {
 }
 
 // GetStringSlice returns the value associated with the key as a slice of strings.
-func (c *Context) GetStringSlice(key string) (ss []string) {
+func (c *baseContext) GetStringSlice(key string) (ss []string) {
 	if val, ok := c.Get(key); ok && val != nil {
 		ss, _ = val.([]string)
 	}
@@ -209,7 +298,7 @@ func (c *Context) GetStringSlice(key string) (ss []string) {
 }
 
 // GetStringMap returns the value associated with the key as a map of interfaces.
-func (c *Context) GetStringMap(key string) (sm map[string]any) {
+func (c *baseContext) GetStringMap(key string) (sm map[string]any) {
 	if val, ok := c.Get(key); ok && val != nil {
 		sm, _ = val.(map[string]any)
 	}
@@ -217,7 +306,7 @@ func (c *Context) GetStringMap(key string) (sm map[string]any) {
 }
 
 // GetStringMapString returns the value associated with the key as a map of strings.
-func (c *Context) GetStringMapString(key string) (sms map[string]string) {
+func (c *baseContext) GetStringMapString(key string) (sms map[string]string) {
 	if val, ok := c.Get(key); ok && val != nil {
 		sms, _ = val.(map[string]string)
 	}
@@ -225,7 +314,7 @@ func (c *Context) GetStringMapString(key string) (sms map[string]string) {
 }
 
 // GetStringMapStringSlice returns the value associated with the key as a map to a slice of strings.
-func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string) {
+func (c *baseContext) GetStringMapStringSlice(key string) (smss map[string][]string) {
 	if val, ok := c.Get(key); ok && val != nil {
 		smss, _ = val.(map[string][]string)
 	}
@@ -237,7 +326,7 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 /************************************/
 
 // Deadline returns that there is no deadline (ok==false) when c.pkt has no Context.
-func (c *Context) Deadline() (deadline time.Time, ok bool) {
+func (c *baseContext) Deadline() (deadline time.Time, ok bool) {
 	if c.pkt == nil || c.pkt.Context() == nil {
 		return
 	}
@@ -245,7 +334,7 @@ func (c *Context) Deadline() (deadline time.Time, ok bool) {
 }
 
 // Done returns nil (chan which will wait forever) when c.pkt has no Context.
-func (c *Context) Done() <-chan struct{} {
+func (c *baseContext) Done() <-chan struct{} {
 	if c.pkt == nil || c.pkt.Context() == nil {
 		return nil
 	}
@@ -253,7 +342,7 @@ func (c *Context) Done() <-chan struct{} {
 }
 
 // Err returns nil when c.pkt has no Context.
-func (c *Context) Err() error {
+func (c *baseContext) Err() error {
 	if c.pkt == nil || c.pkt.Context() == nil {
 		return nil
 	}
@@ -263,7 +352,7 @@ func (c *Context) Err() error {
 // Value returns the value associated with this context for key, or nil
 // if no value is associated with key. Successive calls to Value with
 // the same key returns the same result.
-func (c *Context) Value(key any) any {
+func (c *baseContext) Value(key any) any {
 	if key == 0 {
 		return c.pkt
 	}

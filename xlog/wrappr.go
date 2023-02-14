@@ -1,8 +1,8 @@
 package xlog
 
 // Wrapper like using _organizeLog for new go routine
-// func Wrapper(fun func(*entity.Context)) func(*entity.Context) {
-// 	return func(c *entity.Context) {
+// func Wrapper(fun func( entity.Context)) func( entity.Context) {
+// 	return func(c entity.Context) {
 // 		if _organizeLog {
 // 			_, ok := (c).Value(_ctxLogKey).(*logrus.Entry)
 // 			if !ok {

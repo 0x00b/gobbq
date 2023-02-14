@@ -9,9 +9,9 @@ import (
 )
 
 var Manager EntityManager = EntityManager{
-	Services:    make(map[TypeName]IEntity),
+	Services:    make(map[TypeName]IService),
 	entityDescs: make(map[TypeName]*EntityDesc),
-	Entities:    make(map[EntityID]IEntity),
+	Entities:    make(map[EntityID]IBaseEntity),
 }
 var ProxyRegister RegisterProxy
 
@@ -25,20 +25,21 @@ type EntityManager struct {
 	mu    sync.RWMutex // guards following
 	serve bool
 
-	Services    map[TypeName]IEntity     // service name -> service info
+	Services    map[TypeName]IService    // service name -> service info
 	entityDescs map[TypeName]*EntityDesc // entity name -> entity info
-	Entities    map[EntityID]IEntity     // entity id -> entity impl
+	Entities    map[EntityID]IBaseEntity // entity id -> entity impl
 
 }
 
-func RegisterEntity(c *Context, id EntityID, entity IEntity) error {
+func RegisterEntity(c Context, id EntityID, entity IBaseEntity) error {
 	ctx := allocContext()
-	ctx.Entity = entity
+	ctx.entity = entity
 	entity.onInit(ctx, id)
+	entity.OnInit()
 
 	if c != nil {
-		entity.setParant(c.Entity)
-		c.Entity.addChildren(entity)
+		entity.setParant(c.Entity())
+		c.Entity().addChildren(entity)
 	}
 
 	Manager.mu.Lock()
@@ -48,7 +49,7 @@ func RegisterEntity(c *Context, id EntityID, entity IEntity) error {
 	return nil
 }
 
-func NewEntity(c *Context, id *EntityID, typ TypeName) error {
+func NewEntity(c Context, id *EntityID, typ TypeName) error {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
 		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
@@ -120,7 +121,7 @@ func (s *EntityManager) registerEntity(sd *EntityDesc, ss IEntity, intercepter .
 	s.entityDescs[sd.TypeName] = sd
 }
 
-func (s *EntityManager) RegisterService(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) RegisterService(sd *EntityDesc, ss IService, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
@@ -131,7 +132,7 @@ func (s *EntityManager) RegisterService(sd *EntityDesc, ss IEntity, intercepter 
 	s.registerService(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerService(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter ...ServerInterceptor) {
 	xlog.Printf("RegisterService(%q)", sd.TypeName)
 	if s.serve {
 		xlog.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
@@ -157,7 +158,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IEntity, intercepter 
 	}
 }
 
-func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IEntity) error {
+func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) error {
 
 	RegisterEntity(nil, EntityID(snowflake.GenUUID()), entity)
 

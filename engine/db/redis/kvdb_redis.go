@@ -53,7 +53,7 @@ func (db *redisKVDB) isZeroCursor(c any) bool {
 	return string(c.([]byte)) == "0"
 }
 
-func (db *redisKVDB) Get(ctx *entity.Context, key string) (val string, err error) {
+func (db *redisKVDB) Get(ctx entity.Context, key string) (val string, err error) {
 	cmd := db.c.Do(ctx, "GET", keyPrefix+key)
 	if cmd.Err() != nil {
 		return "", cmd.Err()
@@ -64,7 +64,7 @@ func (db *redisKVDB) Get(ctx *entity.Context, key string) (val string, err error
 	return string(cmd.Val().([]byte)), err
 }
 
-func (db *redisKVDB) Put(ctx *entity.Context, key string, val string) error {
+func (db *redisKVDB) Put(ctx entity.Context, key string, val string) error {
 	err := db.c.Do(ctx, "SET", keyPrefix+key, val)
 	return err.Err()
 }
@@ -74,7 +74,7 @@ type redisKVDBIterator struct {
 	leftKeys []string
 }
 
-func (it *redisKVDBIterator) Next(ctx *entity.Context) (kv.KVItem, error) {
+func (it *redisKVDBIterator) Next(ctx entity.Context) (kv.KVItem, error) {
 	if len(it.leftKeys) == 0 {
 		return kv.KVItem{}, io.EOF
 	}
@@ -89,7 +89,7 @@ func (it *redisKVDBIterator) Next(ctx *entity.Context) (kv.KVItem, error) {
 	return kv.KVItem{Key: key, Val: val}, nil
 }
 
-func (db *redisKVDB) Find(ctx *entity.Context, beginKey string, endKey string) (kv.Iterator, error) {
+func (db *redisKVDB) Find(ctx entity.Context, beginKey string, endKey string) (kv.Iterator, error) {
 	return nil, errors.Errorf("operation not supported on redis")
 }
 

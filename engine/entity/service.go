@@ -5,11 +5,19 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-type Service struct {
-	Entity
+type IService interface {
+	IBaseEntity
+
+	serviceType()
 }
 
-func (e *Service) onInit(c *Context, id EntityID) {
+type Service struct {
+	baseEntity
+}
+
+func (e *Service) serviceType() {}
+
+func (e *Service) onInit(c Context, id EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 10000)
@@ -35,6 +43,9 @@ func (e *Service) Run() {
 
 	for !e.done {
 		select {
+		case <-e.context.Done():
+			xlog.Println("ctx done", e)
+
 		case pkt := <-e.callChan:
 			xlog.Printf("handle: %s", pkt.String())
 

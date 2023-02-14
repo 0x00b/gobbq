@@ -34,7 +34,7 @@ type proxyService struct {
 	client *nets.Client
 }
 
-func (t *proxyService) RegisterInst(c *entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
+func (t *proxyService) RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -77,7 +77,7 @@ func (t *proxyService) RegisterInst(c *entity.Context, req *RegisterInstRequest)
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterInstResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -97,7 +97,7 @@ func (t *proxyService) RegisterInst(c *entity.Context, req *RegisterInstRequest)
 
 }
 
-func (t *proxyService) RegisterEntity(c *entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
+func (t *proxyService) RegisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -140,7 +140,7 @@ func (t *proxyService) RegisterEntity(c *entity.Context, req *RegisterEntityRequ
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterEntityResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -160,7 +160,7 @@ func (t *proxyService) RegisterEntity(c *entity.Context, req *RegisterEntityRequ
 
 }
 
-func (t *proxyService) RegisterService(c *entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
+func (t *proxyService) RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -203,7 +203,7 @@ func (t *proxyService) RegisterService(c *entity.Context, req *RegisterServiceRe
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -223,7 +223,7 @@ func (t *proxyService) RegisterService(c *entity.Context, req *RegisterServiceRe
 
 }
 
-func (t *proxyService) UnregisterEntity(c *entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
+func (t *proxyService) UnregisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -266,7 +266,7 @@ func (t *proxyService) UnregisterEntity(c *entity.Context, req *RegisterEntityRe
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterEntityResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -286,7 +286,7 @@ func (t *proxyService) UnregisterEntity(c *entity.Context, req *RegisterEntityRe
 
 }
 
-func (t *proxyService) UnregisterService(c *entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
+func (t *proxyService) UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -329,7 +329,7 @@ func (t *proxyService) UnregisterService(c *entity.Context, req *RegisterService
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -349,7 +349,7 @@ func (t *proxyService) UnregisterService(c *entity.Context, req *RegisterService
 
 }
 
-func (t *proxyService) Ping(c *entity.Context, req *PingPong) (*PingPong, error) {
+func (t *proxyService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	eid := ""
 	if c != nil {
@@ -392,7 +392,7 @@ func (t *proxyService) Ping(c *entity.Context, req *PingPong) (*PingPong, error)
 	// register callback
 	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -414,28 +414,28 @@ func (t *proxyService) Ping(c *entity.Context, req *PingPong) (*PingPong, error)
 
 // ProxyService
 type ProxyService interface {
-	entity.IEntity
+	entity.IService
 
 	// RegisterInst
-	RegisterInst(c *entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error)
+	RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error)
 
 	// RegisterEntity
-	RegisterEntity(c *entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error)
+	RegisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error)
 
 	// RegisterService
-	RegisterService(c *entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error)
+	RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error)
 
 	// UnregisterEntity
-	UnregisterEntity(c *entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error)
+	UnregisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error)
 
 	// UnregisterService
-	UnregisterService(c *entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error)
+	UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error)
 
 	// Ping
-	Ping(c *entity.Context, req *PingPong) (*PingPong, error)
+	Ping(c entity.Context, req *PingPong) (*PingPong, error)
 }
 
-func _ProxyService_RegisterInst_Handler(svc any, ctx *entity.Context, in *RegisterInstRequest, interceptor entity.ServerInterceptor) (*RegisterInstResponse, error) {
+func _ProxyService_RegisterInst_Handler(svc any, ctx entity.Context, in *RegisterInstRequest, interceptor entity.ServerInterceptor) (*RegisterInstResponse, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).RegisterInst(ctx, in)
@@ -447,7 +447,7 @@ func _ProxyService_RegisterInst_Handler(svc any, ctx *entity.Context, in *Regist
 		FullMethod: "/proxypb.ProxyService/RegisterInst",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).RegisterInst(ctx, in)
 
@@ -458,7 +458,7 @@ func _ProxyService_RegisterInst_Handler(svc any, ctx *entity.Context, in *Regist
 
 }
 
-//func _ProxyService_RegisterInst_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_RegisterInst_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *RegisterInstResponse, err error) {
 //			if err != nil {
@@ -472,7 +472,7 @@ func _ProxyService_RegisterInst_Handler(svc any, ctx *entity.Context, in *Regist
 //
 //}
 
-func _ProxyService_RegisterInst_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -525,7 +525,7 @@ func _ProxyService_RegisterInst_Remote_Handler(svc any, ctx *entity.Context, pkt
 
 }
 
-func _ProxyService_RegisterEntity_Handler(svc any, ctx *entity.Context, in *RegisterEntityRequest, interceptor entity.ServerInterceptor) (*RegisterEntityResponse, error) {
+func _ProxyService_RegisterEntity_Handler(svc any, ctx entity.Context, in *RegisterEntityRequest, interceptor entity.ServerInterceptor) (*RegisterEntityResponse, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).RegisterEntity(ctx, in)
@@ -537,7 +537,7 @@ func _ProxyService_RegisterEntity_Handler(svc any, ctx *entity.Context, in *Regi
 		FullMethod: "/proxypb.ProxyService/RegisterEntity",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).RegisterEntity(ctx, in)
 
@@ -548,7 +548,7 @@ func _ProxyService_RegisterEntity_Handler(svc any, ctx *entity.Context, in *Regi
 
 }
 
-//func _ProxyService_RegisterEntity_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_RegisterEntity_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *RegisterEntityResponse, err error) {
 //			if err != nil {
@@ -562,7 +562,7 @@ func _ProxyService_RegisterEntity_Handler(svc any, ctx *entity.Context, in *Regi
 //
 //}
 
-func _ProxyService_RegisterEntity_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_RegisterEntity_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -615,7 +615,7 @@ func _ProxyService_RegisterEntity_Remote_Handler(svc any, ctx *entity.Context, p
 
 }
 
-func _ProxyService_RegisterService_Handler(svc any, ctx *entity.Context, in *RegisterServiceRequest, interceptor entity.ServerInterceptor) (*RegisterServiceResponse, error) {
+func _ProxyService_RegisterService_Handler(svc any, ctx entity.Context, in *RegisterServiceRequest, interceptor entity.ServerInterceptor) (*RegisterServiceResponse, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).RegisterService(ctx, in)
@@ -627,7 +627,7 @@ func _ProxyService_RegisterService_Handler(svc any, ctx *entity.Context, in *Reg
 		FullMethod: "/proxypb.ProxyService/RegisterService",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).RegisterService(ctx, in)
 
@@ -638,7 +638,7 @@ func _ProxyService_RegisterService_Handler(svc any, ctx *entity.Context, in *Reg
 
 }
 
-//func _ProxyService_RegisterService_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_RegisterService_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *RegisterServiceResponse, err error) {
 //			if err != nil {
@@ -652,7 +652,7 @@ func _ProxyService_RegisterService_Handler(svc any, ctx *entity.Context, in *Reg
 //
 //}
 
-func _ProxyService_RegisterService_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_RegisterService_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -705,7 +705,7 @@ func _ProxyService_RegisterService_Remote_Handler(svc any, ctx *entity.Context, 
 
 }
 
-func _ProxyService_UnregisterEntity_Handler(svc any, ctx *entity.Context, in *RegisterEntityRequest, interceptor entity.ServerInterceptor) (*RegisterEntityResponse, error) {
+func _ProxyService_UnregisterEntity_Handler(svc any, ctx entity.Context, in *RegisterEntityRequest, interceptor entity.ServerInterceptor) (*RegisterEntityResponse, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).UnregisterEntity(ctx, in)
@@ -717,7 +717,7 @@ func _ProxyService_UnregisterEntity_Handler(svc any, ctx *entity.Context, in *Re
 		FullMethod: "/proxypb.ProxyService/UnregisterEntity",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).UnregisterEntity(ctx, in)
 
@@ -728,7 +728,7 @@ func _ProxyService_UnregisterEntity_Handler(svc any, ctx *entity.Context, in *Re
 
 }
 
-//func _ProxyService_UnregisterEntity_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_UnregisterEntity_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *RegisterEntityResponse, err error) {
 //			if err != nil {
@@ -742,7 +742,7 @@ func _ProxyService_UnregisterEntity_Handler(svc any, ctx *entity.Context, in *Re
 //
 //}
 
-func _ProxyService_UnregisterEntity_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_UnregisterEntity_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -795,7 +795,7 @@ func _ProxyService_UnregisterEntity_Remote_Handler(svc any, ctx *entity.Context,
 
 }
 
-func _ProxyService_UnregisterService_Handler(svc any, ctx *entity.Context, in *RegisterServiceRequest, interceptor entity.ServerInterceptor) (*RegisterServiceResponse, error) {
+func _ProxyService_UnregisterService_Handler(svc any, ctx entity.Context, in *RegisterServiceRequest, interceptor entity.ServerInterceptor) (*RegisterServiceResponse, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).UnregisterService(ctx, in)
@@ -807,7 +807,7 @@ func _ProxyService_UnregisterService_Handler(svc any, ctx *entity.Context, in *R
 		FullMethod: "/proxypb.ProxyService/UnregisterService",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).UnregisterService(ctx, in)
 
@@ -818,7 +818,7 @@ func _ProxyService_UnregisterService_Handler(svc any, ctx *entity.Context, in *R
 
 }
 
-//func _ProxyService_UnregisterService_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_UnregisterService_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *RegisterServiceResponse, err error) {
 //			if err != nil {
@@ -832,7 +832,7 @@ func _ProxyService_UnregisterService_Handler(svc any, ctx *entity.Context, in *R
 //
 //}
 
-func _ProxyService_UnregisterService_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_UnregisterService_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -885,7 +885,7 @@ func _ProxyService_UnregisterService_Remote_Handler(svc any, ctx *entity.Context
 
 }
 
-func _ProxyService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, interceptor entity.ServerInterceptor) (*PingPong, error) {
+func _ProxyService_Ping_Handler(svc any, ctx entity.Context, in *PingPong, interceptor entity.ServerInterceptor) (*PingPong, error) {
 	if interceptor == nil {
 
 		return svc.(ProxyService).Ping(ctx, in)
@@ -897,7 +897,7 @@ func _ProxyService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, inte
 		FullMethod: "/proxypb.ProxyService/Ping",
 	}
 
-	handler := func(ctx *entity.Context, rsp any) (any, error) {
+	handler := func(ctx entity.Context, rsp any) (any, error) {
 
 		return svc.(ProxyService).Ping(ctx, in)
 
@@ -908,7 +908,7 @@ func _ProxyService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, inte
 
 }
 
-//func _ProxyService_Ping_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _ProxyService_Ping_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //
 //		ret := func(rsp *PingPong, err error) {
 //			if err != nil {
@@ -922,7 +922,7 @@ func _ProxyService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, inte
 //
 //}
 
-func _ProxyService_Ping_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ProxyService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 

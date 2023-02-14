@@ -75,23 +75,23 @@ func (m *GormLog) LogMode(logger.LogLevel) logger.Interface {
 	return nil
 }
 
-func (m *GormLog) Info(c *entity.Context, s string, p ...any) {
+func (m *GormLog) Info(c entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Info {
 	// 	//xlog.Infof(s, p...)
 	// }
 }
-func (m *GormLog) Warn(c *entity.Context, s string, p ...any) {
+func (m *GormLog) Warn(c entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Warn {
 	// 	//xlog.Warnf(s, p...)
 	// }
 }
-func (m *GormLog) Error(c *entity.Context, s string, p ...any) {
+func (m *GormLog) Error(c entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Error {
 	// 	//xlog.Errorf(s, p...)
 	// }
 }
 
-func (m *GormLog) Trace(c *entity.Context,
+func (m *GormLog) Trace(c entity.Context,
 	begin time.Time, fc func() (string, int64), err error) {
 	if m.LogLevel <= 0 {
 		return

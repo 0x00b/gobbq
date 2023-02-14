@@ -21,10 +21,10 @@ type Test struct{}
 //
 //	@receiver Test
 //	@param c
-//	@return *entity.Context
+//	@return entity.Context
 //	@author jun
 //	@date 2021-10-08 09:27:56
-func (Test) Begin(c *entity.Context) *entity.Context {
+func (Test) Begin(c entity.Context) entity.Context {
 	// return context.WithValue(c, "test", "test")
 	return nil
 }
@@ -35,7 +35,7 @@ func (Test) Begin(c *entity.Context) *entity.Context {
 //	@param c
 //	@author jun
 //	@date 2021-10-08 09:30:56
-func (Test) Commit(c *entity.Context) {
+func (Test) Commit(c entity.Context) {
 	xlog.Println("Commit", c.Value("test"))
 
 }
@@ -47,7 +47,7 @@ func (Test) Commit(c *entity.Context) {
 //	@param e
 //	@author jun
 //	@date 2021-10-08 09:30:51
-func (Test) Rollback(c *entity.Context, e error) {
+func (Test) Rollback(c entity.Context, e error) {
 	xlog.Println("Rollback", c.Value("test"))
 }
 
@@ -56,11 +56,11 @@ func (Test) Rollback(c *entity.Context, e error) {
 //	@param c
 //	@author jun
 //	@date 2021-10-08 09:29:14
-func test(c *entity.Context) {
+func test(c entity.Context) {
 
 	ts := trx.Transaction{}
 	ts.RegisterTransaction(Test{})
-	_ = ts.Transaction(func(c *entity.Context) error {
+	_ = ts.Transaction(func(c entity.Context) error {
 		xlog.Println("Transaction", c.Value("test"))
 		return nil
 	})(c)

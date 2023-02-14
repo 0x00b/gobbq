@@ -68,8 +68,12 @@ type ProxyService struct {
 	entity.Service
 }
 
+func (ps *ProxyService) OnInit() {
+	xlog.Println("on init ProxyService")
+}
+
 // RegisterInst
-func (ps *ProxyService) RegisterInst(c *entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
+func (ps *ProxyService) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
 
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
@@ -77,7 +81,7 @@ func (ps *ProxyService) RegisterInst(c *entity.Context, req *proxypb.RegisterIns
 }
 
 // RegisterEntity
-func (ps *ProxyService) RegisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
+func (ps *ProxyService) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
@@ -85,7 +89,7 @@ func (ps *ProxyService) RegisterEntity(c *entity.Context, req *proxypb.RegisterE
 }
 
 // RegisterEntity
-func (ps *ProxyService) RegisterService(c *entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
+func (ps *ProxyService) RegisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	xlog.Println("register service:", req.ServiceName)
 	RegisterService(req.ServiceName, c.Packet().Src)
@@ -94,19 +98,19 @@ func (ps *ProxyService) RegisterService(c *entity.Context, req *proxypb.Register
 }
 
 // UnregisterEntity
-func (ps *ProxyService) UnregisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
+func (ps *ProxyService) UnregisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
 	return nil, nil
 }
 
 // RegisterEntity
-func (ps *ProxyService) UnregisterService(c *entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
+func (ps *ProxyService) UnregisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	return nil, nil
 }
 
 // Ping
-func (ps *ProxyService) Ping(c *entity.Context, req *proxypb.PingPong) (*proxypb.PingPong, error) {
+func (ps *ProxyService) Ping(c entity.Context, req *proxypb.PingPong) (*proxypb.PingPong, error) {
 
 	return nil, nil
 }

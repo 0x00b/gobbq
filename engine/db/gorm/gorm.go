@@ -110,7 +110,7 @@ func CheckMysqlDatabase(c Config) error {
 	return nil
 }
 
-func (c *GormDB) C(ctx *entity.Context, forupdate ...int) *gorm.DB {
+func (c *GormDB) C(ctx entity.Context, forupdate ...int) *gorm.DB {
 	db := c.db.WithContext(ctx)
 	if len(forupdate) > 0 {
 		// db = db.Set("gorm:query_option", "FOR UPDATE")
@@ -139,7 +139,7 @@ func (c *GormDB) begin() *GormDB {
 	}
 }
 
-func (c *GormDB) Model(ctx *entity.Context, model any, forupdate ...int) *gorm.DB {
+func (c *GormDB) Model(ctx entity.Context, model any, forupdate ...int) *gorm.DB {
 	//tableName := c.DB.NewScope(model).TableName()
 	db := c.db.WithContext(ctx).Scopes(c.Table(ctx, model)).Model(model)
 

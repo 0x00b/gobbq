@@ -25,7 +25,7 @@ type GateService struct {
 }
 
 // RegisterClient
-func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
+func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
 
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
@@ -39,12 +39,12 @@ func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterCli
 }
 
 // UnregisterClient
-func (gs *GateService) UnregisterClient(c *entity.Context, req *gatepb.RegisterClientRequest) {
+func (gs *GateService) UnregisterClient(c entity.Context, req *gatepb.RegisterClientRequest) {
 
 }
 
 // Ping
-func (gs *GateService) Ping(c *entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, error) {
+func (gs *GateService) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, error) {
 	return nil, nil
 }
 

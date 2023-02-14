@@ -10,10 +10,10 @@ import (
 )
 
 type Tabler interface {
-	TableName(c *entity.Context, i any) string
+	TableName(c entity.Context, i any) string
 }
 
-// func TableName(c *entity.Context, i any) string {
+// func TableName(c entity.Context, i any) string {
 // 	vt := reflect.TypeOf(i)
 // 	vv := reflect.ValueOf(i)
 // 	for vt.Kind() == reflect.Ptr {
@@ -38,7 +38,7 @@ type Tabler interface {
 
 var tableNameCache *cache.Cache = cache.New(0, 0)
 
-func (gdb *GormDB) Table(c *entity.Context, i any) func(db *gorm.DB) *gorm.DB {
+func (gdb *GormDB) Table(c entity.Context, i any) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Table(gdb.TableName(c, i))
 	}
@@ -54,6 +54,6 @@ func RawTableName(i any) string {
 
 type defaultTabler struct{}
 
-func (defaultTabler) TableName(c *entity.Context, i any) string {
+func (defaultTabler) TableName(c entity.Context, i any) string {
 	return RawTableName(i)
 }

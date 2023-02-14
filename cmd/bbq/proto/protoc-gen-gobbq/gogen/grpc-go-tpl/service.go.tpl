@@ -62,11 +62,11 @@ func New{{$typeName}}Client(client *nets.Client, entity entity.EntityID) *{{lowe
 	return t
 }
 
-func New{{$typeName}}(c *entity.Context, client *nets.Client) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}(c entity.Context, client *nets.Client) *{{lowerCamelcase $typeName}}  {
 	return New{{$typeName}}WithID(c, entity.EntityID(snowflake.GenUUID()), client)
 }
 
-func New{{$typeName}}WithID(c *entity.Context, id entity.EntityID, client *nets.Client) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *nets.Client) *{{lowerCamelcase $typeName}}  {
 
 	err := entity.NewEntity(c, &id, {{$typeName}}Desc.TypeName)
 	if err != nil {
@@ -91,7 +91,7 @@ type {{lowerCamelcase $typeName}} struct{
 {{- if $m.ClientStreaming}}
 {{else if $m.ServerStreaming}}
 {{else}}
-func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}{
+func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}{
 
 	eid := ""
 	if c != nil {
@@ -135,7 +135,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 		// register callback
 		chanRsp := make(chan any)
 		if c != nil {
-			c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
 				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -160,14 +160,14 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 
 // {{goComments $typeName $s.Comments}}
 type {{$typeName}} interface {
-	entity.IEntity
+	 {{if $isSvc}}entity.IService{{else}}entity.IEntity{{end}} 
 
 {{range $midx, $m := $s.Methods}}
 // {{goComments $m.GoName $m.Comments}}
 {{- if $m.ClientStreaming}}
 {{else if $m.ServerStreaming}}
 {{else}}
-	{{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}}){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}
+	{{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}
 {{end -}}
 {{end -}}
 }
@@ -178,7 +178,7 @@ type {{$typeName}} interface {
 {{else if $m.ServerStreaming}}
 {{else}}
 
-func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m.GoInput.GoIdent.GoName}}, interceptor entity.ServerInterceptor){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}},error){{end}} {
+func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx entity.Context, in *{{$m.GoInput.GoIdent.GoName}}, interceptor entity.ServerInterceptor){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}},error){{end}} {
 	if interceptor == nil {
 
 	{{if $m.HasResponse}}
@@ -195,7 +195,7 @@ func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m
 		FullMethod: "/{{$.GoPackageName}}.{{$typeName}}/{{$m.GoName}}",
 	}
 
-	handler := func(ctx *entity.Context, rsp any)  (any, error) {
+	handler := func(ctx entity.Context, rsp any)  (any, error) {
 	{{if $m.HasResponse}}
 		return svc.({{$typeName}}).{{$m.GoName}}(ctx, in)
 	{{else}}
@@ -213,7 +213,7 @@ func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m
 
 }
 
-//func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
 //	{{if $m.HasResponse}}
 //		ret := func(rsp *{{$m.GoOutput.GoIdent.GoName}}, err error) {
 //			if err != nil {
@@ -227,7 +227,7 @@ func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m
 //	
 //}
 
-func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
  
 	hdr := pkt.Header
 	

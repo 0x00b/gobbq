@@ -12,7 +12,7 @@ var (
 )
 
 // ModelMap 把model转换成map， 为了能够更新空字段
-func ModelMap(c *entity.Context, i any) map[string]any {
+func ModelMap(c entity.Context, i any) map[string]any {
 
 	vv := reflect.ValueOf(i)
 	vt := reflect.TypeOf(i)
