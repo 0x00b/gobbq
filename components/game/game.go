@@ -1,12 +1,31 @@
 package game
 
 import (
+	"time"
+
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
+
+func Init() {
+
+	ex.ConnProxy(nets.WithPacketHandler(NewGamePacketHandler()))
+	entity.ProxyRegister = &RegisterProxy{}
+}
+
+func Run() {
+	for {
+		xlog.Info("Run Game")
+		sleepTime := 50
+		for {
+			time.Sleep(time.Duration(sleepTime) * time.Millisecond)
+		}
+	}
+}
 
 type Game struct {
 	entity.Entity

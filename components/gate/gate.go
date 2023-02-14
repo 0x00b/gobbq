@@ -26,17 +26,16 @@ type GateService struct {
 
 // RegisterClient
 func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
-	eid := snowflake.GenUUID()
 
-	RegisterEntity(entity.EntityID(eid), c.Packet().Src)
+	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
-	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(eid)})
+	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(req.EntityID)})
 	if err != nil {
 		return nil, err
 	}
 	xlog.Println("register proxy entity resp", rsp.String())
-	return &gatepb.RegisterClientResponse{EntityID: eid}, nil
+	return &gatepb.RegisterClientResponse{EntityID: req.EntityID}, nil
 }
 
 // UnregisterClient
