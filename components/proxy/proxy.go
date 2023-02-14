@@ -47,59 +47,68 @@ func ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 }
 
 func ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
+	etyMtx.RLock()
+	defer etyMtx.RUnlock()
 	prws, ok := svcMap[hdr.ServiceName]
 	if !ok {
-		xlog.Println("unknown entity id", hdr.ServiceName)
+		xlog.Println("unknown svc name", hdr.ServiceName)
 		return
 	}
+	xlog.Println("proxy to svc", len(prws), prws)
 	if hdr.SrcEntity != "" {
 		// hash
 		prws[0].WritePacket(pkt)
-		// return
+		return
 	}
 	// random
 	prws[0].WritePacket(pkt)
 }
 
 type ProxyService struct {
-	entity.Entity
+	entity.Service
 }
 
 // RegisterInst
-func (ps *ProxyService) RegisterInst(c *entity.Context, req *proxypb.RegisterInstRequest, ret func(*proxypb.RegisterInstResponse, error)) {
+func (ps *ProxyService) RegisterInst(c *entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
 
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
+	return &proxypb.RegisterInstResponse{}, nil
 }
 
 // RegisterEntity
-func (ps *ProxyService) RegisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest, ret func(*proxypb.RegisterEntityResponse, error)) {
+func (ps *ProxyService) RegisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
 	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
 
+	return &proxypb.RegisterEntityResponse{}, nil
 }
 
 // RegisterEntity
-func (ps *ProxyService) RegisterService(c *entity.Context, req *proxypb.RegisterServiceRequest, ret func(*proxypb.RegisterServiceResponse, error)) {
+func (ps *ProxyService) RegisterService(c *entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	xlog.Println("register service:", req.ServiceName)
 	RegisterService(req.ServiceName, c.Packet().Src)
 
+	return &proxypb.RegisterServiceResponse{}, nil
 }
 
 // UnregisterEntity
-func (ps *ProxyService) UnregisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest, ret func(*proxypb.RegisterEntityResponse, error)) {
+func (ps *ProxyService) UnregisterEntity(c *entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
+	return nil, nil
 }
 
 // RegisterEntity
-func (ps *ProxyService) UnregisterService(c *entity.Context, req *proxypb.RegisterServiceRequest, ret func(*proxypb.RegisterServiceResponse, error)) {
+func (ps *ProxyService) UnregisterService(c *entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
+	return nil, nil
 }
 
 // Ping
-func (ps *ProxyService) Ping(c *entity.Context, req *proxypb.PingPong, ret func(*proxypb.PingPong, error)) {
+func (ps *ProxyService) Ping(c *entity.Context, req *proxypb.PingPong) (*proxypb.PingPong, error) {
 
+	return nil, nil
 }
 
 type ProxyMap map[uint32]*nets.Client

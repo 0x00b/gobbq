@@ -3,7 +3,6 @@ package entity
 import (
 	"errors"
 	"sync"
-	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -31,12 +30,11 @@ type IEntity interface {
 
 	Context() *Context
 
+	Run()
+
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
-	// Freeze && Restore
-	OnFreeze()   // Called when entity is freezing
-	OnRestored() // Called when entity is restored
 
 	// for inner
 
@@ -46,20 +44,20 @@ type IEntity interface {
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
-	messageLoop()
 
 	setParant(s IEntity)
 	addChildren(s IEntity)
 }
 
 type methodHandler func(svc any, ctx *Context, pkt *codec.Packet, interceptor ServerInterceptor)
-type methodLocalHandler func(svc any, ctx *Context, in any, callback func(c *Context, rsp any), interceptor ServerInterceptor)
+
+// type methodLocalHandler func(svc any, ctx *Context, in any, interceptor ServerInterceptor) (any, error)
 
 // MethodDesc represents an RPC Entity's method specification.
 type MethodDesc struct {
-	MethodName   string
-	Handler      methodHandler
-	LocalHandler methodLocalHandler
+	MethodName string
+	Handler    methodHandler
+	// LocalHandler methodLocalHandler
 }
 
 // EntityDesc represents an RPC Entity's specification.
@@ -89,7 +87,8 @@ type Entity struct {
 
 	done bool
 
-	pktChan chan *codec.Packet
+	callChan chan *codec.Packet
+	respChan chan *codec.Packet
 
 	cbMtx sync.RWMutex
 	// requestid -> callback
@@ -110,9 +109,6 @@ func (e *Entity) Desc() *EntityDesc {
 // Migration
 func (e *Entity) OnMigrateOut() {} // Called just before entity is migrating out
 func (e *Entity) OnMigrateIn()  {} // Called just after entity is migrating in
-// Freeze && Restore
-func (e *Entity) OnFreeze()   {} // Called when entity is freezing
-func (e *Entity) OnRestored() {} // Called when entity is restored
 
 func (e *Entity) Context() *Context {
 	return e.context
@@ -121,9 +117,9 @@ func (e *Entity) Context() *Context {
 func (e *Entity) onInit(c *Context, id EntityID) {
 	e.context = c
 	e.entityID = id
-
-	e.callback = make(map[string]Callback, 10000)
-	e.pktChan = make(chan *codec.Packet, 10000)
+	e.callChan = make(chan *codec.Packet, 1000)
+	e.callback = make(map[string]Callback, 1)
+	e.respChan = make(chan *codec.Packet, 1)
 
 	e.OnInit()
 }
@@ -140,9 +136,13 @@ func (e *Entity) setDesc(desc *EntityDesc) {
 
 func (e *Entity) dispatchPkt(pkt *codec.Packet) {
 	if pkt != nil {
-		xlog.Printf("dispatch:%d %d %s", unsafe.Pointer(pkt), pkt, pkt.String())
+		xlog.Println("dispatch:", e, pkt.String())
 		pkt.Retain()
-		e.pktChan <- pkt
+		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
+			e.callChan <- pkt
+			return
+		}
+		e.respChan <- pkt
 	}
 }
 func (e *Entity) RegisterCallback(requestID string, cb Callback) {
@@ -154,18 +154,29 @@ func (e *Entity) RegisterCallback(requestID string, cb Callback) {
 	e.callback[requestID] = cb
 }
 
-func (e *Entity) messageLoop() {
-	xlog.Println("start message loop")
+func (e *Entity) Run() {
+	xlog.Println("start message loop", e.EntityID())
+
+	go func() {
+		for !e.done {
+			pkt := <-e.respChan
+			xlog.Printf("handle: %s", pkt.String())
+			e.handleMethodRsp(e.context, pkt)
+		}
+	}()
+
 	for !e.done {
 		select {
-		case pkt := <-e.pktChan:
-			xlog.Printf("handle:%d %s", pkt, pkt.String())
+		case pkt := <-e.callChan:
+			xlog.Printf("handle: %s", pkt.String())
 			e.handleCallMethod(e.context, pkt)
 		}
 	}
+	xlog.Println("stop message loop", e.EntityID())
+	// todo unregister entity
 }
 
-func (e *Entity) handleCallMethod(c *Context, pkt *codec.Packet) error {
+func (e *Entity) handleMethodRsp(c *Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
 	c.pkt = pkt
@@ -173,27 +184,36 @@ func (e *Entity) handleCallMethod(c *Context, pkt *codec.Packet) error {
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.callback[pkt.Header.RequestId]
 		if ok {
-			cb(c, pkt)
+			xlog.Println("callback:", pkt.Header.RequestId)
+			e.cbMtx.Lock()
+			defer e.cbMtx.Unlock()
+			delete(e.callback, pkt.Header.RequestId)
+			cb(pkt)
 			return nil
 		}
+		xlog.Println("unknown response:", pkt.Header.RequestId)
 		return errors.New("unknown response")
 	}
+
+	return nil
+}
+
+func (e *Entity) handleCallMethod(c *Context, pkt *codec.Packet) error {
+	defer pkt.Release()
+
+	c.pkt = pkt
 
 	sd := e.desc
 	// todo method name repeat get
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
-		return MethodNotFound
+		return ErrMethodNotFound
 	}
 
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))
 
 	return nil
-}
-
-func (e *Entity) setContext(c *Context) {
-	e.context = c
 }
 
 func (e *Entity) setParant(svc IEntity) {
@@ -206,9 +226,4 @@ func (e *Entity) addChildren(ety IEntity) {
 
 func (e *Entity) EntityID() EntityID {
 	return e.entityID
-}
-
-func (e *Entity) setEntityID(id EntityID) {
-	e.entityID = id
-	return
 }

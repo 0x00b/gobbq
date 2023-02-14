@@ -21,22 +21,22 @@ func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {
 
 // GateService
 type GateService struct {
-	entity.Entity
+	entity.Service
 }
 
 // RegisterClient
-func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterClientRequest, ret func(*gatepb.RegisterClientResponse, error)) {
+func (gs *GateService) RegisterClient(c *entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
 	eid := snowflake.GenUUID()
 
 	RegisterEntity(entity.EntityID(eid), c.Packet().Src)
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
-	client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(eid)},
-		func(c *entity.Context, rsp *proxypb.RegisterEntityResponse) {
-			xlog.Println("register proxy entity resp")
-		},
-	)
-	ret(&gatepb.RegisterClientResponse{EntityID: eid}, nil)
+	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(eid)})
+	if err != nil {
+		return nil, err
+	}
+	xlog.Println("register proxy entity resp", rsp.String())
+	return &gatepb.RegisterClientResponse{EntityID: eid}, nil
 }
 
 // UnregisterClient
@@ -45,9 +45,26 @@ func (gs *GateService) UnregisterClient(c *entity.Context, req *gatepb.RegisterC
 }
 
 // Ping
-func (gs *GateService) Ping(c *entity.Context, req *gatepb.PingPong, ret func(*gatepb.PingPong, error)) {
-
+func (gs *GateService) Ping(c *entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, error) {
+	return nil, nil
 }
+
+type Gate struct {
+	entity.Entity
+}
+
+func NewGate() *Gate {
+	gm := &Gate{}
+	eid := snowflake.GenUUID()
+
+	entity.RegisterEntity(nil, entity.EntityID(eid), gm)
+
+	go gm.Run()
+
+	return gm
+}
+
+var Inst = NewGate()
 
 type RegisterProxy struct {
 }
@@ -55,11 +72,12 @@ type RegisterProxy struct {
 func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
 
-	client.RegisterEntity(nil, &proxypb.RegisterEntityRequest{EntityID: string(eid)},
-		func(c *entity.Context, rsp *proxypb.RegisterEntityResponse) {
-			xlog.Println("register proxy entity resp")
-		},
-	)
+	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: string(eid)})
+	if err != nil {
+		return err
+	}
+
+	xlog.Println("register proxy entity resp")
 
 	return nil
 }
@@ -68,12 +86,12 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
 
-	client.RegisterService(nil, &proxypb.RegisterServiceRequest{ServiceName: string(svcName)},
-		func(c *entity.Context, rsp *proxypb.RegisterServiceResponse) {
+	_, err := client.RegisterService(Inst.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
+	if err != nil {
+		return err
+	}
 
-			xlog.Println("register proxy service resp")
-		},
-	)
+	xlog.Println("register proxy service resp")
 
 	return nil
 }

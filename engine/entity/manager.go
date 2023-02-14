@@ -31,6 +31,23 @@ type EntityManager struct {
 
 }
 
+func RegisterEntity(c *Context, id EntityID, entity IEntity) error {
+	ctx := allocContext()
+	ctx.Entity = entity
+	entity.onInit(ctx, id)
+
+	if c != nil {
+		entity.setParant(c.Entity)
+		c.Entity.addChildren(entity)
+	}
+
+	Manager.mu.Lock()
+	defer Manager.mu.Unlock()
+	Manager.Entities[id] = entity
+
+	return nil
+}
+
 func NewEntity(c *Context, id *EntityID, typ TypeName) error {
 	desc, ok := Manager.entityDescs[typ]
 	if !ok {
@@ -63,21 +80,10 @@ func NewEntity(c *Context, id *EntityID, typ TypeName) error {
 	newDesc.EntityImpl = entity
 	entity.setDesc(&newDesc)
 
-	ctx := allocContext()
-	ctx.Entity = entity
-	entity.onInit(ctx, *id)
-
-	if c != nil {
-		entity.setParant(c.Entity)
-		c.Entity.addChildren(entity)
-	}
-
-	Manager.mu.Lock()
-	defer Manager.mu.Unlock()
-	Manager.Entities[*id] = entity
+	RegisterEntity(c, *id, entity)
 
 	// start message loop
-	go entity.messageLoop()
+	go entity.Run()
 
 	// send to poxy
 	if ProxyRegister != nil {
@@ -126,8 +132,6 @@ func (s *EntityManager) RegisterService(sd *EntityDesc, ss IEntity, intercepter 
 }
 
 func (s *EntityManager) registerService(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	xlog.Printf("RegisterService(%q)", sd.TypeName)
 	if s.serve {
 		xlog.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
@@ -139,17 +143,27 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IEntity, intercepter 
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
 	ss.setDesc(sd)
-	ctx := allocContext()
-	ctx.Entity = ss
-	ss.onInit(ctx, EntityID(snowflake.GenUUID()))
 
-	s.Services[sd.TypeName] = ss
+	s.registerServiceEntity(sd, ss)
+
+	xlog.Printf("grpc: EntityManager.RegisterService eid:%s", ss.EntityID())
 
 	// start msg loop
-	go ss.messageLoop()
+	go ss.Run()
 
 	if ProxyRegister != nil {
 		ProxyRegister.RegisterServiceToProxy(sd.TypeName)
 		ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
+}
+
+func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IEntity) error {
+
+	RegisterEntity(nil, EntityID(snowflake.GenUUID()), entity)
+
+	Manager.mu.Lock()
+	defer Manager.mu.Unlock()
+	s.Services[sd.TypeName] = entity
+
+	return nil
 }

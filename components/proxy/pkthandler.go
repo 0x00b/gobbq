@@ -49,6 +49,8 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 			return nil
 		}
 	}
+	// response
+	ProxyToEntity(entity.EntityID(hdr.DstEntity), pkt)
 
 	return err
 }

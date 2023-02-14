@@ -56,13 +56,17 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
 
 	xlog.Println("handleconn")
 
-	conn := &conn{
-		rwc:              rawConn,
-		packetReadWriter: codec.NewPacketReadWriter(rawConn),
-		PacketHandler:    opts.PacketHandler,
-		opts:             opts,
+	cn := newDefaultConn()
+
+	cn.rwc = rawConn
+	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
+	cn.PacketHandler = opts.PacketHandler
+	cn.opts = opts
+	if opts.ConnHandler != nil {
+		cn.ConnHandler = opts.ConnHandler
 	}
-	conn.Serve()
+
+	cn.Serve()
 
 	return
 }

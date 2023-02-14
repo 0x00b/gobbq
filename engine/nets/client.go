@@ -70,13 +70,17 @@ func newClient(rawConn net.Conn, ops ...Option) *Client {
 		op.apply(opts)
 	}
 
+	cn := newDefaultConn()
+	cn.rwc = rawConn
+	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
+	cn.PacketHandler = opts.PacketHandler
+	cn.opts = opts
+	if opts.ConnHandler != nil {
+		cn.ConnHandler = opts.ConnHandler
+	}
+
 	ct := &Client{
-		conn: &conn{
-			rwc:              rawConn,
-			packetReadWriter: codec.NewPacketReadWriter(rawConn),
-			PacketHandler:    opts.PacketHandler,
-			opts:             opts,
-		},
+		conn: cn,
 	}
 
 	go ct.conn.Serve()

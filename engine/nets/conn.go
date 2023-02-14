@@ -10,12 +10,17 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
+func newDefaultConn() *conn {
+	return &conn{ConnHandler: &defaultConnHandler{}}
+}
+
 type conn struct {
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	idleTimeout      time.Duration
 	lastVisited      time.Time
 	PacketHandler    PacketHandler
+	ConnHandler      ConnHandler
 	opts             *Options
 }
 
@@ -24,7 +29,6 @@ func (st *conn) Name() string {
 }
 
 func (st *conn) WritePacket(pkt *codec.Packet) error {
-	xlog.Println("write header:", pkt.Header.String())
 	return st.packetReadWriter.WritePacket(pkt)
 }
 
@@ -53,16 +57,16 @@ func (st *conn) Serve() {
 		pkt, release, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
-				xlog.Println("transport: tcpconn  EOF ", err)
-				// report.TCPTransportReadEOF.Incr() // 客户端主动断开连接
+				// xlog.Println("transport: tcpconn  EOF ", err)
+				st.ConnHandler.HandleEOF(st.packetReadWriter)
 				return
 			}
 			if e, ok := err.(net.Error); ok && e.Timeout() { // 客户端超过空闲时间没有发包，服务端主动超时关闭
-				xlog.Println("transport: tcpconn  Time out ", err)
-				// report.TCPTransportIdleTimeout.Incr()
+				// xlog.Println("transport: tcpconn  Time out ", err)
+				st.ConnHandler.HandleTimeOut(st.packetReadWriter)
 				return
 			}
-			// report.TCPTransportReadFail.Incr()
+			st.ConnHandler.HandleFail(st.packetReadWriter)
 			xlog.Println("transport: tcpconn serve ReadFrame fail ", err)
 			return
 		}

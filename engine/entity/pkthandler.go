@@ -6,17 +6,18 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/xlog"
 )
 
-var MethodNameError = errors.New("mothod name error")
-var MethodNotFound = errors.New("mothod not found")
-var ServiceNotFound = errors.New("service not found")
-var EntityNotFound = errors.New("entity not found")
-var UnknownCallType = errors.New("unknown call type")
-var EmptyEntityID = errors.New("bad call, empty dst entity")
+var ErrMethodNameError = errors.New("mothod name error")
+var ErrMethodNotFound = errors.New("mothod not found")
+var ErrServiceNotFound = errors.New("service not found")
+var ErrEntityNotFound = errors.New("entity not found")
+var ErrUnknownCallType = errors.New("unknown call type")
+var ErrEmptyEntityID = errors.New("bad call, empty dst entity")
 
 func NotMyMethod(err error) bool {
-	return errors.Is(err, ServiceNotFound) || errors.Is(err, EntityNotFound)
+	return errors.Is(err, ErrServiceNotFound) || errors.Is(err, ErrEntityNotFound)
 }
 
 var _ nets.PacketHandler = &MethodPacketHandler{}
@@ -30,15 +31,19 @@ func NewMethodPacketHandler() *MethodPacketHandler {
 }
 
 func (st *MethodPacketHandler) HandlePacket(pkt *codec.Packet) error {
-	switch pkt.Header.ServiceType {
-	case bbq.ServiceType_Entity:
-		return st.handleCallEntity(pkt)
-	case bbq.ServiceType_Service:
-		return st.handleCallService(pkt)
-	default:
+	if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
+		switch pkt.Header.ServiceType {
+		case bbq.ServiceType_Entity:
+			return st.handleCallEntity(pkt)
+		case bbq.ServiceType_Service:
+			return st.handleCallService(pkt)
+		default:
+		}
+		return nil
 	}
-
-	return nil
+	// response
+	xlog.Println("recv response:", pkt.Header.RequestId)
+	return st.handleCallEntity(pkt)
 }
 
 func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
@@ -48,7 +53,7 @@ func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 
 	svc, ok := Manager.Services[TypeName(service)]
 	if !ok {
-		return ServiceNotFound
+		return ErrServiceNotFound
 	}
 
 	svc.dispatchPkt(pkt)
@@ -60,15 +65,21 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	eid := pkt.Header.GetDstEntity()
 	if eid == "" {
-		return EmptyEntityID
+		xlog.Println("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
+		return ErrEmptyEntityID
 	}
+
+	xlog.Println("start find entity")
 
 	Manager.mu.RLock()
 	defer Manager.mu.RUnlock()
 	entity, ok := Manager.Entities[(EntityID(eid))]
 	if !ok {
-		return EntityNotFound
+		xlog.Println("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
+		return ErrEntityNotFound
 	}
+
+	xlog.Println("dispatchPkt send:", pkt.Header.RequestId)
 
 	entity.dispatchPkt(pkt)
 
@@ -103,7 +114,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 // 	ss, ok := Manager.Services[TypeName(service)]
 // 	if !ok {
-// 		return ServiceNotFound
+// 		return ErrServiceNotFound
 // 	}
 
 // 	ss.dispatchPkt(pkt)
@@ -124,7 +135,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 // 	defer Manager.mu.RUnlock()
 // 	entity, ok := Manager.Entities[(EntityID(ety.ID))]
 // 	if !ok {
-// 		return EntityNotFound
+// 		return ErrEntityNotFound
 // 	}
 // 	entity.dispatchPkt(pkt)
 // 	return nil

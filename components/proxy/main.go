@@ -16,7 +16,7 @@ func main() {
 
 	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
 
-	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()))
+	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()), nets.WithConnHandler(&ConnHandler{}))
 
 	proxypb.RegisterProxyService(&ProxyService{})
 

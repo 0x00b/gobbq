@@ -34,7 +34,7 @@ type echoService struct {
 	client *nets.Client
 }
 
-func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback func(c *entity.Context, rsp *SayHelloResponse)) (err error) {
+func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -59,21 +59,15 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	itfCallback := func(c *entity.Context, rsp any) {
-		callback(c, rsp.(*SayHelloResponse))
-	}
-	_ = itfCallback
-
 	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
 	// if err == nil {
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
-
 	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 	if err != nil {
-		return err
+		xlog.Errorln(err)
+		return nil, err
 	}
 
 	pkt.WriteBody(hdrBytes)
@@ -81,22 +75,24 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest, callback
 	t.client.WritePacket(pkt)
 
 	// register callback
+	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
-			in := new(SayHelloResponse)
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
-			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
 			if err != nil {
+				chanRsp <- err
 				return
 			}
-
-			callback(c, in)
+			chanRsp <- rsp
 		})
 	}
-
-	// }
-
-	return err
+	rsp := <-chanRsp
+	if rsp, ok := rsp.(*SayHelloResponse); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
 
 }
 
@@ -105,13 +101,14 @@ type EchoService interface {
 	entity.IEntity
 
 	// SayHello
-	SayHello(c *entity.Context, req *SayHelloRequest, ret func(*SayHelloResponse, error))
+	SayHello(c *entity.Context, req *SayHelloRequest) (*SayHelloResponse, error)
 }
 
-func _EchoService_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloRequest, ret func(rsp *SayHelloResponse, err error), interceptor entity.ServerInterceptor) {
+func _EchoService_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-		svc.(EchoService).SayHello(ctx, in, ret)
-		return
+
+		return svc.(EchoService).SayHello(ctx, in)
+
 	}
 
 	info := &entity.ServerInfo{
@@ -119,81 +116,77 @@ func _EchoService_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloReq
 		FullMethod: "/exampb.EchoService/SayHello",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
-		svc.(EchoService).SayHello(ctx, in, ret)
+	handler := func(ctx *entity.Context, rsp any) (any, error) {
+
+		return svc.(EchoService).SayHello(ctx, in)
+
 	}
 
-	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*SayHelloResponse), err) }, handler)
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*SayHelloResponse), err
 
 }
 
-func _EchoService_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-
-	ret := func(rsp *SayHelloResponse, err error) {
-		if err != nil {
-			_ = err
-		}
-		callback(ctx, rsp)
-	}
-
-	_EchoService_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), ret, interceptor)
-
-}
+//func _EchoService_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//		ret := func(rsp *SayHelloResponse, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//
+//
+//	_EchoService_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
+//
+//}
 
 func _EchoService_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	srcPrw := pkt.Src
-	ret := func(rsp *SayHelloResponse, err error) {
-		if err != nil {
-			xlog.Errorln("err", err)
-			return
-		}
-
-		npkt, release := codec.NewPacket()
-		defer release()
-
-		npkt.Header.Version = hdr.Version
-		npkt.Header.RequestId = hdr.RequestId
-		npkt.Header.Timeout = hdr.Timeout
-		npkt.Header.RequestType = bbq.RequestType_RequestRespone
-		npkt.Header.ServiceType = hdr.ServiceType
-		npkt.Header.SrcEntity = hdr.DstEntity
-		npkt.Header.DstEntity = hdr.SrcEntity
-		npkt.Header.ServiceName = hdr.ServiceName
-		npkt.Header.Method = hdr.Method
-		npkt.Header.ContentType = hdr.ContentType
-		npkt.Header.CompressType = hdr.CompressType
-		npkt.Header.CheckFlags = 0
-		npkt.Header.TransInfo = hdr.TransInfo
-		npkt.Header.ErrCode = 0
-		npkt.Header.ErrMsg = ""
-
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-
-		err = srcPrw.WritePacket(npkt)
-		if err != nil {
-			xlog.Errorln("WritePacket", err)
-			return
-		}
-	}
-
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		xlog.Errorln("unmarshal err:", pkt.String())
-		ret(nil, err)
+		// nil,err
+		return
 	}
 
-	_EchoService_SayHello_Handler(svc, ctx, in, ret, interceptor)
+	rsp, err := _EchoService_SayHello_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.ServiceName = hdr.ServiceName
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+	npkt.Header.ErrCode = 0
+	npkt.Header.ErrMsg = ""
+
+	rb, err := codec.DefaultCodec.Marshal(rsp)
+	if err != nil {
+		xlog.Errorln("Marshal(rsp)", err)
+		return
+	}
+
+	npkt.WriteBody(rb)
+
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
 
 }
 
@@ -203,9 +196,9 @@ var EchoServiceDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName:   "SayHello",
-			Handler:      _EchoService_SayHello_Remote_Handler,
-			LocalHandler: _EchoService_SayHello_Local_Handler,
+			MethodName: "SayHello",
+			Handler:    _EchoService_SayHello_Remote_Handler,
+			//LocalHandler:	_EchoService_SayHello_Local_Handler,
 		},
 	},
 
@@ -229,7 +222,7 @@ func NewEchoEtyEntityWithID(c *entity.Context, id entity.EntityID, client *nets.
 
 	err := entity.NewEntity(c, &id, EchoEtyEntityDesc.TypeName)
 	if err != nil {
-		xlog.Println("new entity err")
+		xlog.Errorln("new entity err")
 		return nil
 	}
 	t := &echoEtyEntity{entity: id, client: client}
@@ -243,7 +236,7 @@ type echoEtyEntity struct {
 	client *nets.Client
 }
 
-func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callback func(c *entity.Context, rsp *SayHelloResponse)) (err error) {
+func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -268,21 +261,15 @@ func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callba
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	itfCallback := func(c *entity.Context, rsp any) {
-		callback(c, rsp.(*SayHelloResponse))
-	}
-	_ = itfCallback
-
 	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
 	// if err == nil {
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
-
 	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 	if err != nil {
-		return err
+		xlog.Errorln(err)
+		return nil, err
 	}
 
 	pkt.WriteBody(hdrBytes)
@@ -290,22 +277,24 @@ func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest, callba
 	t.client.WritePacket(pkt)
 
 	// register callback
+	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
-			in := new(SayHelloResponse)
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
-			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
 			if err != nil {
+				chanRsp <- err
 				return
 			}
-
-			callback(c, in)
+			chanRsp <- rsp
 		})
 	}
-
-	// }
-
-	return err
+	rsp := <-chanRsp
+	if rsp, ok := rsp.(*SayHelloResponse); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
 
 }
 
@@ -314,13 +303,14 @@ type EchoEtyEntity interface {
 	entity.IEntity
 
 	// SayHello
-	SayHello(c *entity.Context, req *SayHelloRequest, ret func(*SayHelloResponse, error))
+	SayHello(c *entity.Context, req *SayHelloRequest) (*SayHelloResponse, error)
 }
 
-func _EchoEtyEntity_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloRequest, ret func(rsp *SayHelloResponse, err error), interceptor entity.ServerInterceptor) {
+func _EchoEtyEntity_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-		svc.(EchoEtyEntity).SayHello(ctx, in, ret)
-		return
+
+		return svc.(EchoEtyEntity).SayHello(ctx, in)
+
 	}
 
 	info := &entity.ServerInfo{
@@ -328,80 +318,77 @@ func _EchoEtyEntity_SayHello_Handler(svc any, ctx *entity.Context, in *SayHelloR
 		FullMethod: "/exampb.EchoEtyEntity/SayHello",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
-		svc.(EchoEtyEntity).SayHello(ctx, in, ret)
+	handler := func(ctx *entity.Context, rsp any) (any, error) {
+
+		return svc.(EchoEtyEntity).SayHello(ctx, in)
+
 	}
 
-	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*SayHelloResponse), err) }, handler)
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*SayHelloResponse), err
 
 }
 
-func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-
-	ret := func(rsp *SayHelloResponse, err error) {
-		if err != nil {
-			_ = err
-		}
-		callback(ctx, rsp)
-	}
-
-	_EchoEtyEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), ret, interceptor)
-
-}
+//func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//		ret := func(rsp *SayHelloResponse, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//
+//
+//	_EchoEtyEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
+//
+//}
 
 func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	srcPrw := pkt.Src
-	ret := func(rsp *SayHelloResponse, err error) {
-		if err != nil {
-			xlog.Println("err", err)
-			return
-		}
-
-		npkt, release := codec.NewPacket()
-		defer release()
-
-		npkt.Header.Version = hdr.Version
-		npkt.Header.RequestId = hdr.RequestId
-		npkt.Header.Timeout = hdr.Timeout
-		npkt.Header.RequestType = bbq.RequestType_RequestRespone
-		npkt.Header.ServiceType = hdr.ServiceType
-		npkt.Header.SrcEntity = hdr.DstEntity
-		npkt.Header.DstEntity = hdr.SrcEntity
-		npkt.Header.ServiceName = hdr.ServiceName
-		npkt.Header.Method = hdr.Method
-		npkt.Header.ContentType = hdr.ContentType
-		npkt.Header.CompressType = hdr.CompressType
-		npkt.Header.CheckFlags = 0
-		npkt.Header.TransInfo = hdr.TransInfo
-		npkt.Header.ErrCode = 0
-		npkt.Header.ErrMsg = ""
-
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Println("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-
-		err = srcPrw.WritePacket(npkt)
-		if err != nil {
-			xlog.Println("WritePacket", err)
-			return
-		}
-	}
-
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		ret(nil, err)
+		// nil,err
+		return
 	}
 
-	_EchoEtyEntity_SayHello_Handler(svc, ctx, in, ret, interceptor)
+	rsp, err := _EchoEtyEntity_SayHello_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.ServiceName = hdr.ServiceName
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+	npkt.Header.ErrCode = 0
+	npkt.Header.ErrMsg = ""
+
+	rb, err := codec.DefaultCodec.Marshal(rsp)
+	if err != nil {
+		xlog.Errorln("Marshal(rsp)", err)
+		return
+	}
+
+	npkt.WriteBody(rb)
+
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
 
 }
 
@@ -411,9 +398,9 @@ var EchoEtyEntityDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName:   "SayHello",
-			Handler:      _EchoEtyEntity_SayHello_Remote_Handler,
-			LocalHandler: _EchoEtyEntity_SayHello_Local_Handler,
+			MethodName: "SayHello",
+			Handler:    _EchoEtyEntity_SayHello_Remote_Handler,
+			//LocalHandler:	_EchoEtyEntity_SayHello_Local_Handler,
 		},
 	},
 

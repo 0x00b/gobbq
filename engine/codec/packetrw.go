@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/0x00b/gobbq/erro"
+	"github.com/0x00b/gobbq/xlog"
 	"github.com/pkg/errors"
 )
 
@@ -66,7 +67,7 @@ func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWri
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 	pdata := packet.Data()
 
-	// xlog.Println("send raw:", packet.String())
+	xlog.Println("send raw:", packet.String())
 
 	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
 
@@ -124,7 +125,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 		return nil, nil, err
 	}
 
-	// xlog.Println("recv raw:", packet.String())
+	xlog.Println("recv raw:", packet.String())
 
 	pc.readMsgCnt++
 

@@ -36,7 +36,7 @@ type gateService struct {
 	client *nets.Client
 }
 
-func (t *gateService) RegisterClient(c *entity.Context, req *RegisterClientRequest, callback func(c *entity.Context, rsp *RegisterClientResponse)) (err error) {
+func (t *gateService) RegisterClient(c *entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
 
 	eid := ""
 	if c != nil {
@@ -61,21 +61,15 @@ func (t *gateService) RegisterClient(c *entity.Context, req *RegisterClientReque
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	itfCallback := func(c *entity.Context, rsp any) {
-		callback(c, rsp.(*RegisterClientResponse))
-	}
-	_ = itfCallback
-
 	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
 	// if err == nil {
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
-
 	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 	if err != nil {
-		return err
+		xlog.Errorln(err)
+		return nil, err
 	}
 
 	pkt.WriteBody(hdrBytes)
@@ -83,26 +77,28 @@ func (t *gateService) RegisterClient(c *entity.Context, req *RegisterClientReque
 	t.client.WritePacket(pkt)
 
 	// register callback
+	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
-			in := new(RegisterClientResponse)
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
-			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
 			if err != nil {
+				chanRsp <- err
 				return
 			}
-
-			callback(c, in)
+			chanRsp <- rsp
 		})
 	}
-
-	// }
-
-	return err
+	rsp := <-chanRsp
+	if rsp, ok := rsp.(*RegisterClientResponse); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
 
 }
 
-func (t *gateService) UnregisterClient(c *entity.Context, req *RegisterClientRequest) (err error) {
+func (t *gateService) UnregisterClient(c *entity.Context, req *RegisterClientRequest) {
 
 	eid := ""
 	if c != nil {
@@ -132,24 +128,19 @@ func (t *gateService) UnregisterClient(c *entity.Context, req *RegisterClientReq
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
-
 	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 	if err != nil {
-		return err
+		xlog.Errorln(err)
+		return
 	}
 
 	pkt.WriteBody(hdrBytes)
 
 	t.client.WritePacket(pkt)
 
-	// }
-
-	return err
-
 }
 
-func (t *gateService) Ping(c *entity.Context, req *PingPong, callback func(c *entity.Context, rsp *PingPong)) (err error) {
+func (t *gateService) Ping(c *entity.Context, req *PingPong) (*PingPong, error) {
 
 	eid := ""
 	if c != nil {
@@ -174,21 +165,15 @@ func (t *gateService) Ping(c *entity.Context, req *PingPong, callback func(c *en
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	itfCallback := func(c *entity.Context, rsp any) {
-		callback(c, rsp.(*PingPong))
-	}
-	_ = itfCallback
-
 	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
 	// if err == nil {
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
-
 	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 	if err != nil {
-		return err
+		xlog.Errorln(err)
+		return nil, err
 	}
 
 	pkt.WriteBody(hdrBytes)
@@ -196,22 +181,24 @@ func (t *gateService) Ping(c *entity.Context, req *PingPong, callback func(c *en
 	t.client.WritePacket(pkt)
 
 	// register callback
+	chanRsp := make(chan any)
 	if c != nil {
-		c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
-			in := new(PingPong)
+		c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
-			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
 			if err != nil {
+				chanRsp <- err
 				return
 			}
-
-			callback(c, in)
+			chanRsp <- rsp
 		})
 	}
-
-	// }
-
-	return err
+	rsp := <-chanRsp
+	if rsp, ok := rsp.(*PingPong); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
 
 }
 
@@ -220,19 +207,20 @@ type GateService interface {
 	entity.IEntity
 
 	// RegisterClient
-	RegisterClient(c *entity.Context, req *RegisterClientRequest, ret func(*RegisterClientResponse, error))
+	RegisterClient(c *entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error)
 
 	// UnregisterClient
 	UnregisterClient(c *entity.Context, req *RegisterClientRequest)
 
 	// Ping
-	Ping(c *entity.Context, req *PingPong, ret func(*PingPong, error))
+	Ping(c *entity.Context, req *PingPong) (*PingPong, error)
 }
 
-func _GateService_RegisterClient_Handler(svc any, ctx *entity.Context, in *RegisterClientRequest, ret func(rsp *RegisterClientResponse, err error), interceptor entity.ServerInterceptor) {
+func _GateService_RegisterClient_Handler(svc any, ctx *entity.Context, in *RegisterClientRequest, interceptor entity.ServerInterceptor) (*RegisterClientResponse, error) {
 	if interceptor == nil {
-		svc.(GateService).RegisterClient(ctx, in, ret)
-		return
+
+		return svc.(GateService).RegisterClient(ctx, in)
+
 	}
 
 	info := &entity.ServerInfo{
@@ -240,87 +228,86 @@ func _GateService_RegisterClient_Handler(svc any, ctx *entity.Context, in *Regis
 		FullMethod: "/gatepb.GateService/RegisterClient",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
-		svc.(GateService).RegisterClient(ctx, in, ret)
+	handler := func(ctx *entity.Context, rsp any) (any, error) {
+
+		return svc.(GateService).RegisterClient(ctx, in)
+
 	}
 
-	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*RegisterClientResponse), err) }, handler)
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*RegisterClientResponse), err
 
 }
 
-func _GateService_RegisterClient_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-
-	ret := func(rsp *RegisterClientResponse, err error) {
-		if err != nil {
-			_ = err
-		}
-		callback(ctx, rsp)
-	}
-
-	_GateService_RegisterClient_Handler(svc, ctx, in.(*RegisterClientRequest), ret, interceptor)
-
-}
+//func _GateService_RegisterClient_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//		ret := func(rsp *RegisterClientResponse, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//
+//
+//	_GateService_RegisterClient_Handler(svc, ctx, in.(*RegisterClientRequest) , ret, interceptor)
+//
+//}
 
 func _GateService_RegisterClient_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	srcPrw := pkt.Src
-	ret := func(rsp *RegisterClientResponse, err error) {
-		if err != nil {
-			xlog.Println("err", err)
-			return
-		}
-
-		npkt, release := codec.NewPacket()
-		defer release()
-
-		npkt.Header.Version = hdr.Version
-		npkt.Header.RequestId = hdr.RequestId
-		npkt.Header.Timeout = hdr.Timeout
-		npkt.Header.RequestType = bbq.RequestType_RequestRespone
-		npkt.Header.ServiceType = hdr.ServiceType
-		npkt.Header.SrcEntity = hdr.DstEntity
-		npkt.Header.DstEntity = hdr.SrcEntity
-		npkt.Header.ServiceName = hdr.ServiceName
-		npkt.Header.Method = hdr.Method
-		npkt.Header.ContentType = hdr.ContentType
-		npkt.Header.CompressType = hdr.CompressType
-		npkt.Header.CheckFlags = 0
-		npkt.Header.TransInfo = hdr.TransInfo
-		npkt.Header.ErrCode = 0
-		npkt.Header.ErrMsg = ""
-
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Println("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-
-		err = srcPrw.WritePacket(npkt)
-		if err != nil {
-			xlog.Println("WritePacket", err)
-			return
-		}
-	}
-
 	in := new(RegisterClientRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		ret(nil, err)
+		// nil,err
+		return
 	}
 
-	_GateService_RegisterClient_Handler(svc, ctx, in, ret, interceptor)
+	rsp, err := _GateService_RegisterClient_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.ServiceName = hdr.ServiceName
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+	npkt.Header.ErrCode = 0
+	npkt.Header.ErrMsg = ""
+
+	rb, err := codec.DefaultCodec.Marshal(rsp)
+	if err != nil {
+		xlog.Errorln("Marshal(rsp)", err)
+		return
+	}
+
+	npkt.WriteBody(rb)
+
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
 
 }
 
 func _GateService_UnregisterClient_Handler(svc any, ctx *entity.Context, in *RegisterClientRequest, interceptor entity.ServerInterceptor) {
 	if interceptor == nil {
+
 		svc.(GateService).UnregisterClient(ctx, in)
 		return
+
 	}
 
 	info := &entity.ServerInfo{
@@ -328,19 +315,23 @@ func _GateService_UnregisterClient_Handler(svc any, ctx *entity.Context, in *Reg
 		FullMethod: "/gatepb.GateService/UnregisterClient",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
+	handler := func(ctx *entity.Context, rsp any) (any, error) {
+
 		svc.(GateService).UnregisterClient(ctx, in)
+		return nil, nil
+
 	}
 
-	interceptor(ctx, in, info, nil, handler)
+	interceptor(ctx, in, info, handler)
 
 }
 
-func _GateService_UnregisterClient_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-
-	_GateService_UnregisterClient_Handler(svc, ctx, in.(*RegisterClientRequest), interceptor)
-
-}
+//func _GateService_UnregisterClient_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//
+//	_GateService_UnregisterClient_Handler(svc, ctx, in.(*RegisterClientRequest) , interceptor)
+//
+//}
 
 func _GateService_UnregisterClient_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -350,16 +341,19 @@ func _GateService_UnregisterClient_Remote_Handler(svc any, ctx *entity.Context, 
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
+		// err
+		return
 	}
 
 	_GateService_UnregisterClient_Handler(svc, ctx, in, interceptor)
 
 }
 
-func _GateService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, ret func(rsp *PingPong, err error), interceptor entity.ServerInterceptor) {
+func _GateService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, interceptor entity.ServerInterceptor) (*PingPong, error) {
 	if interceptor == nil {
-		svc.(GateService).Ping(ctx, in, ret)
-		return
+
+		return svc.(GateService).Ping(ctx, in)
+
 	}
 
 	info := &entity.ServerInfo{
@@ -367,80 +361,77 @@ func _GateService_Ping_Handler(svc any, ctx *entity.Context, in *PingPong, ret f
 		FullMethod: "/gatepb.GateService/Ping",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
-		svc.(GateService).Ping(ctx, in, ret)
+	handler := func(ctx *entity.Context, rsp any) (any, error) {
+
+		return svc.(GateService).Ping(ctx, in)
+
 	}
 
-	interceptor(ctx, in, info, func(i any, err error) { ret(i.(*PingPong), err) }, handler)
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*PingPong), err
 
 }
 
-func _GateService_Ping_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-
-	ret := func(rsp *PingPong, err error) {
-		if err != nil {
-			_ = err
-		}
-		callback(ctx, rsp)
-	}
-
-	_GateService_Ping_Handler(svc, ctx, in.(*PingPong), ret, interceptor)
-
-}
+//func _GateService_Ping_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//		ret := func(rsp *PingPong, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//
+//
+//	_GateService_Ping_Handler(svc, ctx, in.(*PingPong) , ret, interceptor)
+//
+//}
 
 func _GateService_Ping_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	srcPrw := pkt.Src
-	ret := func(rsp *PingPong, err error) {
-		if err != nil {
-			xlog.Println("err", err)
-			return
-		}
-
-		npkt, release := codec.NewPacket()
-		defer release()
-
-		npkt.Header.Version = hdr.Version
-		npkt.Header.RequestId = hdr.RequestId
-		npkt.Header.Timeout = hdr.Timeout
-		npkt.Header.RequestType = bbq.RequestType_RequestRespone
-		npkt.Header.ServiceType = hdr.ServiceType
-		npkt.Header.SrcEntity = hdr.DstEntity
-		npkt.Header.DstEntity = hdr.SrcEntity
-		npkt.Header.ServiceName = hdr.ServiceName
-		npkt.Header.Method = hdr.Method
-		npkt.Header.ContentType = hdr.ContentType
-		npkt.Header.CompressType = hdr.CompressType
-		npkt.Header.CheckFlags = 0
-		npkt.Header.TransInfo = hdr.TransInfo
-		npkt.Header.ErrCode = 0
-		npkt.Header.ErrMsg = ""
-
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Println("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-
-		err = srcPrw.WritePacket(npkt)
-		if err != nil {
-			xlog.Println("WritePacket", err)
-			return
-		}
-	}
-
 	in := new(PingPong)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		ret(nil, err)
+		// nil,err
+		return
 	}
 
-	_GateService_Ping_Handler(svc, ctx, in, ret, interceptor)
+	rsp, err := _GateService_Ping_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.ServiceName = hdr.ServiceName
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+	npkt.Header.ErrCode = 0
+	npkt.Header.ErrMsg = ""
+
+	rb, err := codec.DefaultCodec.Marshal(rsp)
+	if err != nil {
+		xlog.Errorln("Marshal(rsp)", err)
+		return
+	}
+
+	npkt.WriteBody(rb)
+
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
 
 }
 
@@ -450,21 +441,21 @@ var GateServiceDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"RegisterClient": {
-			MethodName:   "RegisterClient",
-			Handler:      _GateService_RegisterClient_Remote_Handler,
-			LocalHandler: _GateService_RegisterClient_Local_Handler,
+			MethodName: "RegisterClient",
+			Handler:    _GateService_RegisterClient_Remote_Handler,
+			//LocalHandler:	_GateService_RegisterClient_Local_Handler,
 		},
 
 		"UnregisterClient": {
-			MethodName:   "UnregisterClient",
-			Handler:      _GateService_UnregisterClient_Remote_Handler,
-			LocalHandler: _GateService_UnregisterClient_Local_Handler,
+			MethodName: "UnregisterClient",
+			Handler:    _GateService_UnregisterClient_Remote_Handler,
+			//LocalHandler:	_GateService_UnregisterClient_Local_Handler,
 		},
 
 		"Ping": {
-			MethodName:   "Ping",
-			Handler:      _GateService_Ping_Remote_Handler,
-			LocalHandler: _GateService_Ping_Local_Handler,
+			MethodName: "Ping",
+			Handler:    _GateService_Ping_Remote_Handler,
+			//LocalHandler:	_GateService_Ping_Local_Handler,
 		},
 	},
 

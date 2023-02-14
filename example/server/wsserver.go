@@ -38,27 +38,30 @@ func main() {
 }
 
 type EchoService struct {
-	entity.Entity
+	entity.Service
 }
 
-func (*EchoService) SayHello(c *entity.Context, req *exampb.SayHelloRequest, ret func(*exampb.SayHelloResponse, error)) {
+func (*EchoService) SayHello(c *entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	xlog.Println("service", c.Packet().Header.String(), req.String())
 
 	echoClient := exampb.NewEchoEtyEntity(c, ex.ProxyClient)
-	echoClient.SayHello(c, req, func(c *entity.Context, rsp *exampb.SayHelloResponse) {
-		xlog.Println("service response:", c.Packet().Header.String(), req.String())
-		ret(rsp, nil)
-	})
+	rsp, err := echoClient.SayHello(c, req)
+	if err != nil {
+		return nil, err
+	}
+	xlog.Println("entity response:", c.Packet().Header.String(), rsp.String())
+
+	return rsp, nil
 }
 
 type EchoEntity struct {
 	entity.Entity
 }
 
-func (*EchoEntity) SayHello(c *entity.Context, req *exampb.SayHelloRequest, ret func(*exampb.SayHelloResponse, error)) {
+func (*EchoEntity) SayHello(c *entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
-	ret(&exampb.SayHelloResponse{Text: "echo entity response"}, nil)
+	return &exampb.SayHelloResponse{Text: "echo entity response"}, nil
 }

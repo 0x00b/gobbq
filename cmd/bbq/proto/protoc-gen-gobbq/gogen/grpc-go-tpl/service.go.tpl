@@ -91,7 +91,7 @@ type {{lowerCamelcase $typeName}} struct{
 {{- if $m.ClientStreaming}}
 {{else if $m.ServerStreaming}}
 {{else}}
-func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}} {{if $m.HasResponse}}, callback func(c *entity.Context, rsp *{{$m.GoOutput.GoIdent.GoName}}){{end}}) (err error){
+func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}{
 
 	eid := ""
 	if c != nil {
@@ -115,47 +115,44 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c *entity.Context, req *{{$m
 	pkt.Header.TransInfo=    map[string][]byte{}
 	pkt.Header.ErrCode=      0
 	pkt.Header.ErrMsg=       "" 
-{{if $m.HasResponse}}
-	itfCallback := func(c *entity.Context, rsp any) {
-  		callback(c, rsp.(*{{$m.GoOutput.GoIdent.GoName}}))
-	}
-	_=itfCallback
-{{end}}
+
 	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
 	// if err == nil {
 	// 	return nil
 	// }
 
-	// if entity.NotMyMethod(err) {
+	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	if err != nil {
+		xlog.Errorln(err)
+		return {{if $m.HasResponse}}nil, err{{end}}
+	}
 
-		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
-		if err != nil {
-			return err
-		}
+	pkt.WriteBody(hdrBytes)
 
-		pkt.WriteBody(hdrBytes)
-
-		t.client.WritePacket(pkt)
+	t.client.WritePacket(pkt)
 
 	{{if $m.HasResponse}}
 		// register callback
-		if (c != nil){
-			c.Entity.RegisterCallback(pkt.Header.RequestId, func(c *entity.Context, pkt *codec.Packet) {
-				in := new({{$m.GoOutput.GoIdent.GoName}})
+		chanRsp := make(chan any)
+		if c != nil {
+			c.Entity.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
-				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, in)
+				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
 				if err != nil {
+					chanRsp <- err
 					return
 				}
-
-				callback(c, in)
+				chanRsp <- rsp
+				close(chanRsp)
 			})
 		}
+		rsp := <-chanRsp
+		if rsp, ok := rsp.(*{{$m.GoOutput.GoIdent.GoName}}); ok {
+			return rsp, nil
+		}
+		return nil, rsp.(error)
 	{{end}}
-
-	// }
-
-	return err
 
 }
 {{end -}}
@@ -170,7 +167,7 @@ type {{$typeName}} interface {
 {{- if $m.ClientStreaming}}
 {{else if $m.ServerStreaming}}
 {{else}}
-	{{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}} {{if $m.HasResponse}}, ret func(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}})
+	{{$m.GoName}}(c *entity.Context, req *{{$m.GoInput.GoIdent.GoName}}){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}
 {{end -}}
 {{end -}}
 }
@@ -181,10 +178,16 @@ type {{$typeName}} interface {
 {{else if $m.ServerStreaming}}
 {{else}}
 
-func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m.GoInput.GoIdent.GoName}} {{if $m.HasResponse}}, ret func(rsp *{{$m.GoOutput.GoIdent.GoName}}, err error){{end}}, interceptor entity.ServerInterceptor) {
+func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m.GoInput.GoIdent.GoName}}, interceptor entity.ServerInterceptor){{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}},error){{end}} {
 	if interceptor == nil {
-		svc.({{$typeName}}).{{$m.GoName}}(ctx, in ,{{if $m.HasResponse}}ret{{end}})
+
+	{{if $m.HasResponse}}
+		return svc.({{$typeName}}).{{$m.GoName}}(ctx, in)
+	{{else}}
+		svc.({{$typeName}}).{{$m.GoName}}(ctx, in)
 		return
+	{{end}}
+
 	}
 	
 	info := &entity.ServerInfo{
@@ -192,85 +195,89 @@ func _{{$typeName}}_{{$m.GoName}}_Handler(svc any, ctx *entity.Context, in *{{$m
 		FullMethod: "/{{$.GoPackageName}}.{{$typeName}}/{{$m.GoName}}",
 	}
 
-	handler := func(ctx *entity.Context, rsp any, _ entity.RetFunc) {
-		svc.({{$typeName}}).{{$m.GoName}}(ctx, in, {{if $m.HasResponse}}ret{{end}})
+	handler := func(ctx *entity.Context, rsp any)  (any, error) {
+	{{if $m.HasResponse}}
+		return svc.({{$typeName}}).{{$m.GoName}}(ctx, in)
+	{{else}}
+		svc.({{$typeName}}).{{$m.GoName}}(ctx, in)
+		return nil,nil
+	{{end}}
 	}
  
-	interceptor(ctx, in, info, {{if $m.HasResponse}}func(i any, err error) {ret(i.(*{{$m.GoOutput.GoIdent.GoName}}), err)}{{else}}nil{{end}}, handler)
-	
+{{if $m.HasResponse}}
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*{{$m.GoOutput.GoIdent.GoName}}), err
+{{else}}
+ 	interceptor(ctx, in, info, handler)
+{{end}}
+
 }
 
-func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx *entity.Context, in any, callback func(c *entity.Context, rsp any), interceptor entity.ServerInterceptor) {
-	{{if $m.HasResponse}}
-		ret := func(rsp *{{$m.GoOutput.GoIdent.GoName}}, err error) {
-			if err != nil {
-				_ = err
-			}
-			callback(ctx, rsp)
-		}
-	{{end}}
-	
-	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in.(*{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}, ret{{end}}, interceptor)
-	
-}
+//func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx *entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//	{{if $m.HasResponse}}
+//		ret := func(rsp *{{$m.GoOutput.GoIdent.GoName}}, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//	{{end}}
+//	
+//	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in.(*{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}, ret{{end}}, interceptor)
+//	
+//}
 
 func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
  
 	hdr := pkt.Header
-{{if $m.HasResponse}}
-	srcPrw := pkt.Src
-	ret:=func(rsp *{{$m.GoOutput.GoIdent.GoName}},err error){ 
-		if err != nil {
-			xlog.Errorln("err", err)
-			return
-		}
-
-		npkt, release := codec.NewPacket()
-		defer release()
-
-		npkt.Header.Version=      hdr.Version
-		npkt.Header.RequestId=    hdr.RequestId
-		npkt.Header.Timeout=      hdr.Timeout
-		npkt.Header.RequestType=  bbq.RequestType_RequestRespone
-		npkt.Header.ServiceType=  hdr.ServiceType
-		npkt.Header.SrcEntity=    hdr.DstEntity
-		npkt.Header.DstEntity=    hdr.SrcEntity
-		npkt.Header.ServiceName=  hdr.ServiceName
-		npkt.Header.Method=       hdr.Method
-		npkt.Header.ContentType=  hdr.ContentType
-		npkt.Header.CompressType= hdr.CompressType
-		npkt.Header.CheckFlags=   0
-		npkt.Header.TransInfo=    hdr.TransInfo
-		npkt.Header.ErrCode= 0
-		npkt.Header.ErrMsg=  "" 
-
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-
-		err = srcPrw.WritePacket(npkt)
-		if err != nil {
-			xlog.Errorln("WritePacket", err)
-			return
-		}
-	}
-{{end}}
-
+	
 	in := new({{$m.GoInput.GoIdent.GoName}})
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-{{- if $m.HasResponse}}
-		ret(nil, err)
-{{end -}}
-
+		// {{if $m.HasResponse}}nil,{{end}}err
+		return
 	}
 
-	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in {{if $m.HasResponse}},ret{{end}}, interceptor)
+
+{{if $m.HasResponse}}
+	rsp, err := _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version=      hdr.Version
+	npkt.Header.RequestId=    hdr.RequestId
+	npkt.Header.Timeout=      hdr.Timeout
+	npkt.Header.RequestType=  bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType=  hdr.ServiceType
+	npkt.Header.SrcEntity=    hdr.DstEntity
+	npkt.Header.DstEntity=    hdr.SrcEntity
+	npkt.Header.ServiceName=  hdr.ServiceName
+	npkt.Header.Method=       hdr.Method
+	npkt.Header.ContentType=  hdr.ContentType
+	npkt.Header.CompressType= hdr.CompressType
+	npkt.Header.CheckFlags=   0
+	npkt.Header.TransInfo=    hdr.TransInfo
+	npkt.Header.ErrCode= 0
+	npkt.Header.ErrMsg=  "" 
+
+	rb, err := codec.DefaultCodec.Marshal(rsp)
+	if err != nil {
+		xlog.Errorln("Marshal(rsp)", err)
+		return
+	}
+
+	npkt.WriteBody(rb)
+
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
+{{else}}
+	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+{{end}}
 
 }
 
@@ -289,7 +296,7 @@ var {{$typeName}}Desc = entity.EntityDesc{
 		"{{$m.GoName}}": {
 			MethodName: 	"{{$m.GoName}}",
 			Handler:    	_{{$typeName}}_{{$m.GoName}}_Remote_Handler,
-			LocalHandler:	_{{$typeName}}_{{$m.GoName}}_Local_Handler,
+			//LocalHandler:	_{{$typeName}}_{{$m.GoName}}_Local_Handler,
 		},
 {{end -}}
 {{end -}}

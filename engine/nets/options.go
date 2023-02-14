@@ -20,11 +20,25 @@ type Options struct {
 	connectionTimeout time.Duration
 
 	PacketHandler PacketHandler
+	ConnHandler   ConnHandler
 }
 
 type PacketHandler interface {
 	HandlePacket(pkt *codec.Packet) error
 }
+
+type ConnHandler interface {
+	HandleEOF(*codec.PacketReadWriter)
+	HandleTimeOut(*codec.PacketReadWriter)
+	HandleFail(*codec.PacketReadWriter)
+}
+
+type defaultConnHandler struct {
+}
+
+func (ch *defaultConnHandler) HandleEOF(prw *codec.PacketReadWriter)     {}
+func (ch *defaultConnHandler) HandleTimeOut(prw *codec.PacketReadWriter) {}
+func (ch *defaultConnHandler) HandleFail(prw *codec.PacketReadWriter)    {}
 
 // A Option sets options such as credentials, codec and keepalive parameters, etc.
 type Option interface {
@@ -41,4 +55,16 @@ func WithPacketHandler(ph PacketHandler) *withPacketHandler {
 
 func (w *withPacketHandler) apply(s *Options) {
 	s.PacketHandler = w.PacketHandler
+}
+
+type withConnHandler struct {
+	ConnHandler
+}
+
+func WithConnHandler(ph ConnHandler) *withConnHandler {
+	return &withConnHandler{ph}
+}
+
+func (w *withConnHandler) apply(s *Options) {
+	s.ConnHandler = w.ConnHandler
 }
