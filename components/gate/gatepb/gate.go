@@ -5,15 +5,13 @@
 package gatepb
 
 import (
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -88,6 +86,7 @@ func (t *gateService) RegisterClient(c *entity.Context, req *RegisterClientReque
 				return
 			}
 			chanRsp <- rsp
+			close(chanRsp)
 		})
 	}
 	rsp := <-chanRsp
@@ -192,6 +191,7 @@ func (t *gateService) Ping(c *entity.Context, req *PingPong) (*PingPong, error) 
 				return
 			}
 			chanRsp <- rsp
+			close(chanRsp)
 		})
 	}
 	rsp := <-chanRsp
@@ -283,17 +283,21 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx *entity.Context, pk
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -416,17 +420,21 @@ func _GateService_Ping_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.P
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)

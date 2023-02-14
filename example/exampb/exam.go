@@ -86,6 +86,7 @@ func (t *echoService) SayHello(c *entity.Context, req *SayHelloRequest) (*SayHel
 				return
 			}
 			chanRsp <- rsp
+			close(chanRsp)
 		})
 	}
 	rsp := <-chanRsp
@@ -171,17 +172,21 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *cod
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -288,6 +293,7 @@ func (t *echoEtyEntity) SayHello(c *entity.Context, req *SayHelloRequest) (*SayH
 				return
 			}
 			chanRsp <- rsp
+			close(chanRsp)
 		})
 	}
 	rsp := <-chanRsp
@@ -373,17 +379,21 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx *entity.Context, pkt *c
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)

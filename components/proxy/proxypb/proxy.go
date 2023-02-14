@@ -211,7 +211,6 @@ func (t *proxyService) RegisterService(c *entity.Context, req *RegisterServiceRe
 				chanRsp <- err
 				return
 			}
-			xlog.Println("recv resp", rsp)
 			chanRsp <- rsp
 			close(chanRsp)
 		})
@@ -503,17 +502,21 @@ func _ProxyService_RegisterInst_Remote_Handler(svc any, ctx *entity.Context, pkt
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -589,17 +592,21 @@ func _ProxyService_RegisterEntity_Remote_Handler(svc any, ctx *entity.Context, p
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -675,17 +682,21 @@ func _ProxyService_RegisterService_Remote_Handler(svc any, ctx *entity.Context, 
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -761,17 +772,21 @@ func _ProxyService_UnregisterEntity_Remote_Handler(svc any, ctx *entity.Context,
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -847,17 +862,21 @@ func _ProxyService_UnregisterService_Remote_Handler(svc any, ctx *entity.Context
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
@@ -933,17 +952,21 @@ func _ProxyService_Ping_Remote_Handler(svc any, ctx *entity.Context, pkt *codec.
 	npkt.Header.CompressType = hdr.CompressType
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
-	npkt.Header.ErrCode = 0
-	npkt.Header.ErrMsg = ""
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
 	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)

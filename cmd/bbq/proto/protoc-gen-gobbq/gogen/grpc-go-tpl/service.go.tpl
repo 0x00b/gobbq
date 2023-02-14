@@ -259,17 +259,21 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx *entity.Context, p
 	npkt.Header.CompressType= hdr.CompressType
 	npkt.Header.CheckFlags=   0
 	npkt.Header.TransInfo=    hdr.TransInfo
-	npkt.Header.ErrCode= 0
-	npkt.Header.ErrMsg=  "" 
 
-	rb, err := codec.DefaultCodec.Marshal(rsp)
-	if err != nil {
-		xlog.Errorln("Marshal(rsp)", err)
-		return
+	if err != nil{
+		npkt.Header.ErrCode= 1
+		npkt.Header.ErrMsg=  err.Error() 
+		
+		npkt.WriteBody(nil)
+	}else{
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
 	}
-
-	npkt.WriteBody(rb)
-
 	err = pkt.Src.WritePacket(npkt)
 	if err != nil {
 		xlog.Errorln("WritePacket", err)
