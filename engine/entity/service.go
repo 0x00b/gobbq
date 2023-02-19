@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"sync"
+
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -30,40 +32,59 @@ func (e *Service) onInit(c Context, id EntityID) {
 func (e *Service) Run() {
 	xlog.Println("start message loop", e.EntityID())
 
+	wg := sync.WaitGroup{}
+
+	defer func() {
+		wg.Wait()
+		// todo unregister service, and svcentity
+
+	}()
+
+	// response
 	go func() {
-		for !e.done {
+		for {
 			select {
 			case <-e.context.Done():
 				xlog.Println("ctx done", e)
+				return
+
 			case pkt := <-e.respChan:
 				xlog.Printf("handle: %s", pkt.String())
+
+				wg.Add(1)
 
 				// 异步
 				ctx, release := e.context.Copy()
 				go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
 					defer release()
+					defer wg.Done()
+
 					e.handleMethodRsp(ctx, pkt)
 				}(ctx, release, pkt)
 			}
 		}
 	}()
 
-	for !e.done {
+	// request, async
+	for {
 		select {
 		case <-e.context.Done():
 			xlog.Println("ctx done", e)
+			return
 
 		case pkt := <-e.callChan:
 			xlog.Printf("handle: %s", pkt.String())
+
+			wg.Add(1)
 
 			// 异步
 			ctx, release := e.context.Copy()
 			go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
 				defer release()
+				defer wg.Done()
+
 				e.handleCallMethod(ctx, pkt)
 			}(ctx, release, pkt)
 		}
 	}
-	xlog.Println("stop message loop", e.EntityID())
-	// todo unregister entity
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
+	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/tool/snowflake"
@@ -32,6 +33,9 @@ type Game struct {
 }
 
 func NewGame() *Game {
+
+	conf.Init("game.yaml")
+
 	gm := &Game{}
 	eid := snowflake.GenUUID()
 
@@ -49,7 +53,7 @@ type RegisterProxy struct {
 
 func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
+	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: string(eid)})
 	if err != nil {
@@ -62,7 +66,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 
 func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient)
+	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	_, err := client.RegisterService(Inst.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {

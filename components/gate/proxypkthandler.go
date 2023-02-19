@@ -30,7 +30,7 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 	if entity.NotMyMethod(err) {
 		// send to client
 		id := pkt.Header.GetDstEntity()
-		rw, ok := cltMap[entity.EntityID(id)]
+		rw, ok := cltMap[entity.EntityID(id.ID)]
 		if !ok {
 			return errors.New("unknown client")
 		}

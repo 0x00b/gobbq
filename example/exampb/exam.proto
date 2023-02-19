@@ -23,3 +23,9 @@ service EchoEty {
 
 	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
 }
+
+service EchoSvc2 {
+	option (bbq.service_type) = Service;
+
+	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
+}

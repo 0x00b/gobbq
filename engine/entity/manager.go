@@ -18,6 +18,9 @@ var ProxyRegister RegisterProxy
 type RegisterProxy interface {
 	RegisterEntityToProxy(eid EntityID) error
 	RegisterServiceToProxy(svcName TypeName) error
+
+	// UnregisterEntityToProxy(eid EntityID) error
+	// UnregisterServiceToProxy(svcName TypeName) error
 }
 
 // EntityManager manage entity lifecycle

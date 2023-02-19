@@ -31,7 +31,7 @@ func NewClient() *Client {
 
 	client.Gate = gate
 
-	gateSvc := gatepb.NewGateServiceClient(gate)
+	gateSvc := gatepb.NewGateServiceClient(gate.GetPacketReadWriter())
 	go func() {
 		client.Run()
 

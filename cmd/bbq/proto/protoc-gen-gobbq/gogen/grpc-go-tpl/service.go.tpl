@@ -14,7 +14,6 @@ import (
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 
@@ -37,18 +36,18 @@ func Register{{$typeName}}(impl {{$typeName}}) {
 	entity.Manager.RegisterService(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *nets.Client) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client}
 	return t
 }
 
-func New{{$typeName}}(client *nets.Client) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}(client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client}
 	return t
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	client *nets.Client
+	client *codec.PacketReadWriter
 }
 
 {{else}}
@@ -57,16 +56,16 @@ func Register{{$typeName}}(impl {{$typeName}}) {
 	entity.Manager.RegisterEntity(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *nets.Client, entity entity.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(client *codec.PacketReadWriter, entity entity.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client, entity:entity}
 	return t
 }
 
-func New{{$typeName}}(c entity.Context, client *nets.Client) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}(c entity.Context, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 	return New{{$typeName}}WithID(c, entity.EntityID(snowflake.GenUUID()), client)
 }
 
-func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *nets.Client) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 
 	err := entity.NewEntity(c, &id, {{$typeName}}Desc.TypeName)
 	if err != nil {
@@ -81,7 +80,7 @@ func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *nets.C
 type {{lowerCamelcase $typeName}} struct{
 	entity entity.EntityID
 
-	client *nets.Client
+	client *codec.PacketReadWriter
 }
 {{end -}}
 
@@ -105,9 +104,8 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.Timeout=      1
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
-	pkt.Header.SrcEntity=    eid
-	pkt.Header.DstEntity=    {{if $isSvc}}""{{else}}string(t.entity){{end}} 
-	pkt.Header.ServiceName=	 "{{$.GoPackageName}}.{{$typeName}}" 
+	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
+	pkt.Header.DstEntity = &bbq.EntityID{ID: {{if $isSvc}}""{{else}}string(t.entity){{end}}, Type: "{{$.GoPackageName}}.{{$typeName}}", Proxy: ""}
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None
@@ -253,7 +251,6 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 	npkt.Header.ServiceType=  hdr.ServiceType
 	npkt.Header.SrcEntity=    hdr.DstEntity
 	npkt.Header.DstEntity=    hdr.SrcEntity
-	npkt.Header.ServiceName=  hdr.ServiceName
 	npkt.Header.Method=       hdr.Method
 	npkt.Header.ContentType=  hdr.ContentType
 	npkt.Header.CompressType= hdr.CompressType

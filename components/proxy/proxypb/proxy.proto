@@ -4,20 +4,29 @@ package proxypb;
 
 import "bbq.proto";
 
+
 message PingPong{
 }
-
-message RegisterInstRequest{
-	string EntityID = 1;
-	string InstID = 2;
-}
-message RegisterInstResponse{
-}
  
+message RegisterProxyRequest{
+	string ProxyID = 1;
+}
+
+message RegisterProxyResponse{
+	string ProxyID = 1;
+	repeated string SvcNames = 2;
+}
+
+message SyncServiceRequest{
+	string ProxyID = 1;
+	string SvcName = 2;
+}
+
+message SyncServiceResponse{
+}
 
 message RegisterEntityRequest{
 	string EntityID = 1;
-	string InstID = 2;
 }
 
 message RegisterEntityResponse{
@@ -25,17 +34,18 @@ message RegisterEntityResponse{
  
 message RegisterServiceRequest{
 	string ServiceName = 1;
-	string InstID = 2;
 }
 
 message RegisterServiceResponse{
 }
- 
+
 service Proxy {
 	option (bbq.service_type) = Service;
 
-	rpc RegisterInst(RegisterInstRequest) returns(RegisterInstResponse) {}
-
+	rpc RegisterProxy(RegisterProxyRequest) returns(RegisterProxyResponse) {}
+ 
+	rpc SyncService(SyncServiceRequest) returns(SyncServiceResponse) {}
+ 
 	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
 

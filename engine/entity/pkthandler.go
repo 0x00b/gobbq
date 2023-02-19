@@ -49,7 +49,7 @@ func (st *MethodPacketHandler) HandlePacket(pkt *codec.Packet) error {
 func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 
 	hdr := pkt.Header
-	service := hdr.ServiceName
+	service := hdr.DstEntity.Type
 
 	svc, ok := Manager.Services[TypeName(service)]
 	if !ok {
@@ -64,7 +64,7 @@ func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	eid := pkt.Header.GetDstEntity()
-	if eid == "" {
+	if eid == nil && eid.ID == "" {
 		xlog.Println("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEmptyEntityID
 	}
@@ -73,7 +73,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	Manager.mu.RLock()
 	defer Manager.mu.RUnlock()
-	entity, ok := Manager.Entities[(EntityID(eid))]
+	entity, ok := Manager.Entities[(EntityID(eid.ID))]
 	if !ok {
 		xlog.Println("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEntityNotFound

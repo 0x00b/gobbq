@@ -92,3 +92,7 @@ func (ct *Client) SendPackt(pkt *codec.Packet) error {
 	// todo chan
 	return ct.conn.WritePacket(pkt)
 }
+
+func (ct *Client) GetPacketReadWriter() *codec.PacketReadWriter {
+	return ct.conn.packetReadWriter
+}

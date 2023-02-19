@@ -12,7 +12,12 @@ import (
 )
 
 func main() {
+
+	conf.Init("proxy.yaml")
+
 	fmt.Println(conf.C)
+
+	proxyInst.ConnOtherProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
 
 	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
 

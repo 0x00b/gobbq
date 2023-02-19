@@ -8,28 +8,27 @@ type ConnHandler struct {
 }
 
 func (ch *ConnHandler) HandleEOF(prw *codec.PacketReadWriter) {
-	etyMtx.Lock()
-	defer etyMtx.Unlock()
-	for eid, v := range entityMaps {
-		if v == prw {
-			// xlog.Println("remove eid:", eid)
-			delete(entityMaps, eid)
-		}
-	}
-
-	for svc, prws := range svcMap {
-		idx := 0
-		for i, t := range prws {
-			if t != prw {
-				if i != idx {
-					// xlog.Println("remove svc:", prws[idx])
-					prws[idx] = t
-				}
-				idx++
+	func() {
+		proxyInst.etyMtx.Lock()
+		defer proxyInst.etyMtx.Unlock()
+		for eid, v := range proxyInst.entityMaps {
+			if v == prw {
+				// xlog.Println("remove eid:", eid)
+				delete(proxyInst.entityMaps, eid)
 			}
 		}
-		svcMap[svc] = prws[:idx]
-	}
+
+	}()
+
+	func() {
+		proxyInst.svcMtx.Lock()
+		defer proxyInst.svcMtx.Unlock()
+		for svc, svcPrw := range proxyInst.svcMaps {
+			if prw == svcPrw {
+				delete(proxyInst.svcMaps, svc)
+			}
+		}
+	}()
 }
 
 func (ch *ConnHandler) HandleTimeOut(prw *codec.PacketReadWriter) {

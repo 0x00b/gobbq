@@ -34,7 +34,7 @@ type CommConf struct {
 
 type Inst struct {
 	CommConf
-	ID   uint32 `yaml:"id"`  //   - id: 1
+	ID   string `yaml:"id"`  //   - id: 1
 	Net  string `yaml:"net"` //     net: "tcp" # kcp, websocket
 	IP   string `yaml:"ip"`
 	Port string `yaml:"port"` //     port: 49551
@@ -52,8 +52,8 @@ type GateConf struct {
 	Inst    []Inst   `yaml:"inst"`
 }
 
-func init() {
-	err := ParseYamlConf("/data/home/user00/gooooo/gobbq/conf/gobbq.yaml", &C)
+func Init(confFile string) {
+	err := ParseYamlConf(confFile, &C)
 	if err != nil {
 		panic(err)
 	}

@@ -97,8 +97,6 @@ type baseEntity struct {
 
 	desc *EntityDesc
 
-	done bool
-
 	callChan chan *codec.Packet
 	respChan chan *codec.Packet
 
@@ -130,8 +128,22 @@ func (e *baseEntity) EntityID() EntityID {
 func (e *baseEntity) Run() {
 	xlog.Println("start message loop", e.EntityID())
 
+	wg := sync.WaitGroup{}
+
+	defer func() {
+		wg.Wait()
+
+		xlog.Println("stop message loop", e.EntityID())
+		// todo unregister entity
+
+	}()
+
+	wg.Add(1)
+
+	// response
 	go func() {
-		for !e.done {
+		defer wg.Done()
+		for {
 			select {
 			case <-e.context.Done():
 				xlog.Println("ctx done", e)
@@ -142,7 +154,8 @@ func (e *baseEntity) Run() {
 		}
 	}()
 
-	for !e.done {
+	// request, sync
+	for {
 		select {
 		case <-e.context.Done():
 			xlog.Println("ctx done", e)
@@ -152,8 +165,6 @@ func (e *baseEntity) Run() {
 			e.handleCallMethod(e.context, pkt)
 		}
 	}
-	xlog.Println("stop message loop", e.EntityID())
-	// todo unregister entity
 }
 
 //  for inner
@@ -178,7 +189,6 @@ func (e *baseEntity) onInit(c Context, id EntityID) {
 }
 
 func (e *baseEntity) onDestroy() {
-	e.done = true
 	e.OnDestroy()
 	releaseContext(e.context)
 }
