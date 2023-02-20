@@ -15,7 +15,17 @@ import (
 func Init() {
 
 	ex.ConnProxy(nets.WithPacketHandler(NewGamePacketHandler()))
-	entity.ProxyRegister = &RegisterProxy{}
+
+	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
+
+	rsp, err := client.RegisterInst(Inst.Context(), &proxypb.RegisterInstRequest{
+		InstID: Inst.EntityID().ID,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	Inst.ProxyID = rsp.ProxyID
 }
 
 func Run() {
@@ -30,16 +40,21 @@ func Run() {
 
 type Game struct {
 	entity.Entity
+
+	ProxyID string
 }
 
 func NewGame() *Game {
 
 	conf.Init("game.yaml")
 
+	entity.ProxyRegister = &RegisterProxy{}
+	entity.NewEntityID = &EntityIDGenerator{}
+
 	gm := &Game{}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, entity.EntityID(eid), gm)
+	entity.RegisterEntity(nil, &entity.EntityID{ID: eid}, gm)
 
 	go gm.Run()
 
@@ -55,7 +70,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
-	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: string(eid)})
+	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: entity.ToPBEntityID(eid)})
 	if err != nil {
 		return err
 	}
@@ -76,4 +91,11 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 	xlog.Println("register proxy service resp")
 
 	return nil
+}
+
+type EntityIDGenerator struct {
+}
+
+func (n *EntityIDGenerator) NewEntityID(tn entity.TypeName) *entity.EntityID {
+	return &entity.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: Inst.ProxyID}
 }

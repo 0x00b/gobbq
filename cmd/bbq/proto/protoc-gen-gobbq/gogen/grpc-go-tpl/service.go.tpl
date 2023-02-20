@@ -62,12 +62,12 @@ func New{{$typeName}}Client(client *codec.PacketReadWriter, entity entity.Entity
 }
 
 func New{{$typeName}}(c entity.Context, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
-	return New{{$typeName}}WithID(c, entity.EntityID(snowflake.GenUUID()), client)
+	return New{{$typeName}}WithID(c,*entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
 }
 
 func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 
-	err := entity.NewEntity(c, &id, {{$typeName}}Desc.TypeName)
+	err := entity.NewEntity(c, &id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -92,10 +92,6 @@ type {{lowerCamelcase $typeName}} struct{
 {{else}}
 func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{end}}{
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
  
@@ -104,8 +100,8 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.Timeout=      1
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: {{if $isSvc}}""{{else}}string(t.entity){{end}}, Type: "{{$.GoPackageName}}.{{$typeName}}", Proxy: ""}
+	pkt.Header.SrcEntity =  entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}entity.ToPBEntityID(t.entity){{end}}
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None

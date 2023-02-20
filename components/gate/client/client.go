@@ -25,9 +25,8 @@ func NewClient() *Client {
 
 	client := &Client{}
 
-	eid := snowflake.GenUUID()
-
-	entity.RegisterEntity(nil, entity.EntityID(eid), client)
+	eid := &entity.EntityID{ID: snowflake.GenUUID()}
+	entity.RegisterEntity(nil, eid, client)
 
 	client.Gate = gate
 
@@ -36,14 +35,16 @@ func NewClient() *Client {
 		client.Run()
 
 		// unregister
-		gateSvc.UnregisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: eid})
+		gateSvc.UnregisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: entity.ToPBEntityID(client.EntityID())})
 	}()
 
-	_, err = gateSvc.RegisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: eid})
+	rsp, err := gateSvc.RegisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: entity.ToPBEntityID(client.EntityID())})
 
 	if err != nil {
 		panic(err)
 	}
+
+	eid.ProxyID = rsp.EntityID.ProxyID
 
 	return client
 }

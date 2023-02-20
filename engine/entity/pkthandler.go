@@ -73,7 +73,7 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	Manager.mu.RLock()
 	defer Manager.mu.RUnlock()
-	entity, ok := Manager.Entities[(EntityID(eid.ID))]
+	entity, ok := Manager.Entities[eid.ID]
 	if !ok {
 		xlog.Println("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEntityNotFound

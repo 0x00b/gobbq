@@ -38,7 +38,7 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 				xlog.Println("bad req header:", hdr.String())
 				return errors.New("bad call, call entity but no dst entity")
 			}
-			proxyInst.ProxyToEntity(entity.EntityID(hdr.DstEntity.ID), pkt)
+			proxyInst.ProxyToEntity(entity.ToEntityID(hdr.DstEntity), pkt)
 		} else {
 			// call service
 			proxyInst.ProxyToService(hdr, pkt)

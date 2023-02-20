@@ -4,14 +4,13 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
 var Manager EntityManager = EntityManager{
 	Services:    make(map[TypeName]IService),
 	entityDescs: make(map[TypeName]*EntityDesc),
-	Entities:    make(map[EntityID]IBaseEntity),
+	Entities:    make(map[string]IBaseEntity),
 }
 var ProxyRegister RegisterProxy
 
@@ -30,11 +29,11 @@ type EntityManager struct {
 
 	Services    map[TypeName]IService    // service name -> service info
 	entityDescs map[TypeName]*EntityDesc // entity name -> entity info
-	Entities    map[EntityID]IBaseEntity // entity id -> entity impl
+	Entities    map[string]IBaseEntity   // entity id -> entity impl
 
 }
 
-func RegisterEntity(c Context, id EntityID, entity IBaseEntity) error {
+func RegisterEntity(c Context, id *EntityID, entity IBaseEntity) error {
 	ctx := allocContext()
 	ctx.entity = entity
 	entity.onInit(ctx, id)
@@ -47,15 +46,15 @@ func RegisterEntity(c Context, id EntityID, entity IBaseEntity) error {
 
 	Manager.mu.Lock()
 	defer Manager.mu.Unlock()
-	Manager.Entities[id] = entity
+	Manager.Entities[id.ID] = entity
 
 	return nil
 }
 
-func NewEntity(c Context, id *EntityID, typ TypeName) error {
-	desc, ok := Manager.entityDescs[typ]
+func NewEntity(c Context, id *EntityID) error {
+	desc, ok := Manager.entityDescs[id.Type]
 	if !ok {
-		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", typ)
+		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", id.Type)
 		return nil
 	}
 
@@ -74,17 +73,13 @@ func NewEntity(c Context, id *EntityID, typ TypeName) error {
 	}
 	// init
 
-	if id == nil || *id == "" {
-		*id = EntityID(snowflake.GenUUID())
-	}
-
 	xlog.Println("register entity id:", *id)
 
 	newDesc := *desc
 	newDesc.EntityImpl = entity
 	entity.setDesc(&newDesc)
 
-	RegisterEntity(c, *id, entity)
+	RegisterEntity(c, id, entity)
 
 	// start message loop
 	go entity.Run()
@@ -163,7 +158,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 
 func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) error {
 
-	RegisterEntity(nil, EntityID(snowflake.GenUUID()), entity)
+	RegisterEntity(nil, NewEntityID.NewEntityID(sd.TypeName), entity)
 
 	Manager.mu.Lock()
 	defer Manager.mu.Unlock()

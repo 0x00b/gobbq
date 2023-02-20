@@ -32,7 +32,7 @@ message EntityID {
 	string ID = 1;
 	string Type = 2;
 	// 记录自己所在的proxy，proxy就不用维护 [ID<->Proxy]的信息
-	string Proxy = 3;
+	string ProxyID = 3;
 }
 
 // 请求协议头

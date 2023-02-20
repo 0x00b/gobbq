@@ -37,10 +37,6 @@ type gateService struct {
 
 func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -49,8 +45,8 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "gatepb.GateService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
 	pkt.Header.Method = "RegisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -99,10 +95,6 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -111,8 +103,8 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "gatepb.GateService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
 	pkt.Header.Method = "UnregisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -140,10 +132,6 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -152,8 +140,8 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "gatepb.GateService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None

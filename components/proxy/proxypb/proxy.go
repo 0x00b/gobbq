@@ -37,10 +37,6 @@ type proxyService struct {
 
 func (t *proxyService) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -49,8 +45,8 @@ func (t *proxyService) RegisterProxy(c entity.Context, req *RegisterProxyRequest
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterProxy"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -97,12 +93,8 @@ func (t *proxyService) RegisterProxy(c entity.Context, req *RegisterProxyRequest
 
 }
 
-func (t *proxyService) SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error) {
+func (t *proxyService) RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -111,8 +103,66 @@ func (t *proxyService) SyncService(c entity.Context, req *SyncServiceRequest) (*
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
+	pkt.Header.Method = "RegisterInst"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
+
+	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
+	// if err == nil {
+	// 	return nil
+	// }
+
+	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	if err != nil {
+		xlog.Errorln(err)
+		return nil, err
+	}
+
+	pkt.WriteBody(hdrBytes)
+
+	t.client.WritePacket(pkt)
+
+	// register callback
+	chanRsp := make(chan any)
+	if c != nil {
+		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			rsp := new(RegisterInstResponse)
+			reqbuf := pkt.PacketBody()
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
+			if err != nil {
+				chanRsp <- err
+				return
+			}
+			chanRsp <- rsp
+			close(chanRsp)
+		})
+	}
+	rsp := <-chanRsp
+	if rsp, ok := rsp.(*RegisterInstResponse); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
+
+}
+
+func (t *proxyService) SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error) {
+
+	pkt, release := codec.NewPacket()
+	defer release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = snowflake.GenUUID()
+	pkt.Header.Timeout = 1
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Service
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "SyncService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -161,10 +211,6 @@ func (t *proxyService) SyncService(c entity.Context, req *SyncServiceRequest) (*
 
 func (t *proxyService) RegisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -173,8 +219,8 @@ func (t *proxyService) RegisterEntity(c entity.Context, req *RegisterEntityReque
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterEntity"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -223,10 +269,6 @@ func (t *proxyService) RegisterEntity(c entity.Context, req *RegisterEntityReque
 
 func (t *proxyService) RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -235,8 +277,8 @@ func (t *proxyService) RegisterService(c entity.Context, req *RegisterServiceReq
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -285,10 +327,6 @@ func (t *proxyService) RegisterService(c entity.Context, req *RegisterServiceReq
 
 func (t *proxyService) UnregisterEntity(c entity.Context, req *RegisterEntityRequest) (*RegisterEntityResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -297,8 +335,8 @@ func (t *proxyService) UnregisterEntity(c entity.Context, req *RegisterEntityReq
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "UnregisterEntity"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -347,10 +385,6 @@ func (t *proxyService) UnregisterEntity(c entity.Context, req *RegisterEntityReq
 
 func (t *proxyService) UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -359,8 +393,8 @@ func (t *proxyService) UnregisterService(c entity.Context, req *RegisterServiceR
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "UnregisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -409,10 +443,6 @@ func (t *proxyService) UnregisterService(c entity.Context, req *RegisterServiceR
 
 func (t *proxyService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -421,8 +451,8 @@ func (t *proxyService) Ping(c entity.Context, req *PingPong) (*PingPong, error) 
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "proxypb.ProxyService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -475,6 +505,9 @@ type ProxyService interface {
 
 	// RegisterProxy
 	RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error)
+
+	// RegisterInst
+	RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error)
 
 	// SyncService
 	SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error)
@@ -545,6 +578,95 @@ func _ProxyService_RegisterProxy_Remote_Handler(svc any, ctx entity.Context, pkt
 	}
 
 	rsp, err := _ProxyService_RegisterProxy_Handler(svc, ctx, in, interceptor)
+
+	npkt, release := codec.NewPacket()
+	defer release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+
+	if err != nil {
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
+	}
+	err = pkt.Src.WritePacket(npkt)
+	if err != nil {
+		xlog.Errorln("WritePacket", err)
+		return
+	}
+
+}
+
+func _ProxyService_RegisterInst_Handler(svc any, ctx entity.Context, in *RegisterInstRequest, interceptor entity.ServerInterceptor) (*RegisterInstResponse, error) {
+	if interceptor == nil {
+
+		return svc.(ProxyService).RegisterInst(ctx, in)
+
+	}
+
+	info := &entity.ServerInfo{
+		Server:     svc,
+		FullMethod: "/proxypb.ProxyService/RegisterInst",
+	}
+
+	handler := func(ctx entity.Context, rsp any) (any, error) {
+
+		return svc.(ProxyService).RegisterInst(ctx, in)
+
+	}
+
+	rsp, err := interceptor(ctx, in, info, handler)
+	return rsp.(*RegisterInstResponse), err
+
+}
+
+//func _ProxyService_RegisterInst_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
+//
+//		ret := func(rsp *RegisterInstResponse, err error) {
+//			if err != nil {
+//				_ = err
+//			}
+//			callback(ctx, rsp)
+//		}
+//
+//
+//	_ProxyService_RegisterInst_Handler(svc, ctx, in.(*RegisterInstRequest) , ret, interceptor)
+//
+//}
+
+func _ProxyService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+
+	hdr := pkt.Header
+
+	in := new(RegisterInstRequest)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+		// nil,err
+		return
+	}
+
+	rsp, err := _ProxyService_RegisterInst_Handler(svc, ctx, in, interceptor)
 
 	npkt, release := codec.NewPacket()
 	defer release()
@@ -1127,6 +1249,12 @@ var ProxyServiceDesc = entity.EntityDesc{
 			MethodName: "RegisterProxy",
 			Handler:    _ProxyService_RegisterProxy_Remote_Handler,
 			//LocalHandler:	_ProxyService_RegisterProxy_Local_Handler,
+		},
+
+		"RegisterInst": {
+			MethodName: "RegisterInst",
+			Handler:    _ProxyService_RegisterInst_Remote_Handler,
+			//LocalHandler:	_ProxyService_RegisterInst_Local_Handler,
 		},
 
 		"SyncService": {

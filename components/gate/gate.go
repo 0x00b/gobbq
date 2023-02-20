@@ -28,10 +28,12 @@ type GateService struct {
 // RegisterClient
 func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
 
-	RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
+	req.EntityID.ProxyID = Inst.ProxyID
+
+	RegisterEntity(*entity.ToEntityID(req.EntityID), c.Packet().Src)
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
-	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: string(req.EntityID)})
+	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
 	if err != nil {
 		return nil, err
 	}
@@ -51,16 +53,20 @@ func (gs *GateService) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.Pin
 
 type Gate struct {
 	entity.Entity
+	ProxyID string
 }
 
 func NewGate() *Gate {
 
 	conf.Init("gate.yaml")
 
+	entity.ProxyRegister = &RegisterProxy{}
+	entity.NewEntityID = &EntityIDGenerator{}
+
 	gm := &Gate{}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, entity.EntityID(eid), gm)
+	entity.RegisterEntity(nil, &entity.EntityID{ID: eid}, gm)
 
 	go gm.Run()
 
@@ -75,7 +81,7 @@ type RegisterProxy struct {
 func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
-	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: string(eid)})
+	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: entity.ToPBEntityID(eid)})
 	if err != nil {
 		return err
 	}
@@ -97,4 +103,11 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 	xlog.Println("register proxy service resp")
 
 	return nil
+}
+
+type EntityIDGenerator struct {
+}
+
+func (n *EntityIDGenerator) NewEntityID(tn entity.TypeName) *entity.EntityID {
+	return &entity.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: Inst.ProxyID}
 }

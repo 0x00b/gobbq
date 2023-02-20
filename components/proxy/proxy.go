@@ -31,6 +31,9 @@ type Proxy struct {
 var proxyInst = NewProxy()
 
 func NewProxy() *Proxy {
+
+	entity.NewEntityID = &EntityIDGenerator{}
+
 	gm := &Proxy{
 		etyMtx:      sync.RWMutex{},
 		entityMaps:  make(entityMap),
@@ -41,7 +44,7 @@ func NewProxy() *Proxy {
 	}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, entity.EntityID(eid), gm)
+	entity.RegisterEntity(nil, &entity.EntityID{ID: eid}, gm)
 
 	go gm.Run()
 
@@ -54,14 +57,14 @@ type entityMap map[entity.EntityID]*codec.PacketReadWriter
 type serviceMap map[string]*codec.PacketReadWriter
 
 // RegisterEntity register serive
-func (p *Proxy) RegisterEntity(eid entity.EntityID, prw *codec.PacketReadWriter) {
+func (p *Proxy) RegisterEntity(eid *entity.EntityID, prw *codec.PacketReadWriter) {
 	p.etyMtx.Lock()
 	defer p.etyMtx.Unlock()
-	if _, ok := p.entityMaps[eid]; ok {
+	if _, ok := p.entityMaps[*eid]; ok {
 		xlog.Errorln("already has entity", eid)
 	}
 	xlog.Println("register entity id:", eid)
-	p.entityMaps[eid] = prw
+	p.entityMaps[*eid] = prw
 }
 
 // RegisterEntity register serive
@@ -86,13 +89,13 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 	p.proxySvcMap[svcName] = prw
 }
 
-func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
+func (p *Proxy) ProxyToEntity(eid *entity.EntityID, pkt *codec.Packet) {
 
 	// proxy to local
 	sendLocal := func() bool {
 		p.etyMtx.RLock()
 		defer p.etyMtx.RUnlock()
-		prw, ok := p.entityMaps[eid]
+		prw, ok := p.entityMaps[*eid]
 		if ok {
 			xlog.Println("proxy to id:", eid)
 			prw.WritePacket(pkt)
@@ -107,12 +110,13 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 
 	// proxy to other proxy
 	sendProxy := func() bool {
-		proxyID := pkt.Header.DstEntity.Proxy
+		proxyID := pkt.Header.DstEntity.ProxyID
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
 			prw.WritePacket(pkt)
 			return true
 		}
+		xlog.Errorln("unknown proxyid", proxyID)
 		return false
 	}()
 
@@ -124,7 +128,7 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 
 	if hdr.RequestType == bbq.RequestType_RequestRespone {
-		p.ProxyToEntity(entity.EntityID(pkt.Header.DstEntity.ID), pkt)
+		p.ProxyToEntity(entity.ToEntityID(pkt.Header.DstEntity), pkt)
 		return
 	}
 
@@ -182,7 +186,7 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 		}
 
 		rsp, err := proxypb.NewProxyServiceClient(prxy.GetPacketReadWriter()).RegisterProxy(proxyInst.Context(), &proxypb.RegisterProxyRequest{
-			ProxyID: string(proxyInst.EntityID()),
+			ProxyID: string(proxyInst.EntityID().ID),
 		})
 		if err != nil {
 			panic(err)
@@ -194,4 +198,11 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 		}
 
 	}
+}
+
+type EntityIDGenerator struct {
+}
+
+func (n *EntityIDGenerator) NewEntityID(tn entity.TypeName) *entity.EntityID {
+	return &entity.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: proxyInst.EntityID().ID}
 }

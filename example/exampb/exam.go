@@ -37,10 +37,6 @@ type echoService struct {
 
 func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -49,8 +45,8 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "exampb.EchoService", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "exampb.EchoService"}
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -219,12 +215,12 @@ func NewEchoEtyEntityClient(client *codec.PacketReadWriter, entity entity.Entity
 }
 
 func NewEchoEtyEntity(c entity.Context, client *codec.PacketReadWriter) *echoEtyEntity {
-	return NewEchoEtyEntityWithID(c, entity.EntityID(snowflake.GenUUID()), client)
+	return NewEchoEtyEntityWithID(c, *entity.NewEntityID.NewEntityID("exampb.EchoEtyEntity"), client)
 }
 
 func NewEchoEtyEntityWithID(c entity.Context, id entity.EntityID, client *codec.PacketReadWriter) *echoEtyEntity {
 
-	err := entity.NewEntity(c, &id, EchoEtyEntityDesc.TypeName)
+	err := entity.NewEntity(c, &id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -242,10 +238,6 @@ type echoEtyEntity struct {
 
 func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -254,8 +246,8 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: string(t.entity), Type: "exampb.EchoEtyEntity", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = entity.ToPBEntityID(t.entity)
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -434,10 +426,6 @@ type echoSvc2Service struct {
 
 func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	eid := ""
-	if c != nil {
-		eid = string(c.EntityID())
-	}
 	pkt, release := codec.NewPacket()
 	defer release()
 
@@ -446,8 +434,8 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = &bbq.EntityID{ID: eid, Type: "", Proxy: ""}
-	pkt.Header.DstEntity = &bbq.EntityID{ID: "", Type: "exampb.EchoSvc2Service", Proxy: ""}
+	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.DstEntity = &bbq.EntityID{Type: "exampb.EchoSvc2Service"}
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None

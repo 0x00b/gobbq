@@ -10,7 +10,36 @@ import (
 )
 
 // just for inner
-type EntityID string
+type EntityID struct {
+	ID      string
+	Type    TypeName
+	ProxyID string
+}
+
+type EntityIDGenerator interface {
+	NewEntityID(tn TypeName) *EntityID
+}
+
+var NewEntityID EntityIDGenerator
+
+func ToEntityID(id *bbq.EntityID) *EntityID {
+	if id == nil {
+		return nil
+	}
+	return &EntityID{
+		ID:      id.ID,
+		Type:    TypeName(id.Type),
+		ProxyID: id.ProxyID,
+	}
+}
+
+func ToPBEntityID(id EntityID) *bbq.EntityID {
+	return &bbq.EntityID{
+		ID:      id.ID,
+		Type:    string(id.Type),
+		ProxyID: id.ProxyID,
+	}
+}
 
 // just for inner
 type TypeName string
@@ -48,7 +77,7 @@ type IBaseEntity interface {
 
 	setDesc(desc *EntityDesc)
 
-	onInit(c Context, id EntityID)
+	onInit(c Context, id *EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
@@ -90,7 +119,7 @@ type EntityDesc struct {
 
 type baseEntity struct {
 	// id
-	entityID EntityID
+	entityID *EntityID
 
 	// context
 	context Context
@@ -122,7 +151,7 @@ func (e *baseEntity) Context() Context {
 }
 
 func (e *baseEntity) EntityID() EntityID {
-	return e.entityID
+	return *e.entityID
 }
 
 func (e *baseEntity) Run() {
@@ -178,7 +207,7 @@ func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	e.callback[requestID] = cb
 }
 
-func (e *baseEntity) onInit(c Context, id EntityID) {
+func (e *baseEntity) onInit(c Context, id *EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 1000)

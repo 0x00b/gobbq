@@ -27,7 +27,13 @@ func (ps *ProxyService) RegisterProxy(c entity.Context, req *proxypb.RegisterPro
 		svcs = append(svcs, string(n))
 	}
 
-	return &proxypb.RegisterProxyResponse{ProxyID: string(proxyInst.EntityID()), SvcNames: svcs}, nil
+	return &proxypb.RegisterProxyResponse{ProxyID: string(proxyInst.EntityID().ID), SvcNames: svcs}, nil
+}
+
+// RegisterInst
+func (ps *ProxyService) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
+
+	return &proxypb.RegisterInstResponse{ProxyID: proxyInst.EntityID().ID}, nil
 }
 
 // SyncService
@@ -41,7 +47,7 @@ func (ps *ProxyService) SyncService(c entity.Context, req *proxypb.SyncServiceRe
 // RegisterEntity
 func (ps *ProxyService) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
-	proxyInst.RegisterEntity(entity.EntityID(req.EntityID), c.Packet().Src)
+	proxyInst.RegisterEntity(entity.ToEntityID(req.EntityID), c.Packet().Src)
 
 	return &proxypb.RegisterEntityResponse{}, nil
 }

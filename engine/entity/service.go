@@ -19,7 +19,7 @@ type Service struct {
 
 func (e *Service) serviceType() {}
 
-func (e *Service) onInit(c Context, id EntityID) {
+func (e *Service) onInit(c Context, id *EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 10000)
