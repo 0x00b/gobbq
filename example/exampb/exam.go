@@ -45,7 +45,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "exampb.EchoService"}
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -209,7 +209,7 @@ func RegisterEchoEtyEntity(impl EchoEtyEntity) {
 	entity.Manager.RegisterEntity(&EchoEtyEntityDesc, impl)
 }
 
-func NewEchoEtyEntityClient(client *codec.PacketReadWriter, entity *entity.EntityID) *echoEtyEntity {
+func NewEchoEtyEntityClient(client *codec.PacketReadWriter, entity *bbq.EntityID) *echoEtyEntity {
 	t := &echoEtyEntity{client: client, entity: entity}
 	return t
 }
@@ -218,9 +218,9 @@ func NewEchoEtyEntity(c entity.Context, client *codec.PacketReadWriter) *echoEty
 	return NewEchoEtyEntityWithID(c, entity.NewEntityID.NewEntityID("exampb.EchoEtyEntity"), client)
 }
 
-func NewEchoEtyEntityWithID(c entity.Context, id *entity.EntityID, client *codec.PacketReadWriter) *echoEtyEntity {
+func NewEchoEtyEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *echoEtyEntity {
 
-	err := entity.NewEntity(c, id)
+	_, err := entity.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -231,7 +231,7 @@ func NewEchoEtyEntityWithID(c entity.Context, id *entity.EntityID, client *codec
 }
 
 type echoEtyEntity struct {
-	entity *entity.EntityID
+	entity *bbq.EntityID
 
 	client *codec.PacketReadWriter
 }
@@ -246,8 +246,8 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
-	pkt.Header.DstEntity = entity.ToPBEntityID(t.entity)
+	pkt.Header.SrcEntity = c.EntityID()
+	pkt.Header.DstEntity = t.entity
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -434,7 +434,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "exampb.EchoSvc2Service"}
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -598,7 +598,7 @@ func RegisterClientEntity(impl ClientEntity) {
 	entity.Manager.RegisterEntity(&ClientEntityDesc, impl)
 }
 
-func NewClientEntityClient(client *codec.PacketReadWriter, entity *entity.EntityID) *clientEntity {
+func NewClientEntityClient(client *codec.PacketReadWriter, entity *bbq.EntityID) *clientEntity {
 	t := &clientEntity{client: client, entity: entity}
 	return t
 }
@@ -607,9 +607,9 @@ func NewClientEntity(c entity.Context, client *codec.PacketReadWriter) *clientEn
 	return NewClientEntityWithID(c, entity.NewEntityID.NewEntityID("exampb.ClientEntity"), client)
 }
 
-func NewClientEntityWithID(c entity.Context, id *entity.EntityID, client *codec.PacketReadWriter) *clientEntity {
+func NewClientEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *clientEntity {
 
-	err := entity.NewEntity(c, id)
+	_, err := entity.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -620,7 +620,7 @@ func NewClientEntityWithID(c entity.Context, id *entity.EntityID, client *codec.
 }
 
 type clientEntity struct {
-	entity *entity.EntityID
+	entity *bbq.EntityID
 
 	client *codec.PacketReadWriter
 }
@@ -635,8 +635,8 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
-	pkt.Header.DstEntity = entity.ToPBEntityID(t.entity)
+	pkt.Header.SrcEntity = c.EntityID()
+	pkt.Header.DstEntity = t.entity
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None

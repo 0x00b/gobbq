@@ -1,23 +1,25 @@
 package entity
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
 var Manager EntityManager = EntityManager{
-	Services:    make(map[TypeName]IService),
-	entityDescs: make(map[TypeName]*EntityDesc),
+	Services:    make(map[string]IService),
+	entityDescs: make(map[string]*EntityDesc),
 	Entities:    make(map[string]IBaseEntity),
 }
 var ProxyRegister RegisterProxy
 
 type RegisterProxy interface {
-	RegisterEntityToProxy(eid *EntityID) error
-	RegisterServiceToProxy(svcName TypeName) error
+	RegisterEntityToProxy(eid *bbq.EntityID) error
+	RegisterServiceToProxy(svcName string) error
 
 	// UnregisterEntityToProxy(eid EntityID) error
 	// UnregisterServiceToProxy(svcName TypeName) error
@@ -28,13 +30,13 @@ type EntityManager struct {
 	mu    sync.RWMutex // guards following
 	serve bool
 
-	Services    map[TypeName]IService    // service name -> service info
-	entityDescs map[TypeName]*EntityDesc // entity name -> entity info
-	Entities    map[string]IBaseEntity   // entity id -> entity impl
+	Services    map[string]IService    // service name -> service info
+	entityDescs map[string]*EntityDesc // entity name -> entity info
+	Entities    map[string]IBaseEntity // entity id -> entity impl
 
 }
 
-func RegisterEntity(c Context, id *EntityID, entity IBaseEntity) error {
+func RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
 	ctx := allocContext()
 	ctx.entity = entity
 	entity.onInit(ctx, id)
@@ -52,11 +54,11 @@ func RegisterEntity(c Context, id *EntityID, entity IBaseEntity) error {
 	return nil
 }
 
-func NewEntity(c Context, id *EntityID) IEntity {
+func NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
 	desc, ok := Manager.entityDescs[id.Type]
 	if !ok {
-		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", id.Type)
-		return nil
+		xlog.Printf("EntityManager.RegisterService new entity desc %s", id.Type)
+		return nil, fmt.Errorf("EntityManager.RegisterService new entity desc %s", id.Type)
 	}
 
 	// new entity
@@ -70,11 +72,11 @@ func NewEntity(c Context, id *EntityID) IEntity {
 	entity, ok := svc.(IEntity)
 	if !ok || entity == nil {
 		xlog.Println("error type", svcType.Name())
-		return nil
+		return nil, fmt.Errorf("new entity file %s", id.Type)
 	}
 	// init
 
-	xlog.Println("register entity id:", *id)
+	xlog.Println("register entity id:", id.String())
 
 	newDesc := *desc
 	newDesc.EntityImpl = entity
@@ -90,7 +92,7 @@ func NewEntity(c Context, id *EntityID) IEntity {
 		ProxyRegister.RegisterEntityToProxy(id)
 	}
 
-	return entity
+	return entity, nil
 }
 
 func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
@@ -164,7 +166,7 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 		if NewEntityID != nil {
 			eid = NewEntityID.NewEntityID(sd.TypeName)
 		} else {
-			eid = &EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
+			eid = &bbq.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
 		}
 	}
 

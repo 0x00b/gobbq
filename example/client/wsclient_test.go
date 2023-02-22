@@ -32,7 +32,7 @@ func TestWSClient(m *testing.T) {
 	es := exampb.NewEchoSvc2ServiceClient(client.Gate.GetPacketReadWriter())
 	rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{
 		Text:     "hello",
-		CLientID: entity.ToPBEntityID(client.EntityID()),
+		CLientID: client.EntityID(),
 	})
 	if err != nil {
 		panic(err)

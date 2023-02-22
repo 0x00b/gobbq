@@ -44,7 +44,7 @@ func NewProxy() *Proxy {
 	}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, &entity.EntityID{ID: eid}, gm)
+	entity.RegisterEntity(nil, &bbq.EntityID{ID: eid}, gm)
 
 	go gm.Run()
 
@@ -53,18 +53,18 @@ func NewProxy() *Proxy {
 
 type ProxyMap map[string]*codec.PacketReadWriter
 type ProxySvcMap map[string]*codec.PacketReadWriter
-type entityMap map[entity.EntityID]*codec.PacketReadWriter
+type entityMap map[string]*codec.PacketReadWriter
 type serviceMap map[string]*codec.PacketReadWriter
 
 // RegisterEntity register serive
-func (p *Proxy) RegisterEntity(eid *entity.EntityID, prw *codec.PacketReadWriter) {
+func (p *Proxy) RegisterEntity(eid *bbq.EntityID, prw *codec.PacketReadWriter) {
 	p.etyMtx.Lock()
 	defer p.etyMtx.Unlock()
-	if _, ok := p.entityMaps[*eid]; ok {
+	if _, ok := p.entityMaps[eid.ID]; ok {
 		xlog.Errorln("already has entity", eid)
 	}
 	xlog.Println("register entity id:", eid)
-	p.entityMaps[*eid] = prw
+	p.entityMaps[eid.ID] = prw
 }
 
 // RegisterEntity register serive
@@ -89,13 +89,13 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 	p.proxySvcMap[svcName] = prw
 }
 
-func (p *Proxy) ProxyToEntity(eid *entity.EntityID, pkt *codec.Packet) {
+func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 
 	// proxy to local
 	sendLocal := func() bool {
 		p.etyMtx.RLock()
 		defer p.etyMtx.RUnlock()
-		prw, ok := p.entityMaps[*eid]
+		prw, ok := p.entityMaps[eid.ID]
 		if ok {
 			xlog.Println("proxy to id:", eid)
 			prw.WritePacket(pkt)
@@ -128,7 +128,7 @@ func (p *Proxy) ProxyToEntity(eid *entity.EntityID, pkt *codec.Packet) {
 func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 
 	if hdr.RequestType == bbq.RequestType_RequestRespone {
-		p.ProxyToEntity(entity.ToEntityID(pkt.Header.DstEntity), pkt)
+		p.ProxyToEntity(pkt.Header.DstEntity, pkt)
 		return
 	}
 
@@ -203,6 +203,6 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 type EntityIDGenerator struct {
 }
 
-func (n *EntityIDGenerator) NewEntityID(tn entity.TypeName) *entity.EntityID {
-	return &entity.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: proxyInst.EntityID().ID}
+func (n *EntityIDGenerator) NewEntityID(tn string) *bbq.EntityID {
+	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: proxyInst.EntityID().ID}
 }

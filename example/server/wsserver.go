@@ -54,7 +54,7 @@ func (*EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exa
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
-	client := exampb.NewClientEntityClient(ex.ProxyClient.GetPacketReadWriter(), entity.ToEntityID(req.CLientID))
+	client := exampb.NewClientEntityClient(ex.ProxyClient.GetPacketReadWriter(), req.CLientID)
 	rsp, err := client.SayHello(c, req)
 	if err != nil {
 		return nil, err

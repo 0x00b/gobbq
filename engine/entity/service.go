@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -19,7 +20,7 @@ type Service struct {
 
 func (e *Service) serviceType() {}
 
-func (e *Service) onInit(c Context, id *EntityID) {
+func (e *Service) onInit(c Context, id *bbq.EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 10000)

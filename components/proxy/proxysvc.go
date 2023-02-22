@@ -47,7 +47,7 @@ func (ps *ProxyService) SyncService(c entity.Context, req *proxypb.SyncServiceRe
 // RegisterEntity
 func (ps *ProxyService) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
-	proxyInst.RegisterEntity(entity.ToEntityID(req.EntityID), c.Packet().Src)
+	proxyInst.RegisterEntity(req.EntityID, c.Packet().Src)
 
 	return &proxypb.RegisterEntityResponse{}, nil
 }

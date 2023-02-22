@@ -45,7 +45,7 @@ func (t *proxyService) RegisterProxy(c entity.Context, req *RegisterProxyRequest
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterProxy"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -103,7 +103,7 @@ func (t *proxyService) RegisterInst(c entity.Context, req *RegisterInstRequest) 
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterInst"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -161,7 +161,7 @@ func (t *proxyService) SyncService(c entity.Context, req *SyncServiceRequest) (*
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "SyncService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -219,7 +219,7 @@ func (t *proxyService) RegisterEntity(c entity.Context, req *RegisterEntityReque
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterEntity"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -277,7 +277,7 @@ func (t *proxyService) RegisterService(c entity.Context, req *RegisterServiceReq
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "RegisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -335,7 +335,7 @@ func (t *proxyService) UnregisterEntity(c entity.Context, req *RegisterEntityReq
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "UnregisterEntity"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -393,7 +393,7 @@ func (t *proxyService) UnregisterService(c entity.Context, req *RegisterServiceR
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "UnregisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
@@ -451,7 +451,7 @@ func (t *proxyService) Ping(c entity.Context, req *PingPong) (*PingPong, error) 
 	pkt.Header.Timeout = 1
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = entity.ToPBEntityID(c.EntityID())
+	pkt.Header.SrcEntity = c.EntityID()
 	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxyService"}
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto

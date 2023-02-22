@@ -7,17 +7,18 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
-type clientMap map[entity.EntityID]*codec.PacketReadWriter
+type clientMap map[string]*codec.PacketReadWriter
 
 var cltMap clientMap = make(clientMap)
 
 // // RegisterEntity register serive
-func RegisterEntity(sid entity.EntityID, prw *codec.PacketReadWriter) {
-	cltMap[sid] = prw
+func RegisterEntity(sid *bbq.EntityID, prw *codec.PacketReadWriter) {
+	cltMap[sid.ID] = prw
 }
 
 // GateService
@@ -30,7 +31,7 @@ func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClie
 
 	req.EntityID.ProxyID = Inst.ProxyID
 
-	RegisterEntity(*entity.ToEntityID(req.EntityID), c.Packet().Src)
+	RegisterEntity(req.EntityID, c.Packet().Src)
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
@@ -66,7 +67,7 @@ func NewGate() *Gate {
 	gm := &Gate{}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, &entity.EntityID{ID: eid}, gm)
+	entity.RegisterEntity(nil, &bbq.EntityID{ID: eid}, gm)
 
 	go gm.Run()
 
@@ -78,10 +79,10 @@ var Inst = NewGate()
 type RegisterProxy struct {
 }
 
-func (*RegisterProxy) RegisterEntityToProxy(eid *entity.EntityID) error {
+func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
-	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: entity.ToPBEntityID(eid)})
+	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
 	if err != nil {
 		return err
 	}
@@ -91,7 +92,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid *entity.EntityID) error {
 	return nil
 }
 
-func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
+func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
@@ -108,6 +109,6 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName entity.TypeName) error {
 type EntityIDGenerator struct {
 }
 
-func (n *EntityIDGenerator) NewEntityID(tn entity.TypeName) *entity.EntityID {
-	return &entity.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: Inst.ProxyID}
+func (n *EntityIDGenerator) NewEntityID(tn string) *bbq.EntityID {
+	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: Inst.ProxyID}
 }

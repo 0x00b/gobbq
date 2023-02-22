@@ -51,7 +51,7 @@ func (st *MethodPacketHandler) handleCallService(pkt *codec.Packet) error {
 	hdr := pkt.Header
 	service := hdr.DstEntity.Type
 
-	svc, ok := Manager.Services[TypeName(service)]
+	svc, ok := Manager.Services[service]
 	if !ok {
 		return ErrServiceNotFound
 	}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 type Context interface {
@@ -25,7 +26,7 @@ type Context interface {
 	Packet() *codec.Packet
 	setPacket(*codec.Packet)
 
-	EntityID() *EntityID
+	EntityID() *bbq.EntityID
 
 	RegisterCallback(requestID string, cb Callback)
 
@@ -176,7 +177,7 @@ func (c *baseContext) setPacket(pkt *codec.Packet) {
 	c.pkt = pkt
 }
 
-func (c *baseContext) EntityID() *EntityID {
+func (c *baseContext) EntityID() *bbq.EntityID {
 	return c.entity.EntityID()
 }
 

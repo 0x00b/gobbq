@@ -56,7 +56,7 @@ func Register{{$typeName}}(impl {{$typeName}}) {
 	entity.Manager.RegisterEntity(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *codec.PacketReadWriter, entity *entity.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(client *codec.PacketReadWriter, entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client, entity:entity}
 	return t
 }
@@ -65,9 +65,9 @@ func New{{$typeName}}(c entity.Context, client *codec.PacketReadWriter) *{{lower
 	return New{{$typeName}}WithID(c, entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
 }
 
-func New{{$typeName}}WithID(c entity.Context, id *entity.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 
-	err := entity.NewEntity(c, id)
+	_, err := entity.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -78,7 +78,7 @@ func New{{$typeName}}WithID(c entity.Context, id *entity.EntityID, client *codec
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	entity *entity.EntityID
+	entity *bbq.EntityID
 
 	client *codec.PacketReadWriter
 }
@@ -100,8 +100,8 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.Timeout=      1
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
-	pkt.Header.SrcEntity =  entity.ToPBEntityID(c.EntityID())
-	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}entity.ToPBEntityID(t.entity){{end}}
+	pkt.Header.SrcEntity =  c.EntityID()
+	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}t.entity{{end}}
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None

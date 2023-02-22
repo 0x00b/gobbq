@@ -10,43 +10,39 @@ import (
 )
 
 // just for inner
-type EntityID struct {
-	ID      string
-	Type    TypeName
-	ProxyID string
-}
+// type EntityID bbq.EntityID
 
 type EntityIDGenerator interface {
-	NewEntityID(tn TypeName) *EntityID
+	NewEntityID(typeName string) *bbq.EntityID
 }
 
 var NewEntityID EntityIDGenerator
 
-func ToEntityID(id *bbq.EntityID) *EntityID {
-	if id == nil {
-		return nil
-	}
-	return &EntityID{
-		ID:      id.ID,
-		Type:    TypeName(id.Type),
-		ProxyID: id.ProxyID,
-	}
-}
+// func ToEntityID(id *bbq.EntityID) *EntityID {
+// 	if id == nil {
+// 		return nil
+// 	}
+// 	return &EntityID{
+// 		ID:      id.ID,
+// 		Type:    TypeName(id.Type),
+// 		ProxyID: id.ProxyID,
+// 	}
+// }
 
-func ToPBEntityID(id *EntityID) *bbq.EntityID {
-	if id == nil {
-		return nil
-	}
+// func ToPBEntityID(id *EntityID) *bbq.EntityID {
+// 	if id == nil {
+// 		return nil
+// 	}
 
-	return &bbq.EntityID{
-		ID:      id.ID,
-		Type:    string(id.Type),
-		ProxyID: id.ProxyID,
-	}
-}
+// 	return &bbq.EntityID{
+// 		ID:      id.ID,
+// 		Type:    string(id.Type),
+// 		ProxyID: id.ProxyID,
+// 	}
+// }
 
 // just for inner
-type TypeName string
+// type TypeName string
 
 var _ IEntity = &Entity{}
 
@@ -59,7 +55,7 @@ func (e *Entity) entityType() {}
 type IBaseEntity interface {
 
 	// EntityID
-	EntityID() *EntityID
+	EntityID() *bbq.EntityID
 
 	// Entity Lifetime
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
@@ -75,13 +71,15 @@ type IBaseEntity interface {
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
 
+	// Watch/unwatch entity
+
 	// for inner
 
 	registerCallback(requestID string, cb Callback)
 
 	setDesc(desc *EntityDesc)
 
-	onInit(c Context, id *EntityID)
+	onInit(c Context, id *bbq.EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
@@ -111,7 +109,7 @@ type MethodDesc struct {
 type EntityDesc struct {
 	EntityImpl any
 
-	TypeName TypeName
+	TypeName string
 	// The pointer to the Entity interface. Used to check whether the user
 	// provided implementation satisfies the interface requiremente.
 	HandlerType any
@@ -123,7 +121,7 @@ type EntityDesc struct {
 
 type baseEntity struct {
 	// id
-	entityID *EntityID
+	entityID *bbq.EntityID
 
 	// context
 	context Context
@@ -154,7 +152,7 @@ func (e *baseEntity) Context() Context {
 	return e.context
 }
 
-func (e *baseEntity) EntityID() *EntityID {
+func (e *baseEntity) EntityID() *bbq.EntityID {
 	return e.entityID
 }
 
@@ -211,7 +209,7 @@ func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	e.callback[requestID] = cb
 }
 
-func (e *baseEntity) onInit(c Context, id *EntityID) {
+func (e *baseEntity) onInit(c Context, id *bbq.EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 1000)
