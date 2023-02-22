@@ -9,12 +9,12 @@ import (
 )
 
 type Client struct {
-	entity.Service
+	entity.IEntity
 
 	Gate *nets.Client
 }
 
-func NewClient() *Client {
+func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.ServerInterceptor) *Client {
 
 	cfg := conf.C.Gate.Inst[0]
 	gate, err := nets.Connect(
@@ -25,8 +25,11 @@ func NewClient() *Client {
 
 	client := &Client{}
 
-	eid := &entity.EntityID{ID: snowflake.GenUUID()}
-	entity.RegisterEntity(nil, eid, client)
+	entity.Manager.RegisterEntity(sd, ss)
+
+	eid := &entity.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
+
+	client.IEntity = entity.NewEntity(nil, eid)
 
 	client.Gate = gate
 
@@ -44,7 +47,7 @@ func NewClient() *Client {
 		panic(err)
 	}
 
-	eid.ProxyID = rsp.EntityID.ProxyID
+	client.EntityID().ProxyID = rsp.EntityID.ProxyID
 
 	return client
 }

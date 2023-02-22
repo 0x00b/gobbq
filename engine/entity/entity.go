@@ -33,7 +33,11 @@ func ToEntityID(id *bbq.EntityID) *EntityID {
 	}
 }
 
-func ToPBEntityID(id EntityID) *bbq.EntityID {
+func ToPBEntityID(id *EntityID) *bbq.EntityID {
+	if id == nil {
+		return nil
+	}
+
 	return &bbq.EntityID{
 		ID:      id.ID,
 		Type:    string(id.Type),
@@ -55,7 +59,7 @@ func (e *Entity) entityType() {}
 type IBaseEntity interface {
 
 	// EntityID
-	EntityID() EntityID
+	EntityID() *EntityID
 
 	// Entity Lifetime
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
@@ -150,8 +154,8 @@ func (e *baseEntity) Context() Context {
 	return e.context
 }
 
-func (e *baseEntity) EntityID() EntityID {
-	return *e.entityID
+func (e *baseEntity) EntityID() *EntityID {
+	return e.entityID
 }
 
 func (e *baseEntity) Run() {

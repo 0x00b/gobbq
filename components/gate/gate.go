@@ -78,7 +78,7 @@ var Inst = NewGate()
 type RegisterProxy struct {
 }
 
-func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
+func (*RegisterProxy) RegisterEntityToProxy(eid *entity.EntityID) error {
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: entity.ToPBEntityID(eid)})

@@ -25,7 +25,7 @@ type Context interface {
 	Packet() *codec.Packet
 	setPacket(*codec.Packet)
 
-	EntityID() EntityID
+	EntityID() *EntityID
 
 	RegisterCallback(requestID string, cb Callback)
 
@@ -176,7 +176,7 @@ func (c *baseContext) setPacket(pkt *codec.Packet) {
 	c.pkt = pkt
 }
 
-func (c *baseContext) EntityID() EntityID {
+func (c *baseContext) EntityID() *EntityID {
 	return c.entity.EntityID()
 }
 

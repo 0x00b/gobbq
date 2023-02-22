@@ -66,7 +66,7 @@ var Inst = NewGame()
 type RegisterProxy struct {
 }
 
-func (*RegisterProxy) RegisterEntityToProxy(eid entity.EntityID) error {
+func (*RegisterProxy) RegisterEntityToProxy(eid *entity.EntityID) error {
 
 	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
 

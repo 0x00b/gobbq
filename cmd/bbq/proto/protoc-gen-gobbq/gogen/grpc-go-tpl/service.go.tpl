@@ -56,18 +56,18 @@ func Register{{$typeName}}(impl {{$typeName}}) {
 	entity.Manager.RegisterEntity(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *codec.PacketReadWriter, entity entity.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(client *codec.PacketReadWriter, entity *entity.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{client:client, entity:entity}
 	return t
 }
 
 func New{{$typeName}}(c entity.Context, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
-	return New{{$typeName}}WithID(c,*entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
+	return New{{$typeName}}WithID(c, entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
 }
 
-func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id *entity.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 
-	err := entity.NewEntity(c, &id)
+	err := entity.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -78,7 +78,7 @@ func New{{$typeName}}WithID(c entity.Context, id entity.EntityID, client *codec.
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	entity entity.EntityID
+	entity *entity.EntityID
 
 	client *codec.PacketReadWriter
 }

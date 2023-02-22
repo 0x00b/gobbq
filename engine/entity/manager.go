@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -15,7 +16,7 @@ var Manager EntityManager = EntityManager{
 var ProxyRegister RegisterProxy
 
 type RegisterProxy interface {
-	RegisterEntityToProxy(eid EntityID) error
+	RegisterEntityToProxy(eid *EntityID) error
 	RegisterServiceToProxy(svcName TypeName) error
 
 	// UnregisterEntityToProxy(eid EntityID) error
@@ -51,7 +52,7 @@ func RegisterEntity(c Context, id *EntityID, entity IBaseEntity) error {
 	return nil
 }
 
-func NewEntity(c Context, id *EntityID) error {
+func NewEntity(c Context, id *EntityID) IEntity {
 	desc, ok := Manager.entityDescs[id.Type]
 	if !ok {
 		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", id.Type)
@@ -67,7 +68,7 @@ func NewEntity(c Context, id *EntityID) error {
 	svcValue := reflect.New(svcType)
 	svc := svcValue.Interface()
 	entity, ok := svc.(IEntity)
-	if !ok {
+	if !ok || entity == nil {
 		xlog.Println("error type", svcType.Name())
 		return nil
 	}
@@ -86,10 +87,10 @@ func NewEntity(c Context, id *EntityID) error {
 
 	// send to poxy
 	if ProxyRegister != nil {
-		ProxyRegister.RegisterEntityToProxy(*id)
+		ProxyRegister.RegisterEntityToProxy(id)
 	}
 
-	return nil
+	return entity
 }
 
 func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
@@ -158,7 +159,16 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 
 func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) error {
 
-	RegisterEntity(nil, NewEntityID.NewEntityID(sd.TypeName), entity)
+	eid := entity.EntityID()
+	if eid == nil || eid.ID == "" {
+		if NewEntityID != nil {
+			eid = NewEntityID.NewEntityID(sd.TypeName)
+		} else {
+			eid = &EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
+		}
+	}
+
+	RegisterEntity(nil, eid, entity)
 
 	Manager.mu.Lock()
 	defer Manager.mu.Unlock()

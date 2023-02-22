@@ -6,6 +6,8 @@ import "bbq.proto";
  
 message SayHelloRequest{
 	string text = 1;
+
+	bbq.EntityID CLientID = 2;
 }
 
 message SayHelloResponse{
@@ -26,6 +28,13 @@ service EchoEty {
 
 service EchoSvc2 {
 	option (bbq.service_type) = Service;
+
+	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
+}
+
+// 客户端
+service Client {
+	option (bbq.service_type) = Entity;
 
 	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
 }
