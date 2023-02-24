@@ -15,6 +15,7 @@ var ErrServiceNotFound = errors.New("service not found")
 var ErrEntityNotFound = errors.New("entity not found")
 var ErrUnknownCallType = errors.New("unknown call type")
 var ErrEmptyEntityID = errors.New("bad call, empty dst entity")
+var ErrBadRequest = errors.New("bad call, nil parameters")
 
 func NotMyMethod(err error) bool {
 	return errors.Is(err, ErrServiceNotFound) || errors.Is(err, ErrEntityNotFound)
@@ -88,81 +89,47 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 // =========
 
-// func HandleCallLocalMethod(pkt *codec.Packet, in any, callback func(c Context, rsp any)) error {
-// 	hdr := pkt.Header
-// 	switch hdr.ServiceType {
-// 	case bbq.ServiceType_Entity:
-// 		return handleLocalCallEntity(hdr, in, callback)
-// 	case bbq.ServiceType_Service:
-// 		return handleLocalCallService(hdr, in, callback)
-// 	default:
-// 	}
-// 	return UnknownCallType
-// }
+func HandleCallLocalMethod(pkt *codec.Packet, in any, respChan chan any) error {
+	switch pkt.Header.ServiceType {
+	case bbq.ServiceType_Entity:
+		return handleLocalCallEntity(pkt, in, respChan)
+	case bbq.ServiceType_Service:
+		return handleLocalCallService(pkt, in, respChan)
+	default:
+	}
+	return ErrUnknownCallType
+}
 
-// func handleLocalCallService(hdr *bbq.Header, in any, callback func(c Context, rsp any)) error {
-// 	sm := hdr.GetMethod()
-// 	if sm != "" && sm[0] == '/' {
-// 		sm = sm[1:]
-// 	}
-// 	pos := strings.LastIndex(sm, "/")
-// 	if pos == -1 {
-// 		return MethodNameError
-// 	}
+func handleLocalCallService(pkt *codec.Packet, in any, respChan chan any) error {
 
-// 	service := sm[:pos]
+	service := pkt.Header.DstEntity.Type
 
-// 	ss, ok := Manager.Services[TypeName(service)]
-// 	if !ok {
-// 		return ErrServiceNotFound
-// 	}
+	ss, ok := Manager.Services[service]
+	if !ok {
+		return ErrServiceNotFound
+	}
 
-// 	ss.dispatchPkt(pkt)
+	xlog.Infoln("handleLocalCallService", pkt.Header.String())
 
-// 	return nil
-// 	// return handleCallMethod(nil, hdr, in, callback, ed.Desc())
+	return ss.dispatchLocalCall(pkt, in, respChan)
+}
 
-// }
+func handleLocalCallEntity(pkt *codec.Packet, in any, respChan chan any) error {
 
-// func handleLocalCallEntity(hdr *bbq.Header, in any, callback func(c Context, rsp any)) error {
+	xlog.Infoln("handleLocalCallEntity 1", pkt.Header.String())
 
-// 	ety := hdr.GetDstEntity()
-// 	if ety == nil {
-// 		return EmptyEntityID
-// 	}
+	ety := pkt.Header.GetDstEntity()
+	if ety == nil {
+		return ErrEmptyEntityID
+	}
 
-// 	Manager.mu.RLock()
-// 	defer Manager.mu.RUnlock()
-// 	entity, ok := Manager.Entities[(EntityID(ety.ID))]
-// 	if !ok {
-// 		return ErrEntityNotFound
-// 	}
-// 	entity.dispatchPkt(pkt)
-// 	return nil
+	Manager.mu.RLock()
+	defer Manager.mu.RUnlock()
+	entity, ok := Manager.Entities[(ety.ID)]
+	if !ok {
+		return ErrEntityNotFound
+	}
+	xlog.Infoln("handleLocalCallEntity 2", pkt.Header.String())
 
-// 	// return handleCallMethod(entity.Context(), hdr, in, callback, entity.Desc())
-// }
-
-// func handleCallMethod(c Context, hdr *bbq.Header, in any, callback func(c Context, rsp any), sd *ServiceDesc) error {
-
-// 	sm := hdr.GetMethod()
-// 	if sm != "" && sm[0] == '/' {
-// 		sm = sm[1:]
-// 	}
-// 	pos := strings.LastIndex(sm, "/")
-// 	if pos == -1 {
-// 		return MethodNameError
-// 	}
-
-// 	// service := sm[:pos]
-// 	method := sm[pos+1:]
-
-// 	mt, ok := sd.Methods[method]
-// 	if !ok {
-// 		return MethodNotFound
-// 	}
-
-// 	mt.LocalHandler(sd.ServiceImpl, c, in, callback, chainServerInterceptors(sd.interceptors))
-
-// 	return nil
-// }
+	return entity.dispatchLocalCall(pkt, in, respChan)
+}

@@ -13,16 +13,7 @@ message RegisterProxyRequest{
 }
 
 message RegisterProxyResponse{
-	string ProxyID = 1;
-	repeated string SvcNames = 2;
-}
-
-message RegisterInstRequest{
-	string InstID = 1;
-}
-
-message RegisterInstResponse{
-	string ProxyID = 1;
+	repeated string SvcNames = 1;
 }
 
 message SyncServiceRequest{
@@ -31,6 +22,24 @@ message SyncServiceRequest{
 }
 
 message SyncServiceResponse{
+}
+
+service ProxyEty {
+	option (bbq.service_type) = Entity;
+
+	rpc RegisterProxy(RegisterProxyRequest) returns(RegisterProxyResponse) {}
+ 
+	rpc SyncService(SyncServiceRequest) returns(SyncServiceResponse) {}
+
+	rpc Ping(PingPong) returns(PingPong) {}
+}
+
+message RegisterInstRequest{
+	string InstID = 1;
+}
+
+message RegisterInstResponse{
+	string ProxyID = 1;
 }
 
 message RegisterEntityRequest{
@@ -47,14 +56,11 @@ message RegisterServiceRequest{
 message RegisterServiceResponse{
 }
 
-service Proxy {
+
+service ProxySvc {
 	option (bbq.service_type) = Service;
 
-	rpc RegisterProxy(RegisterProxyRequest) returns(RegisterProxyResponse) {}
-
 	rpc RegisterInst(RegisterInstRequest) returns(RegisterInstResponse) {}
- 
-	rpc SyncService(SyncServiceRequest) returns(SyncServiceResponse) {}
  
 	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}

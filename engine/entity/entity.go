@@ -83,6 +83,7 @@ type IBaseEntity interface {
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
+	dispatchLocalCall(pkt *codec.Packet, req any, respChan chan any) error
 
 	setParant(s IBaseEntity)
 	addChildren(s IBaseEntity)
@@ -96,13 +97,13 @@ type IEntity interface {
 
 type methodHandler func(svc any, ctx Context, pkt *codec.Packet, interceptor ServerInterceptor)
 
-// type methodLocalHandler func(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error)
+type methodLocalHandler func(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error)
 
 // MethodDesc represents an RPC Entity's method specification.
 type MethodDesc struct {
-	MethodName string
-	Handler    methodHandler
-	// LocalHandler methodLocalHandler
+	MethodName   string
+	Handler      methodHandler
+	LocalHandler methodLocalHandler
 }
 
 // EntityDesc represents an RPC Entity's specification.
@@ -119,6 +120,12 @@ type EntityDesc struct {
 	interceptors []ServerInterceptor
 }
 
+type localCall struct {
+	pkt      *codec.Packet
+	in       any
+	respChan chan any
+}
+
 type baseEntity struct {
 	// id
 	entityID *bbq.EntityID
@@ -128,7 +135,9 @@ type baseEntity struct {
 
 	desc *EntityDesc
 
-	callChan chan *codec.Packet
+	callChan      chan *codec.Packet
+	localCallChan chan *localCall
+
 	respChan chan *codec.Packet
 
 	cbMtx sync.RWMutex
@@ -178,6 +187,7 @@ func (e *baseEntity) Run() {
 			select {
 			case <-e.context.Done():
 				xlog.Println("ctx done", e)
+				return
 			case pkt := <-e.respChan:
 				xlog.Printf("handle: %s", pkt.String())
 				e.handleMethodRsp(e.context, pkt)
@@ -190,10 +200,22 @@ func (e *baseEntity) Run() {
 		select {
 		case <-e.context.Done():
 			xlog.Println("ctx done", e)
+			return
 
 		case pkt := <-e.callChan:
 			xlog.Printf("handle: %s", pkt.String())
-			e.handleCallMethod(e.context, pkt)
+			err := e.handleCallMethod(e.context, pkt)
+			if err != nil {
+				xlog.Errorln(err)
+			}
+			xlog.Printf("handle done: %s", pkt.String())
+		case lc := <-e.localCallChan:
+			xlog.Printf("handle local call: %s", lc.pkt.String())
+			err := e.handleLocalCallMethod(e.context, lc)
+			if err != nil {
+				xlog.Errorln(err)
+			}
+			xlog.Printf("handle local call done: %s", lc.pkt.String())
 		}
 	}
 }
@@ -213,6 +235,7 @@ func (e *baseEntity) onInit(c Context, id *bbq.EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 1000)
+	e.localCallChan = make(chan *localCall, 1000)
 	e.callback = make(map[string]Callback, 1)
 	e.respChan = make(chan *codec.Packet, 1)
 
@@ -240,6 +263,22 @@ func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
 	}
 }
 
+func (e *baseEntity) dispatchLocalCall(pkt *codec.Packet, req any, respChan chan any) error {
+	if pkt != nil && req != nil {
+		pkt.Retain()
+
+		lc := localCall{
+			pkt:      pkt,
+			in:       req,
+			respChan: respChan,
+		}
+		e.localCallChan <- &lc
+		return nil
+	}
+
+	return ErrBadRequest
+}
+
 func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
@@ -260,6 +299,36 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	}
 
 	return nil
+}
+
+func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
+	defer lc.pkt.Release()
+
+	c.setPacket(lc.pkt)
+
+	hdr := lc.pkt.Header
+
+	sd := e.desc
+	mt, ok := sd.Methods[hdr.Method]
+	if !ok {
+		return ErrMethodNotFound
+	}
+
+	xlog.Infoln("LocalHandler 1", e.EntityID(), hdr.String())
+
+	rsp, err := mt.LocalHandler(sd.EntityImpl, c, lc.in, chainServerInterceptors(sd.interceptors))
+
+	xlog.Infoln("LocalHandler 2", hdr.String())
+
+	if lc.respChan != nil {
+		if rsp != nil {
+			lc.respChan <- rsp
+		} else {
+			lc.respChan <- err
+		}
+	}
+
+	return err
 }
 
 func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet) error {

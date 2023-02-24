@@ -24,6 +24,7 @@ func (e *Service) onInit(c Context, id *bbq.EntityID) {
 	e.context = c
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 10000)
+	e.localCallChan = make(chan *localCall, 10000)
 	e.callback = make(map[string]Callback, 10000)
 	e.respChan = make(chan *codec.Packet, 10000)
 
@@ -84,8 +85,27 @@ func (e *Service) Run() {
 				defer release()
 				defer wg.Done()
 
-				e.handleCallMethod(ctx, pkt)
+				err := e.handleCallMethod(ctx, pkt)
+				if err != nil {
+					xlog.Errorln(err)
+				}
 			}(ctx, release, pkt)
+
+		case lc := <-e.localCallChan:
+			wg.Add(1)
+
+			// 异步
+			ctx, release := e.context.Copy()
+			go func(ctx Context, release releaseCtx, lc *localCall) {
+				defer release()
+				defer wg.Done()
+
+				err := e.handleLocalCallMethod(ctx, lc)
+				if err != nil {
+					xlog.Errorln(err)
+				}
+			}(ctx, release, lc)
+
 		}
 	}
 }

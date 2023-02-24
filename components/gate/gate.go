@@ -33,7 +33,7 @@ func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClie
 
 	RegisterEntity(req.EntityID, c.Packet().Src)
 
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
 	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
 	if err != nil {
 		return nil, err
@@ -43,8 +43,8 @@ func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClie
 }
 
 // UnregisterClient
-func (gs *GateService) UnregisterClient(c entity.Context, req *gatepb.RegisterClientRequest) {
-
+func (gs *GateService) UnregisterClient(c entity.Context, req *gatepb.RegisterClientRequest) error {
+	return nil
 }
 
 // Ping
@@ -80,7 +80,7 @@ type RegisterProxy struct {
 }
 
 func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
 	if err != nil {
@@ -94,7 +94,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
 
 func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	_, err := client.RegisterService(Inst.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {

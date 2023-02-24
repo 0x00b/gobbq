@@ -55,24 +55,25 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -82,10 +83,13 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
 	}
@@ -103,9 +107,7 @@ type EchoService interface {
 
 func _EchoService_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-
 		return svc.(EchoService).SayHello(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -120,23 +122,17 @@ func _EchoService_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequ
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*SayHelloResponse), err
 
 }
 
-//func _EchoService_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *SayHelloResponse, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_EchoService_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
-//
-//}
+func _EchoService_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _EchoService_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), interceptor)
+
+}
 
 func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -196,9 +192,9 @@ var EchoServiceDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName: "SayHello",
-			Handler:    _EchoService_SayHello_Remote_Handler,
-			//LocalHandler:	_EchoService_SayHello_Local_Handler,
+			MethodName:   "SayHello",
+			Handler:      _EchoService_SayHello_Remote_Handler,
+			LocalHandler: _EchoService_SayHello_Local_Handler,
 		},
 	},
 
@@ -256,24 +252,25 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -283,10 +280,13 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
 	}
@@ -304,9 +304,7 @@ type EchoEtyEntity interface {
 
 func _EchoEtyEntity_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-
 		return svc.(EchoEtyEntity).SayHello(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -321,23 +319,17 @@ func _EchoEtyEntity_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRe
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*SayHelloResponse), err
 
 }
 
-//func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *SayHelloResponse, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_EchoEtyEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
-//
-//}
+func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _EchoEtyEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), interceptor)
+
+}
 
 func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -397,9 +389,9 @@ var EchoEtyEntityDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName: "SayHello",
-			Handler:    _EchoEtyEntity_SayHello_Remote_Handler,
-			//LocalHandler:	_EchoEtyEntity_SayHello_Local_Handler,
+			MethodName:   "SayHello",
+			Handler:      _EchoEtyEntity_SayHello_Remote_Handler,
+			LocalHandler: _EchoEtyEntity_SayHello_Local_Handler,
 		},
 	},
 
@@ -444,24 +436,25 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -471,10 +464,13 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
 	}
@@ -492,9 +488,7 @@ type EchoSvc2Service interface {
 
 func _EchoSvc2Service_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-
 		return svc.(EchoSvc2Service).SayHello(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -509,23 +503,17 @@ func _EchoSvc2Service_SayHello_Handler(svc any, ctx entity.Context, in *SayHello
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*SayHelloResponse), err
 
 }
 
-//func _EchoSvc2Service_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *SayHelloResponse, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_EchoSvc2Service_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
-//
-//}
+func _EchoSvc2Service_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _EchoSvc2Service_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), interceptor)
+
+}
 
 func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -585,9 +573,9 @@ var EchoSvc2ServiceDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName: "SayHello",
-			Handler:    _EchoSvc2Service_SayHello_Remote_Handler,
-			//LocalHandler:	_EchoSvc2Service_SayHello_Local_Handler,
+			MethodName:   "SayHello",
+			Handler:      _EchoSvc2Service_SayHello_Remote_Handler,
+			LocalHandler: _EchoSvc2Service_SayHello_Local_Handler,
 		},
 	},
 
@@ -645,24 +633,25 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -672,10 +661,13 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
 	}
@@ -693,9 +685,7 @@ type ClientEntity interface {
 
 func _ClientEntity_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) (*SayHelloResponse, error) {
 	if interceptor == nil {
-
 		return svc.(ClientEntity).SayHello(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -710,23 +700,17 @@ func _ClientEntity_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloReq
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*SayHelloResponse), err
 
 }
 
-//func _ClientEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *SayHelloResponse, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_ClientEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest) , ret, interceptor)
-//
-//}
+func _ClientEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _ClientEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), interceptor)
+
+}
 
 func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -786,9 +770,9 @@ var ClientEntityDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"SayHello": {
-			MethodName: "SayHello",
-			Handler:    _ClientEntity_SayHello_Remote_Handler,
-			//LocalHandler:	_ClientEntity_SayHello_Local_Handler,
+			MethodName:   "SayHello",
+			Handler:      _ClientEntity_SayHello_Remote_Handler,
+			LocalHandler: _ClientEntity_SayHello_Local_Handler,
 		},
 	},
 

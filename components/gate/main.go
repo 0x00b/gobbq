@@ -18,7 +18,7 @@ func main() {
 	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	ex.ConnProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
-	client := proxypb.NewProxyServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
 
 	rsp, err := client.RegisterInst(Inst.Context(), &proxypb.RegisterInstRequest{
 		InstID: Inst.EntityID().ID,

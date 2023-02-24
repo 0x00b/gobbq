@@ -14,7 +14,7 @@ import (
 )
 
 type Proxy struct {
-	entity.Entity
+	entity.IEntity
 
 	etyMtx     sync.RWMutex
 	entityMaps entityMap
@@ -32,6 +32,10 @@ var proxyInst = NewProxy()
 
 func NewProxy() *Proxy {
 
+	conf.Init("proxy.yaml")
+
+	proxypb.RegisterProxyEtyEntity(&ProxyEntity{})
+
 	entity.NewEntityID = &EntityIDGenerator{}
 
 	gm := &Proxy{
@@ -42,11 +46,19 @@ func NewProxy() *Proxy {
 		proxyMap:    make(ProxyMap),
 		proxySvcMap: make(ProxySvcMap),
 	}
-	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, &bbq.EntityID{ID: eid}, gm)
+	// eid := conf.C.Proxy.Inst[0].ID
 
-	go gm.Run()
+	// entity.RegisterEntity(nil, &bbq.EntityID{ID: eid}, gm)
+
+	eid := &bbq.EntityID{ID: conf.C.Proxy.Inst[0].ID, Type: proxypb.ProxyEtyEntityDesc.TypeName}
+	var err error
+	gm.IEntity, err = entity.NewEntity(nil, eid)
+	if err != nil {
+		panic(err)
+	}
+
+	// go gm.Run()
 
 	return gm
 }
@@ -185,14 +197,15 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 			panic(err)
 		}
 
-		rsp, err := proxypb.NewProxyServiceClient(prxy.GetPacketReadWriter()).RegisterProxy(proxyInst.Context(), &proxypb.RegisterProxyRequest{
-			ProxyID: string(proxyInst.EntityID().ID),
-		})
+		rsp, err := proxypb.NewProxyEtyEntityClient(prxy.GetPacketReadWriter(), &bbq.EntityID{ID: cfg.ID, ProxyID: cfg.ID}).
+			RegisterProxy(proxyInst.Context(), &proxypb.RegisterProxyRequest{
+				ProxyID: string(proxyInst.EntityID().ID),
+			})
 		if err != nil {
 			panic(err)
 		}
 
-		p.proxyMap[rsp.ProxyID] = prxy.GetPacketReadWriter()
+		p.proxyMap[cfg.ID] = prxy.GetPacketReadWriter()
 		for _, v := range rsp.SvcNames {
 			p.RegisterProxyService(v, prxy.GetPacketReadWriter())
 		}

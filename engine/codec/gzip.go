@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -21,7 +20,7 @@ import (
 func init() {
 	c := &compressor{}
 	c.poolCompressor.New = func() any {
-		return &writer{Writer: gzip.NewWriter(ioutil.Discard), pool: &c.poolCompressor}
+		return &writer{Writer: gzip.NewWriter(io.Discard), pool: &c.poolCompressor}
 	}
 	RegisterCompressor(c)
 }
@@ -42,7 +41,7 @@ func SetLevel(level int) error {
 	}
 	c := GetCompressor(bbq.CompressType_Gzip).(*compressor)
 	c.poolCompressor.New = func() any {
-		w, err := gzip.NewWriterLevel(ioutil.Discard, level)
+		w, err := gzip.NewWriterLevel(io.Discard, level)
 		if err != nil {
 			panic(err)
 		}

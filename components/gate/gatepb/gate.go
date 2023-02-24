@@ -55,24 +55,25 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
@@ -82,10 +83,13 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*RegisterClientResponse); ok {
 		return rsp, nil
 	}
@@ -93,7 +97,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 }
 
-func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) {
+func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) error {
 
 	pkt, release := codec.NewPacket()
 	defer release()
@@ -113,20 +117,25 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
-
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, nil)
 	if err != nil {
-		xlog.Errorln(err)
-		return
+		if !entity.NotMyMethod(err) {
+			return err
+		}
+
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return err
+		}
+
+		pkt.WriteBody(hdrBytes)
+
+		t.client.WritePacket(pkt)
+
 	}
 
-	pkt.WriteBody(hdrBytes)
-
-	t.client.WritePacket(pkt)
+	return nil
 
 }
 
@@ -150,24 +159,25 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	// err = entity.HandleCallLocalMethod(pkt, req, itfCallback)
-	// if err == nil {
-	// 	return nil
-	// }
+	var chanRsp chan any = make(chan any)
 
-	hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
-		xlog.Errorln(err)
-		return nil, err
-	}
+		if !entity.NotMyMethod(err) {
+			return nil, err
+		}
 
-	pkt.WriteBody(hdrBytes)
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return nil, err
+		}
 
-	t.client.WritePacket(pkt)
+		pkt.WriteBody(hdrBytes)
 
-	// register callback
-	chanRsp := make(chan any)
-	if c != nil {
+		t.client.WritePacket(pkt)
+
+		// register callback
 		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -177,10 +187,13 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 				return
 			}
 			chanRsp <- rsp
-			close(chanRsp)
 		})
+
 	}
+
 	rsp := <-chanRsp
+	close(chanRsp)
+
 	if rsp, ok := rsp.(*PingPong); ok {
 		return rsp, nil
 	}
@@ -196,7 +209,7 @@ type GateService interface {
 	RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error)
 
 	// UnregisterClient
-	UnregisterClient(c entity.Context, req *RegisterClientRequest)
+	UnregisterClient(c entity.Context, req *RegisterClientRequest) error
 
 	// Ping
 	Ping(c entity.Context, req *PingPong) (*PingPong, error)
@@ -204,9 +217,7 @@ type GateService interface {
 
 func _GateService_RegisterClient_Handler(svc any, ctx entity.Context, in *RegisterClientRequest, interceptor entity.ServerInterceptor) (*RegisterClientResponse, error) {
 	if interceptor == nil {
-
 		return svc.(GateService).RegisterClient(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -221,23 +232,17 @@ func _GateService_RegisterClient_Handler(svc any, ctx entity.Context, in *Regist
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*RegisterClientResponse), err
 
 }
 
-//func _GateService_RegisterClient_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *RegisterClientResponse, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_GateService_RegisterClient_Handler(svc, ctx, in.(*RegisterClientRequest) , ret, interceptor)
-//
-//}
+func _GateService_RegisterClient_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _GateService_RegisterClient_Handler(svc, ctx, in.(*RegisterClientRequest), interceptor)
+
+}
 
 func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -291,12 +296,9 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 
 }
 
-func _GateService_UnregisterClient_Handler(svc any, ctx entity.Context, in *RegisterClientRequest, interceptor entity.ServerInterceptor) {
+func _GateService_UnregisterClient_Handler(svc any, ctx entity.Context, in *RegisterClientRequest, interceptor entity.ServerInterceptor) error {
 	if interceptor == nil {
-
-		svc.(GateService).UnregisterClient(ctx, in)
-		return
-
+		return svc.(GateService).UnregisterClient(ctx, in)
 	}
 
 	info := &entity.ServerInfo{
@@ -306,21 +308,22 @@ func _GateService_UnregisterClient_Handler(svc any, ctx entity.Context, in *Regi
 
 	handler := func(ctx entity.Context, rsp any) (any, error) {
 
-		svc.(GateService).UnregisterClient(ctx, in)
-		return nil, nil
+		return nil, svc.(GateService).UnregisterClient(ctx, in)
 
 	}
 
-	interceptor(ctx, in, info, handler)
+	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
+	return err
 
 }
 
-//func _GateService_UnregisterClient_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//
-//	_GateService_UnregisterClient_Handler(svc, ctx, in.(*RegisterClientRequest) , interceptor)
-//
-//}
+func _GateService_UnregisterClient_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return nil, _GateService_UnregisterClient_Handler(svc, ctx, in.(*RegisterClientRequest), interceptor)
+
+}
 
 func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -340,9 +343,7 @@ func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, p
 
 func _GateService_Ping_Handler(svc any, ctx entity.Context, in *PingPong, interceptor entity.ServerInterceptor) (*PingPong, error) {
 	if interceptor == nil {
-
 		return svc.(GateService).Ping(ctx, in)
-
 	}
 
 	info := &entity.ServerInfo{
@@ -357,23 +358,17 @@ func _GateService_Ping_Handler(svc any, ctx entity.Context, in *PingPong, interc
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
 	return rsp.(*PingPong), err
 
 }
 
-//func _GateService_Ping_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor)(any, error) {
-//
-//		ret := func(rsp *PingPong, err error) {
-//			if err != nil {
-//				_ = err
-//			}
-//			callback(ctx, rsp)
-//		}
-//
-//
-//	_GateService_Ping_Handler(svc, ctx, in.(*PingPong) , ret, interceptor)
-//
-//}
+func _GateService_Ping_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return _GateService_Ping_Handler(svc, ctx, in.(*PingPong), interceptor)
+
+}
 
 func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
 
@@ -433,21 +428,21 @@ var GateServiceDesc = entity.EntityDesc{
 	Methods: map[string]entity.MethodDesc{
 
 		"RegisterClient": {
-			MethodName: "RegisterClient",
-			Handler:    _GateService_RegisterClient_Remote_Handler,
-			//LocalHandler:	_GateService_RegisterClient_Local_Handler,
+			MethodName:   "RegisterClient",
+			Handler:      _GateService_RegisterClient_Remote_Handler,
+			LocalHandler: _GateService_RegisterClient_Local_Handler,
 		},
 
 		"UnregisterClient": {
-			MethodName: "UnregisterClient",
-			Handler:    _GateService_UnregisterClient_Remote_Handler,
-			//LocalHandler:	_GateService_UnregisterClient_Local_Handler,
+			MethodName:   "UnregisterClient",
+			Handler:      _GateService_UnregisterClient_Remote_Handler,
+			LocalHandler: _GateService_UnregisterClient_Local_Handler,
 		},
 
 		"Ping": {
-			MethodName: "Ping",
-			Handler:    _GateService_Ping_Remote_Handler,
-			//LocalHandler:	_GateService_Ping_Local_Handler,
+			MethodName:   "Ping",
+			Handler:      _GateService_Ping_Remote_Handler,
+			LocalHandler: _GateService_Ping_Local_Handler,
 		},
 	},
 

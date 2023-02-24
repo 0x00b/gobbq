@@ -13,8 +13,6 @@ import (
 
 func main() {
 
-	conf.Init("proxy.yaml")
-
 	fmt.Println(conf.C)
 
 	proxyInst.ConnOtherProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
@@ -23,7 +21,7 @@ func main() {
 
 	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()), nets.WithConnHandler(&ConnHandler{}))
 
-	proxypb.RegisterProxyService(&ProxyService{})
+	proxypb.RegisterProxySvcService(&ProxyService{})
 
 	err := svr.ListenAndServe(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))
 

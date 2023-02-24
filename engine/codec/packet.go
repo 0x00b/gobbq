@@ -29,6 +29,34 @@ type Packet struct {
 	ctx context.Context
 }
 
+func CopyHeader(src, dst *bbq.Header) {
+	dst.Version = src.Version
+	dst.RequestId = src.RequestId
+	dst.Timeout = src.Timeout
+	dst.RequestType = src.RequestType
+	dst.ServiceType = src.ServiceType
+
+	dst.SrcEntity = &bbq.EntityID{
+		ID:      src.SrcEntity.ID,
+		Type:    src.SrcEntity.Type,
+		ProxyID: src.SrcEntity.ProxyID,
+	}
+
+	dst.DstEntity = &bbq.EntityID{
+		ID:      src.DstEntity.ID,
+		Type:    src.DstEntity.Type,
+		ProxyID: src.DstEntity.ProxyID,
+	}
+
+	dst.Method = src.Method
+	dst.ContentType = src.ContentType
+	dst.CompressType = src.CompressType
+	dst.CheckFlags = src.CheckFlags
+	dst.TransInfo = src.TransInfo
+	dst.ErrCode = src.ErrCode
+	dst.ErrMsg = src.ErrMsg
+}
+
 const (
 	minPacketBufferLen  = bytespool.MinBufferCap
 	MaxPacketBodyLength = bytespool.MaxBufferCap
@@ -148,6 +176,9 @@ func (p *Packet) WriteBody(b []byte) error {
 
 // PacketBody returns the total packetBody of packet
 func (p *Packet) PacketBody() []byte {
+	if p.bytes == nil {
+		return nil
+	}
 	return p.bytes.Bytes()[p.headerLen:p.totalLen]
 }
 

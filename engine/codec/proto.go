@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // Name is the name registered for the proto compressor.
