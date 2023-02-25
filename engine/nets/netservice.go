@@ -1,6 +1,7 @@
 package nets
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -40,29 +41,48 @@ type ServiceName interface {
 type NetService interface {
 	ServiceName
 
-	ListenAndServe(network NetWorkName, address string, opts *Options) error
+	ListenAndServe() error
 
-	Close(chan struct{}) error
+	Close(chan struct{})
 }
 
 type service struct {
+	opts *Options
+
+	ctx    context.Context
+	cancel func()
+
 	idleTimeout time.Duration
 	lastVisited time.Time
-
-	opts *Options
 }
 
-func NewNetService() *service {
-	return &service{}
+func NewNetService(opts ...Option) *service {
+	svc := &service{
+		opts: &Options{},
+	}
+
+	svc.ctx, svc.cancel = context.WithCancel(context.Background())
+
+	for _, opt := range opts {
+		opt(svc.opts)
+	}
+
+	return svc
 }
 
-func (s *service) ListenAndServe(network NetWorkName, address string, opts *Options) error {
-	s.opts = opts
-	return s.listenAndServe(network, address, opts)
+func (s *service) ListenAndServe() error {
+	return s.listenAndServe(s.opts.network, s.opts.address, s.opts)
 }
 
-func (s *service) Close(chan struct{}) error {
-	return nil
+func (s *service) Close(closeChan chan struct{}) {
+
+	xlog.Infoln("server closing", s.opts.network, s.opts.address)
+
+	s.cancel()
+
+	closeChan <- struct{}{}
+
+	return
 }
 
 func (s *service) Name() string {
@@ -92,10 +112,16 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 	if err != nil {
 		return err
 	}
+	xlog.Infoln("listenAndServe from:", network, address)
 
 	defer ln.Close()
 
 	for {
+		select {
+		case <-s.ctx.Done():
+		default:
+		}
+
 		conn, err := ln.Accept()
 		if err != nil {
 			if err != nil {
@@ -105,16 +131,28 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 			}
 		}
 
-		xlog.Printf("Connection from: %s", conn.RemoteAddr())
+		xlog.Infof("Connection from: %s", conn.RemoteAddr())
+
 		go s.handleConn(conn, opts)
 	}
 }
 
 func (s *service) handleConn(rawConn net.Conn, opts *Options) {
+
+	// tcpConn.SetNoDelay(consts.CLIENT_PROXY_SET_TCP_NO_DELAY)
+
+	// kcpCon.SetReadBuffer(consts.CLIENT_PROXY_READ_BUFFER_SIZE)
+	// conn.SetWriteBuffer(consts.CLIENT_PROXY_WRITE_BUFFER_SIZE)
+	// // turn on turbo mode according to https://github.com/skywind3000/kcp/blob/master/README.en.md#protocol-configuration
+	// conn.SetNoDelay(consts.KCP_NO_DELAY, consts.KCP_INTERNAL_UPDATE_TIMER_INTERVAL, consts.KCP_ENABLE_FAST_RESEND, consts.KCP_DISABLE_CONGESTION_CONTROL)
+	// conn.SetStreamMode(consts.KCP_SET_STREAM_MODE)
+	// conn.SetWriteDelay(consts.KCP_SET_WRITE_DELAY)
+	// conn.SetACKNoDelay(consts.KCP_SET_ACK_NO_DELAY)
+
 	if s.opts.TLSCertFile != "" && s.opts.TLSKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(s.opts.TLSCertFile, s.opts.TLSKeyFile)
 		if err != nil {
-			xlog.Println(err, "load RSA key & certificate failed")
+			xlog.Traceln(err, "load RSA key & certificate failed")
 			return
 		}
 		tlsConfig := &tls.Config{
@@ -133,9 +171,12 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 		rawConn = net.Conn(tlsConn)
 	}
 
-	xlog.Println("handleconn")
+	xlog.Traceln("handleconn")
 
-	cn := newDefaultConn()
+	ctx, cancel := context.WithCancel(context.Background())
+	cn := newDefaultConn(ctx)
+	cn.cancel = cancel
+
 	cn.rwc = rawConn
 	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
 	cn.PacketHandler = opts.PacketHandler

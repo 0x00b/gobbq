@@ -1,6 +1,7 @@
 package nets
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -10,11 +11,17 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-func newDefaultConn() *conn {
-	return &conn{ConnHandler: &defaultConnHandler{}}
+func newDefaultConn(ctx context.Context) *conn {
+	return &conn{
+		ConnHandler: &defaultConnHandler{},
+		ctx:         ctx,
+	}
 }
 
 type conn struct {
+	ctx    context.Context
+	cancel func()
+
 	rwc              net.Conn
 	packetReadWriter *codec.PacketReadWriter
 	idleTimeout      time.Duration
@@ -28,6 +35,13 @@ func (st *conn) Name() string {
 	return "server"
 }
 
+func (st *conn) Close() string {
+
+	st.cancel()
+
+	return "server"
+}
+
 func (st *conn) WritePacket(pkt *codec.Packet) error {
 	return st.packetReadWriter.WritePacket(pkt)
 }
@@ -36,11 +50,11 @@ func (st *conn) Serve() {
 	// defer st.Close()
 	for {
 		// 检查上游是否关闭
-		// select {
-		// case <-st.ctx.Done():
-		// 	return
-		// default:
-		// }
+		select {
+		case <-st.ctx.Done():
+			return
+		default:
+		}
 
 		if st.idleTimeout > 0 {
 			now := time.Now()
@@ -48,7 +62,7 @@ func (st *conn) Serve() {
 				st.lastVisited = now
 				err := st.rwc.SetReadDeadline(now.Add(st.idleTimeout))
 				if err != nil {
-					xlog.Println("transport: tcpconn SetReadDeadline fail ", err)
+					xlog.Traceln("transport: tcpconn SetReadDeadline fail ", err)
 					return
 				}
 			}
@@ -57,24 +71,24 @@ func (st *conn) Serve() {
 		pkt, release, err := st.packetReadWriter.ReadPacket()
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
-				// xlog.Println("transport: tcpconn  EOF ", err)
+				// xlog.Traceln("transport: tcpconn  EOF ", err)
 				st.ConnHandler.HandleEOF(st.packetReadWriter)
 				return
 			}
 			if e, ok := err.(net.Error); ok && e.Timeout() { // 客户端超过空闲时间没有发包，服务端主动超时关闭
-				// xlog.Println("transport: tcpconn  Time out ", err)
+				// xlog.Traceln("transport: tcpconn  Time out ", err)
 				st.ConnHandler.HandleTimeOut(st.packetReadWriter)
 				return
 			}
 			st.ConnHandler.HandleFail(st.packetReadWriter)
-			xlog.Println("transport: tcpconn serve ReadFrame fail ", err)
+			xlog.Traceln("transport: tcpconn serve ReadFrame fail ", err)
 			return
 		}
 		// report.TCPTransportReceiveSize.Set(float64(len(req)))
 
 		err = st.handle(pkt, release)
 		if err != nil {
-			xlog.Println("handle failed", err)
+			xlog.Traceln("handle failed", err)
 		}
 	}
 }

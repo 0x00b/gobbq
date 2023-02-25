@@ -4,23 +4,45 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 type Options struct {
-	Network     string
-	Address     string
+	network     NetWorkName
+	address     string
 	CACertFile  string // ca证书
 	TLSCertFile string // server证书
 	TLSKeyFile  string // server秘钥
+
+	CompressType bbq.CompressType //压缩类型
+	ContentType  bbq.ContentType  //协议编码类型
+	CheckFlags   uint32
 
 	maxSendPacketSize int
 	writeBufferSize   int
 	readBufferSize    int
 	numServerWorkers  uint32
 	connectionTimeout time.Duration
+	requestTimeout    time.Duration
 
 	PacketHandler PacketHandler
 	ConnHandler   ConnHandler
+}
+
+var DefaultOptions = &Options{
+	CACertFile:        "",
+	TLSCertFile:       "",
+	TLSKeyFile:        "",
+	CompressType:      bbq.CompressType_None,
+	ContentType:       bbq.ContentType_Proto,
+	maxSendPacketSize: 0,
+	writeBufferSize:   0,
+	readBufferSize:    0,
+	numServerWorkers:  0,
+	connectionTimeout: 0,
+	requestTimeout:    0,
+	PacketHandler:     nil,
+	ConnHandler:       &defaultConnHandler{},
 }
 
 type PacketHandler interface {
@@ -41,30 +63,90 @@ func (ch *defaultConnHandler) HandleTimeOut(prw *codec.PacketReadWriter) {}
 func (ch *defaultConnHandler) HandleFail(prw *codec.PacketReadWriter)    {}
 
 // A Option sets options such as credentials, codec and keepalive parameters, etc.
-type Option interface {
-	apply(*Options)
+type Option func(*Options)
+
+func WithPacketHandler(ph PacketHandler) Option {
+	return func(o *Options) {
+		o.PacketHandler = ph
+	}
 }
 
-type withPacketHandler struct {
-	PacketHandler
+func WithConnHandler(ph ConnHandler) Option {
+	return func(o *Options) {
+		o.ConnHandler = ph
+	}
 }
 
-func WithPacketHandler(ph PacketHandler) *withPacketHandler {
-	return &withPacketHandler{ph}
+func WithNetwork(nw NetWorkName) Option {
+	return func(o *Options) {
+		o.network = nw
+	}
+}
+func WithAddress(ad string) Option {
+	return func(o *Options) {
+		o.address = ad
+	}
+}
+func WithCACertFile(CACertFile string) Option {
+	return func(o *Options) {
+		o.CACertFile = CACertFile
+	}
+}
+func WithTLSCertFile(TLSCertFile string) Option {
+	return func(o *Options) {
+		o.TLSCertFile = TLSCertFile
+	}
+}
+func WithTLSKeyFile(TLSKeyFile string) Option {
+	return func(o *Options) {
+		o.TLSKeyFile = TLSKeyFile
+	}
 }
 
-func (w *withPacketHandler) apply(s *Options) {
-	s.PacketHandler = w.PacketHandler
+func WithCompressType(CompressType bbq.CompressType) Option {
+	return func(o *Options) {
+		o.CompressType = CompressType
+	}
+}
+func WithContentType(ContentType bbq.ContentType) Option {
+	return func(o *Options) {
+		o.ContentType = ContentType
+	}
 }
 
-type withConnHandler struct {
-	ConnHandler
+func WithMaxSendPacketSize(maxSendPacketSize int) Option {
+	return func(o *Options) {
+		o.maxSendPacketSize = maxSendPacketSize
+	}
+}
+func WithWriteBufferSize(writeBufferSize int) Option {
+	return func(o *Options) {
+		o.writeBufferSize = writeBufferSize
+	}
+}
+func WithReadBufferSize(readBufferSize int) Option {
+	return func(o *Options) {
+		o.readBufferSize = readBufferSize
+	}
+}
+func WithNumServerWorkers(numServerWorkers uint32) Option {
+	return func(o *Options) {
+		o.numServerWorkers = numServerWorkers
+	}
+}
+func WithConnectionTimeout(connectionTimeout time.Duration) Option {
+	return func(o *Options) {
+		o.connectionTimeout = connectionTimeout
+	}
+}
+func WithRequestTimeout(requestTimeout time.Duration) Option {
+	return func(o *Options) {
+		o.requestTimeout = requestTimeout
+	}
 }
 
-func WithConnHandler(ph ConnHandler) *withConnHandler {
-	return &withConnHandler{ph}
-}
-
-func (w *withConnHandler) apply(s *Options) {
-	s.ConnHandler = w.ConnHandler
+func WithCheckFlags(CheckFlags uint32) Option {
+	return func(o *Options) {
+		o.CheckFlags |= CheckFlags
+	}
 }

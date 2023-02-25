@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/0x00b/gobbq"
+	bbq "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	ex.ConnProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
 	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
@@ -29,13 +29,18 @@ func main() {
 
 	Inst.ProxyID = rsp.ProxyID
 
-	svr := gobbq.NewSever(nets.WithPacketHandler(NewClientPacketHandler()))
-
 	gatepb.RegisterGateService(&GateService{})
 
-	err = svr.ListenAndServe(
-		nets.NetWorkName(conf.C.Gate.Inst[0].Net),
-		fmt.Sprintf(":%s", conf.C.Gate.Inst[0].Port))
+	svr := bbq.NewServer()
+
+	svr.RegisterNetService(
+		nets.NewNetService(
+			nets.WithPacketHandler(NewClientPacketHandler()),
+			nets.WithNetwork(nets.NetWorkName(conf.C.Gate.Inst[0].Net)),
+			nets.WithAddress(fmt.Sprintf(":%s", conf.C.Gate.Inst[0].Port))),
+	)
+
+	err = svr.ListenAndServe()
 
 	fmt.Println(err)
 }

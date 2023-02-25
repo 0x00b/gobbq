@@ -94,10 +94,11 @@ var contextPool *sync.Pool = &sync.Pool{
 	},
 }
 
-func allocContext() *baseContext {
+func allocContext(parent context.Context) *baseContext {
 	c := contextPool.Get().(*baseContext)
 
 	c.reset()
+	c.ctx = parent
 
 	return c
 }
@@ -115,14 +116,17 @@ func releaseContext(c Context) {
 type releaseCtx func()
 
 // NewPacket allocates a new packet
-func NewContext() (Context, releaseCtx) {
-	c := allocContext()
+func NewContext(parent context.Context) (Context, releaseCtx) {
+	c := allocContext(parent)
+
 	return c, func() {
 		releaseContext(c)
 	}
 }
 
 type baseContext struct {
+	ctx context.Context
+
 	// 属于这个entity
 	entity IBaseEntity
 
@@ -143,7 +147,7 @@ func (c *baseContext) Entity() IBaseEntity {
 
 func (c *baseContext) Copy() (Context, releaseCtx) {
 
-	tc := allocContext()
+	tc := allocContext(c.ctx)
 	tc.reset()
 
 	tc.entity = c.entity
@@ -329,28 +333,28 @@ func (c *baseContext) GetStringMapStringSlice(key string) (smss map[string][]str
 /***** GOLANG.ORG/X/NET/CONTEXT *****/
 /************************************/
 
-// Deadline returns that there is no deadline (ok==false) when c.pkt has no Context.
+// Deadline returns that there is no deadline (ok==false) when c.ctx has no Context.
 func (c *baseContext) Deadline() (deadline time.Time, ok bool) {
-	if c.pkt == nil || c.pkt.Context() == nil {
+	if c.ctx == nil {
 		return
 	}
-	return c.pkt.Context().Deadline()
+	return c.ctx.Deadline()
 }
 
-// Done returns nil (chan which will wait forever) when c.pkt has no Context.
+// Done returns nil (chan which will wait forever) when c.ctx has no Context.
 func (c *baseContext) Done() <-chan struct{} {
-	if c.pkt == nil || c.pkt.Context() == nil {
+	if c.ctx == nil {
 		return nil
 	}
-	return c.pkt.Context().Done()
+	return c.ctx.Done()
 }
 
-// Err returns nil when c.pkt has no Context.
+// Err returns nil when c.ctx has no Context.
 func (c *baseContext) Err() error {
-	if c.pkt == nil || c.pkt.Context() == nil {
+	if c.ctx == nil {
 		return nil
 	}
-	return c.pkt.Context().Err()
+	return c.ctx.Err()
 }
 
 // Value returns the value associated with this context for key, or nil
@@ -358,15 +362,15 @@ func (c *baseContext) Err() error {
 // the same key returns the same result.
 func (c *baseContext) Value(key any) any {
 	if key == 0 {
-		return c.pkt
+		return c.ctx
 	}
 	if keyAsString, ok := key.(string); ok {
 		if val, exists := c.Get(keyAsString); exists {
 			return val
 		}
 	}
-	if c.pkt == nil || c.pkt.Context() == nil {
+	if c.ctx == nil {
 		return nil
 	}
-	return c.pkt.Context().Value(key)
+	return c.ctx.Value(key)
 }

@@ -36,7 +36,7 @@ type DefaultHook struct{}
 
 // BeforeProcess 前回调
 func (DefaultHook) BeforeProcess(ctx entity.Context, cmd redis.Cmder) (entity.Context, error) {
-	xlog.Info(ctx, cmd.String())
+	xlog.Trace(ctx, cmd.String())
 	return ctx, nil
 }
 
@@ -52,7 +52,7 @@ func (DefaultHook) AfterProcess(ctx entity.Context, cmd redis.Cmder) error {
 // BeforeProcessPipeline 前pipeline
 func (DefaultHook) BeforeProcessPipeline(ctx entity.Context, cmds []redis.Cmder) (entity.Context, error) {
 	for _, cmd := range cmds {
-		xlog.Info(ctx, cmd.String())
+		xlog.Trace(ctx, cmd.String())
 	}
 
 	return ctx, nil

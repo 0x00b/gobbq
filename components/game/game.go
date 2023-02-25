@@ -31,7 +31,7 @@ func Init() {
 
 func Run() {
 	for {
-		xlog.Info("Run Game")
+		xlog.Debug("Run Game")
 		sleepTime := 50
 		for {
 			time.Sleep(time.Duration(sleepTime) * time.Millisecond)
@@ -76,7 +76,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
 		return err
 	}
 
-	xlog.Println("register proxy entity resp")
+	xlog.Debug("register proxy entity resp")
 	return nil
 }
 
@@ -89,7 +89,7 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
 		return err
 	}
 
-	xlog.Println("register proxy service resp")
+	xlog.Debug("register proxy service resp")
 
 	return nil
 }

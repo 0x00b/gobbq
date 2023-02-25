@@ -34,6 +34,6 @@ func TestT(t *testing.T) {
 		},
 	}
 
-	xlog.Println(gorm.ModelMap(nil, cc))
+	xlog.Traceln(gorm.ModelMap(nil, cc))
 
 }

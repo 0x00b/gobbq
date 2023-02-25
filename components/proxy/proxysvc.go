@@ -16,7 +16,7 @@ type ProxyEntity struct {
 }
 
 func (ps *ProxyService) OnInit() {
-	xlog.Println("on init ProxyService")
+	xlog.Debugln("on init ProxyService")
 }
 
 // RegisterProxy
@@ -66,7 +66,7 @@ func (ps *ProxyService) RegisterEntity(c entity.Context, req *proxypb.RegisterEn
 // RegisterEntity
 func (ps *ProxyService) RegisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
-	xlog.Println("register service:", req.ServiceName)
+	xlog.Debugln("register service:", req.ServiceName)
 	proxyInst.RegisterService(req.ServiceName, c.Packet().Src)
 
 	for id, p := range proxyInst.proxyMap {

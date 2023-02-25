@@ -1,6 +1,7 @@
 package nets
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -67,10 +68,10 @@ func newClient(rawConn net.Conn, ops ...Option) *Client {
 	opts := &Options{}
 
 	for _, op := range ops {
-		op.apply(opts)
+		op(opts)
 	}
 
-	cn := newDefaultConn()
+	cn := newDefaultConn(context.Background())
 	cn.rwc = rawConn
 	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
 	cn.PacketHandler = opts.PacketHandler

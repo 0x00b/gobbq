@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type ConnHandler struct {
@@ -13,7 +14,7 @@ func (ch *ConnHandler) HandleEOF(prw *codec.PacketReadWriter) {
 		defer proxyInst.etyMtx.Unlock()
 		for eid, v := range proxyInst.entityMaps {
 			if v == prw {
-				// xlog.Println("remove eid:", eid)
+				xlog.Debugln("remove eid:", eid)
 				delete(proxyInst.entityMaps, eid)
 			}
 		}

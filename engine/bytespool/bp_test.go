@@ -15,9 +15,9 @@ func get() []byte {
 	return ax
 }
 func test(bs []byte) {
-	xlog.Println(len(bs))
+	xlog.Traceln(len(bs))
 	bs = bs[:50]
-	xlog.Println(len(bs))
+	xlog.Traceln(len(bs))
 }
 
 func TestMain(t *testing.T) {
@@ -26,22 +26,22 @@ func TestMain(t *testing.T) {
 	copy(at, []byte("xxx"))
 	test(ax)
 
-	xlog.Println(len(ax), len(at), string(ax))
+	xlog.Traceln(len(ax), len(at), string(ax))
 
 	//
 	i := 0
 	packetBodyCap := uint32(bytespool.MinBufferCap)
 	for packetBodyCap <= bytespool.MaxBufferCap {
 		key := bytespool.CalcBufferCapKey(packetBodyCap)
-		xlog.Println(i, key, packetBodyCap)
+		xlog.Traceln(i, key, packetBodyCap)
 		i++
 		packetBodyCap *= 2
 	}
-	xlog.Println("========")
+	xlog.Traceln("========")
 	packetBodyCap = 0
 	for packetBodyCap <= 1000 {
 		key := bytespool.CalcBufferCapKey(packetBodyCap)
-		xlog.Println(key, packetBodyCap)
+		xlog.Traceln(key, packetBodyCap)
 		packetBodyCap++
 	}
 

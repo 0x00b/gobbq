@@ -18,12 +18,5 @@ func NewGamePacketHandler() *GamePacketHandler {
 }
 
 func (st *GamePacketHandler) HandlePacket(pkt *codec.Packet) error {
-	// hdr := pkt.Header
-	// if hdr.RequestType == bbq.RequestType_RequestRequest {
-	return entity.NewMethodPacketHandler().HandlePacket(pkt)
-	// }
-	// response
-	// xlog.Println("recv response:", pkt.String())
-
-	// return nil
+	return st.MethodPacketHandler.HandlePacket(pkt)
 }

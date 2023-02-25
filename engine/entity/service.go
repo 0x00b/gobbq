@@ -32,7 +32,7 @@ func (e *Service) onInit(c Context, id *bbq.EntityID) {
 }
 
 func (e *Service) Run() {
-	xlog.Println("start message loop", e.EntityID())
+	xlog.Traceln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
 
@@ -47,11 +47,11 @@ func (e *Service) Run() {
 		for {
 			select {
 			case <-e.context.Done():
-				xlog.Println("ctx done", e)
+				xlog.Traceln("ctx done", e)
 				return
 
 			case pkt := <-e.respChan:
-				xlog.Printf("handle: %s", pkt.String())
+				xlog.Tracef("handle: %s", pkt.String())
 
 				wg.Add(1)
 
@@ -71,11 +71,11 @@ func (e *Service) Run() {
 	for {
 		select {
 		case <-e.context.Done():
-			xlog.Println("ctx done", e)
+			xlog.Traceln("ctx done", e)
 			return
 
 		case pkt := <-e.callChan:
-			xlog.Printf("handle: %s", pkt.String())
+			xlog.Tracef("handle: %s", pkt.String())
 
 			wg.Add(1)
 

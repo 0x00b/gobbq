@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/0x00b/gobbq"
+	bbq "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
@@ -17,13 +17,20 @@ func main() {
 
 	proxyInst.ConnOtherProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
 
-	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
-
-	svr := gobbq.NewSever(nets.WithPacketHandler(NewProxyPacketHandler()), nets.WithConnHandler(&ConnHandler{}))
+	xlog.Init("info", false, true, os.Stdout, xlog.DefaultLogTag{})
 
 	proxypb.RegisterProxySvcService(&ProxyService{})
 
-	err := svr.ListenAndServe(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))
+	svr := bbq.NewServer()
+
+	svr.RegisterNetService(nets.NewNetService(
+		nets.WithPacketHandler(NewProxyPacketHandler()),
+		nets.WithConnHandler(&ConnHandler{}),
+		nets.WithNetwork(nets.TCP),
+		nets.WithAddress(fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
+	)
+
+	err := svr.ListenAndServe()
 
 	fmt.Println(err)
 }

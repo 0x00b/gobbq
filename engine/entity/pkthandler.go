@@ -43,7 +43,7 @@ func (st *MethodPacketHandler) HandlePacket(pkt *codec.Packet) error {
 		return nil
 	}
 	// response
-	xlog.Println("recv response:", pkt.Header.RequestId)
+	xlog.Traceln("recv response:", pkt.Header.RequestId)
 	return st.handleCallEntity(pkt)
 }
 
@@ -66,21 +66,21 @@ func (st *MethodPacketHandler) handleCallEntity(pkt *codec.Packet) error {
 
 	eid := pkt.Header.GetDstEntity()
 	if eid == nil && eid.ID == "" {
-		xlog.Println("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
+		xlog.Traceln("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEmptyEntityID
 	}
 
-	xlog.Println("start find entity")
+	xlog.Traceln("start find entity")
 
 	Manager.mu.RLock()
 	defer Manager.mu.RUnlock()
 	entity, ok := Manager.Entities[eid.ID]
 	if !ok {
-		xlog.Println("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
+		xlog.Traceln("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEntityNotFound
 	}
 
-	xlog.Println("dispatchPkt send:", pkt.Header.RequestId)
+	xlog.Traceln("dispatchPkt send:", pkt.Header.RequestId)
 
 	entity.dispatchPkt(pkt)
 
@@ -109,14 +109,14 @@ func handleLocalCallService(pkt *codec.Packet, in any, respChan chan any) error 
 		return ErrServiceNotFound
 	}
 
-	xlog.Infoln("handleLocalCallService", pkt.Header.String())
+	xlog.Traceln("handleLocalCallService", pkt.Header.String())
 
 	return ss.dispatchLocalCall(pkt, in, respChan)
 }
 
 func handleLocalCallEntity(pkt *codec.Packet, in any, respChan chan any) error {
 
-	xlog.Infoln("handleLocalCallEntity 1", pkt.Header.String())
+	xlog.Traceln("handleLocalCallEntity 1", pkt.Header.String())
 
 	ety := pkt.Header.GetDstEntity()
 	if ety == nil {
@@ -129,7 +129,7 @@ func handleLocalCallEntity(pkt *codec.Packet, in any, respChan chan any) error {
 	if !ok {
 		return ErrEntityNotFound
 	}
-	xlog.Infoln("handleLocalCallEntity 2", pkt.Header.String())
+	xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())
 
 	return entity.dispatchLocalCall(pkt, in, respChan)
 }

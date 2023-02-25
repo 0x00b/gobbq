@@ -37,7 +37,7 @@ type EntityManager struct {
 }
 
 func RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
-	ctx := allocContext()
+	ctx := allocContext(c)
 	ctx.entity = entity
 	entity.onInit(ctx, id)
 	entity.OnInit()
@@ -57,7 +57,7 @@ func RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
 func NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
 	desc, ok := Manager.entityDescs[id.Type]
 	if !ok {
-		xlog.Printf("EntityManager.RegisterService new entity desc %s", id.Type)
+		xlog.Errorln("EntityManager.RegisterService new entity desc %s", id.Type)
 		return nil, fmt.Errorf("EntityManager.RegisterService new entity desc %s", id.Type)
 	}
 
@@ -71,12 +71,12 @@ func NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
 	svc := svcValue.Interface()
 	entity, ok := svc.(IEntity)
 	if !ok || entity == nil {
-		xlog.Println("error type", svcType.Name())
+		xlog.Errorln("error type", svcType.Name())
 		return nil, fmt.Errorf("new entity file %s", id.Type)
 	}
 	// init
 
-	xlog.Println("register entity id:", id.String())
+	xlog.Debugln("register entity id:", id.String())
 
 	newDesc := *desc
 	newDesc.EntityImpl = entity
@@ -100,7 +100,8 @@ func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter .
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
 		if !st.Implements(ht) {
-			xlog.Printf("grpc: EntityManager.RegisterEntity found the handler of type %v that does not satisfy %v", st, ht)
+			xlog.Panicf("grpc: EntityManager.RegisterEntity found the handler of type %v that does not satisfy %v", st, ht)
+			return
 		}
 	}
 	s.registerEntity(sd, ss, intercepter...)
@@ -109,12 +110,12 @@ func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter .
 func (s *EntityManager) registerEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	xlog.Printf("registerEntity(%q)", sd.TypeName)
+	xlog.Tracef("registerEntity(%q)", sd.TypeName)
 	if s.serve {
-		xlog.Printf("grpc: EntityManager.registerEntity after EntityManager.Serve for %q", sd.TypeName)
+		xlog.Tracef("grpc: EntityManager.registerEntity after EntityManager.Serve for %q", sd.TypeName)
 	}
 	if _, ok := s.entityDescs[sd.TypeName]; ok {
-		xlog.Printf("grpc: EntityManager.registerEntity found duplicate entity registration for %q", sd.TypeName)
+		xlog.Tracef("grpc: EntityManager.registerEntity found duplicate entity registration for %q", sd.TypeName)
 		return
 	}
 	sd.EntityImpl = ss
@@ -127,19 +128,19 @@ func (s *EntityManager) RegisterService(sd *EntityDesc, ss IService, intercepter
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
 		if !st.Implements(ht) {
-			xlog.Printf("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
+			xlog.Tracef("grpc: EntityManager.RegisterService found the handler of type %v that does not satisfy %v", st, ht)
 		}
 	}
 	s.registerService(sd, ss, intercepter...)
 }
 
 func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter ...ServerInterceptor) {
-	xlog.Printf("RegisterService(%q)", sd.TypeName)
+	xlog.Tracef("RegisterService(%q)", sd.TypeName)
 	if s.serve {
-		xlog.Printf("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
+		xlog.Tracef("grpc: EntityManager.RegisterService after EntityManager.Serve for %q", sd.TypeName)
 	}
 	if _, ok := s.Services[sd.TypeName]; ok {
-		xlog.Printf("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
+		xlog.Tracef("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
 		return
 	}
 	sd.EntityImpl = ss
@@ -148,7 +149,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 
 	s.registerServiceEntity(sd, ss)
 
-	xlog.Printf("grpc: EntityManager.RegisterService eid:%s", ss.EntityID())
+	xlog.Tracef("grpc: EntityManager.RegisterService eid:%s", ss.EntityID())
 
 	// start msg loop
 	go ss.Run()

@@ -24,7 +24,7 @@ func (*ClientService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*
 
 func TestWSClient(m *testing.T) {
 
-	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
 	conf.Init("client.yaml")
 
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})

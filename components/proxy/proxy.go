@@ -75,7 +75,7 @@ func (p *Proxy) RegisterEntity(eid *bbq.EntityID, prw *codec.PacketReadWriter) {
 	if _, ok := p.entityMaps[eid.ID]; ok {
 		xlog.Errorln("already has entity", eid)
 	}
-	xlog.Println("register entity id:", eid)
+	xlog.Debugln("register entity id:", eid)
 	p.entityMaps[eid.ID] = prw
 }
 
@@ -109,7 +109,7 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		defer p.etyMtx.RUnlock()
 		prw, ok := p.entityMaps[eid.ID]
 		if ok {
-			xlog.Println("proxy to id:", eid)
+			xlog.Debugln("proxy to id:", eid)
 			prw.WritePacket(pkt)
 			return true
 		}
@@ -152,7 +152,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 
 		prw, ok := p.svcMaps[svcType]
 		if ok {
-			xlog.Println("proxy to svc", prw)
+			xlog.Debugln("proxy to svc", prw)
 			prw.WritePacket(pkt)
 			return true
 		}

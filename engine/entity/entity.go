@@ -166,14 +166,14 @@ func (e *baseEntity) EntityID() *bbq.EntityID {
 }
 
 func (e *baseEntity) Run() {
-	xlog.Println("start message loop", e.EntityID())
+	xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
 
 	defer func() {
 		wg.Wait()
 
-		xlog.Println("stop message loop", e.EntityID())
+		xlog.Debugln("stop message loop", e.EntityID())
 		// todo unregister entity
 
 	}()
@@ -186,10 +186,10 @@ func (e *baseEntity) Run() {
 		for {
 			select {
 			case <-e.context.Done():
-				xlog.Println("ctx done", e)
+				xlog.Debugln("ctx done", e)
 				return
 			case pkt := <-e.respChan:
-				xlog.Printf("handle: %s", pkt.String())
+				xlog.Tracef("handle: %s", pkt.String())
 				e.handleMethodRsp(e.context, pkt)
 			}
 		}
@@ -199,23 +199,23 @@ func (e *baseEntity) Run() {
 	for {
 		select {
 		case <-e.context.Done():
-			xlog.Println("ctx done", e)
+			xlog.Debugln("ctx done", e)
 			return
 
 		case pkt := <-e.callChan:
-			xlog.Printf("handle: %s", pkt.String())
+			xlog.Tracef("handle: %s", pkt.String())
 			err := e.handleCallMethod(e.context, pkt)
 			if err != nil {
 				xlog.Errorln(err)
 			}
-			xlog.Printf("handle done: %s", pkt.String())
+			xlog.Tracef("handle done: %s", pkt.String())
 		case lc := <-e.localCallChan:
-			xlog.Printf("handle local call: %s", lc.pkt.String())
+			xlog.Tracef("handle local call: %s", lc.pkt.String())
 			err := e.handleLocalCallMethod(e.context, lc)
 			if err != nil {
 				xlog.Errorln(err)
 			}
-			xlog.Printf("handle local call done: %s", lc.pkt.String())
+			xlog.Tracef("handle local call done: %s", lc.pkt.String())
 		}
 	}
 }
@@ -226,6 +226,9 @@ func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	if requestID == "" || cb == nil {
 		return
 	}
+
+	xlog.Debugln("register callback:", requestID)
+
 	e.cbMtx.Lock()
 	defer e.cbMtx.Unlock()
 	e.callback[requestID] = cb
@@ -253,7 +256,7 @@ func (e *baseEntity) setDesc(desc *EntityDesc) {
 
 func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
 	if pkt != nil {
-		xlog.Println("dispatch:", e, pkt.String())
+		xlog.Traceln("dispatch:", e, pkt.String())
 		pkt.Retain()
 		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
 			e.callChan <- pkt
@@ -287,14 +290,14 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.callback[pkt.Header.RequestId]
 		if ok {
-			xlog.Println("callback:", pkt.Header.RequestId)
+			xlog.Debugln("callback:", pkt.Header.RequestId)
 			e.cbMtx.Lock()
 			defer e.cbMtx.Unlock()
 			delete(e.callback, pkt.Header.RequestId)
 			cb(pkt)
 			return nil
 		}
-		xlog.Println("unknown response:", pkt.Header.RequestId)
+		xlog.Errorln("unknown response:", pkt.Header.RequestId)
 		return errors.New("unknown response")
 	}
 
@@ -314,11 +317,11 @@ func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
 		return ErrMethodNotFound
 	}
 
-	xlog.Infoln("LocalHandler 1", e.EntityID(), hdr.String())
+	xlog.Traceln("LocalHandler 1", e.EntityID(), hdr.String())
 
 	rsp, err := mt.LocalHandler(sd.EntityImpl, c, lc.in, chainServerInterceptors(sd.interceptors))
 
-	xlog.Infoln("LocalHandler 2", hdr.String())
+	xlog.Traceln("LocalHandler 2", hdr.String())
 
 	if lc.respChan != nil {
 		if rsp != nil {

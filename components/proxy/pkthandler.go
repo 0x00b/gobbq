@@ -35,7 +35,7 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 		// or send to gate
 		if hdr.ServiceType == bbq.ServiceType_Entity {
 			if hdr.DstEntity == nil {
-				xlog.Println("bad req header:", hdr.String())
+				xlog.Errorln("bad req header:", hdr.String())
 				return errors.New("bad call, call entity but no dst entity")
 			}
 			proxyInst.ProxyToEntity(hdr.DstEntity, pkt)

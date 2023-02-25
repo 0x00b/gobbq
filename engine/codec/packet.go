@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"context"
 	"encoding/binary"
 	"fmt"
 	"sync"
@@ -25,36 +24,6 @@ type Packet struct {
 
 	// data(header + body)
 	bytes *bytespool.Bytes
-
-	ctx context.Context
-}
-
-func CopyHeader(src, dst *bbq.Header) {
-	dst.Version = src.Version
-	dst.RequestId = src.RequestId
-	dst.Timeout = src.Timeout
-	dst.RequestType = src.RequestType
-	dst.ServiceType = src.ServiceType
-
-	dst.SrcEntity = &bbq.EntityID{
-		ID:      src.SrcEntity.ID,
-		Type:    src.SrcEntity.Type,
-		ProxyID: src.SrcEntity.ProxyID,
-	}
-
-	dst.DstEntity = &bbq.EntityID{
-		ID:      src.DstEntity.ID,
-		Type:    src.DstEntity.Type,
-		ProxyID: src.DstEntity.ProxyID,
-	}
-
-	dst.Method = src.Method
-	dst.ContentType = src.ContentType
-	dst.CompressType = src.CompressType
-	dst.CheckFlags = src.CheckFlags
-	dst.TransInfo = src.TransInfo
-	dst.ErrCode = src.ErrCode
-	dst.ErrMsg = src.ErrMsg
 }
 
 const (
@@ -110,7 +79,7 @@ func allocPacket() *Packet {
 
 	pkt.reset()
 
-	// xlog.Printf("pkt pool get: %d", unsafe.Pointer(pkt))
+	// xlog.Tracef("pkt pool get: %d", unsafe.Pointer(pkt))
 
 	return pkt
 }
@@ -119,7 +88,7 @@ func allocPacket() *Packet {
 func NewPacket() (*Packet, ReleasePkt) {
 	pkt := allocPacket()
 	return pkt, func() {
-		// xlog.Printf("release callback %d", unsafe.Pointer(pkt))
+		// xlog.Tracef("release callback %d", unsafe.Pointer(pkt))
 		pkt.Release()
 	}
 }
@@ -133,7 +102,7 @@ func (p *Packet) Retain() {
 
 	refcount := atomic.AddInt32(&p.refcount, 1)
 	_ = refcount
-	// xlog.Printf("retain pkt:%d, %d", unsafe.Pointer(p), refcount)
+	// xlog.Tracef("retain pkt:%d, %d", unsafe.Pointer(p), refcount)
 
 }
 
@@ -142,10 +111,10 @@ func (p *Packet) Release() {
 
 	refcount := atomic.AddInt32(&p.refcount, -1)
 
-	// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), refcount)
+	// xlog.Tracef("release pkt:%d, %d", unsafe.Pointer(p), refcount)
 
 	if refcount == 0 {
-		// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), unsafe.Pointer(p.bytes))
+		// xlog.Tracef("release pkt:%d, %d", unsafe.Pointer(p), unsafe.Pointer(p.bytes))
 
 		bytespool.Put(p.bytes)
 		packetPool.Put(p)
@@ -197,7 +166,6 @@ func (p *Packet) reset() {
 	p.totalLen = 0
 	p.refcount = 1
 	p.bytes = nil
-	p.ctx = context.Background()
 }
 
 func (p *Packet) Data() []byte {
@@ -207,14 +175,10 @@ func (p *Packet) Data() []byte {
 	return p.bytes.Bytes()[:p.totalLen]
 }
 
-func (p *Packet) Context() context.Context {
-	return p.ctx
-}
-
 // 返回的结果是在header的buf之后
 func (p *Packet) extendPacketData(size uint32) []byte {
 	if size > MaxPacketBodyLength {
-		panic(ErrPacketBodyTooLarge)
+		panic(errPacketBodyTooLarge)
 	}
 
 	oldCap := p.GetPacketCap()
@@ -230,7 +194,7 @@ func (p *Packet) extendPacketData(size uint32) []byte {
 		panic("bytespool get bytes error")
 	}
 
-	// xlog.Printf("bytes pool get: %d %d", unsafe.Pointer(p), unsafe.Pointer(bs))
+	// xlog.Tracef("bytes pool get: %d %d", unsafe.Pointer(p), unsafe.Pointer(bs))
 
 	// copy(bs.Bytes(), p.Data())
 	oldBytes := p.bytes

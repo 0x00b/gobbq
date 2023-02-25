@@ -14,7 +14,7 @@ import (
 
 func main() {
 
-	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	fmt.Println(conf.C)
 

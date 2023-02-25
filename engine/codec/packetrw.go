@@ -12,9 +12,6 @@ import (
 )
 
 var (
-	ErrPacketBodyTooLarge = io.ErrShortWrite
-	ErrPacketBodyTooSmall = io.ErrUnexpectedEOF
-
 	errPacketBodyTooLarge = errors.Errorf("packetBody too large")
 	errChecksumError      = errors.Errorf("checksum error")
 )
@@ -67,7 +64,7 @@ func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWri
 func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 	pdata := packet.Data()
 
-	xlog.Println("send raw:", packet.String())
+	xlog.Traceln("send raw:", packet.String())
 
 	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
 
@@ -125,7 +122,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 		return nil, nil, err
 	}
 
-	xlog.Println("recv raw:", packet.String())
+	xlog.Traceln("recv raw:", packet.String())
 
 	pc.readMsgCnt++
 

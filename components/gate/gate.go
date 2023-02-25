@@ -38,7 +38,7 @@ func (gs *GateService) RegisterClient(c entity.Context, req *gatepb.RegisterClie
 	if err != nil {
 		return nil, err
 	}
-	xlog.Println("register proxy entity resp", rsp.String())
+	xlog.Debugln("register proxy entity resp", rsp.String())
 	return &gatepb.RegisterClientResponse{EntityID: req.EntityID}, nil
 }
 
@@ -87,7 +87,7 @@ func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
 		return err
 	}
 
-	xlog.Println("register proxy entity resp")
+	xlog.Debugln("register proxy entity resp")
 
 	return nil
 }
@@ -101,7 +101,7 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
 		return err
 	}
 
-	xlog.Println("register proxy service resp")
+	xlog.Debugln("register proxy service resp")
 
 	return nil
 }

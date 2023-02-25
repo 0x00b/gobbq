@@ -36,7 +36,7 @@ func (Test) Begin(c entity.Context) entity.Context {
 //	@author jun
 //	@date 2021-10-08 09:30:56
 func (Test) Commit(c entity.Context) {
-	xlog.Println("Commit", c.Value("test"))
+	xlog.Traceln("Commit", c.Value("test"))
 
 }
 
@@ -48,7 +48,7 @@ func (Test) Commit(c entity.Context) {
 //	@author jun
 //	@date 2021-10-08 09:30:51
 func (Test) Rollback(c entity.Context, e error) {
-	xlog.Println("Rollback", c.Value("test"))
+	xlog.Traceln("Rollback", c.Value("test"))
 }
 
 // test
@@ -61,10 +61,10 @@ func test(c entity.Context) {
 	ts := trx.Transaction{}
 	ts.RegisterTransaction(Test{})
 	_ = ts.Transaction(func(c entity.Context) error {
-		xlog.Println("Transaction", c.Value("test"))
+		xlog.Traceln("Transaction", c.Value("test"))
 		return nil
 	})(c)
-	xlog.Println("test", c.Value("test"))
+	xlog.Traceln("test", c.Value("test"))
 }
 
 func TestTransaction(t *testing.T) {
@@ -72,6 +72,6 @@ func TestTransaction(t *testing.T) {
 	c := context.Background()
 
 	// test(c)
-	xlog.Println("TestTransaction", c.Value("test"))
+	xlog.Traceln("TestTransaction", c.Value("test"))
 
 }

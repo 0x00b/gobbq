@@ -77,7 +77,7 @@ func (m *GormLog) LogMode(logger.LogLevel) logger.Interface {
 
 func (m *GormLog) Info(c entity.Context, s string, p ...any) {
 	// if m.LogLevel >= logger.Info {
-	// 	//xlog.Infof(s, p...)
+	// 	//xlog.Tracef(s, p...)
 	// }
 }
 func (m *GormLog) Warn(c entity.Context, s string, p ...any) {
@@ -120,10 +120,10 @@ func (m *GormLog) Trace(c entity.Context,
 	case m.LogLevel >= logger.Info:
 		sql, rows := fc()
 		if rows == -1 {
-			xlog.Infof(c, m.traceStr, sql,
+			xlog.Tracef(c, m.traceStr, sql,
 				float64(elapsed.Nanoseconds())/1e6, "-", utils.FileWithLineNum())
 		} else {
-			xlog.Infof(c, m.traceStr, sql,
+			xlog.Tracef(c, m.traceStr, sql,
 				float64(elapsed.Nanoseconds())/1e6, rows, utils.FileWithLineNum())
 		}
 	default:

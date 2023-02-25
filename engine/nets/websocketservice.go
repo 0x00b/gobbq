@@ -26,6 +26,8 @@ func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, 
 		return errors.New("not websocket")
 	}
 
+	xlog.Infoln("websocket listenAndServe from:", network, address)
+
 	ws.hs.Addr = address
 
 	h := websocket.Handler(func(conn *websocket.Conn) {
@@ -54,9 +56,9 @@ func (ws *WebSocketService) Name() NetWorkName {
 
 func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
 
-	xlog.Println("handleconn")
+	xlog.Traceln("handleconn")
 
-	cn := newDefaultConn()
+	cn := newDefaultConn(context.Background())
 
 	cn.rwc = rawConn
 	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)

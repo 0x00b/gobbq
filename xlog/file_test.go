@@ -17,5 +17,5 @@ func TestFileLogger(t *testing.T) {
 		LocalTime: true,
 	}, xlog.DefaultLogTag{})
 
-	xlog.Infoln(nil, "test")
+	xlog.Traceln(nil, "test")
 }
