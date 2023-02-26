@@ -71,14 +71,7 @@ func newClient(rawConn net.Conn, ops ...Option) *Client {
 		op(opts)
 	}
 
-	cn := newDefaultConn(context.Background())
-	cn.rwc = rawConn
-	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
-	cn.PacketHandler = opts.PacketHandler
-	cn.opts = opts
-	if opts.ConnHandler != nil {
-		cn.ConnHandler = opts.ConnHandler
-	}
+	cn := newDefaultConn(context.Background(), rawConn, opts)
 
 	ct := &Client{
 		conn: cn,

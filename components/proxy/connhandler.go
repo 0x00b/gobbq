@@ -5,37 +5,34 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-type ConnHandler struct {
-}
-
-func (ch *ConnHandler) HandleEOF(prw *codec.PacketReadWriter) {
+func (p *Proxy) HandleEOF(prw *codec.PacketReadWriter) {
 	func() {
-		proxyInst.etyMtx.Lock()
-		defer proxyInst.etyMtx.Unlock()
-		for eid, v := range proxyInst.entityMaps {
+		p.etyMtx.Lock()
+		defer p.etyMtx.Unlock()
+		for eid, v := range p.entityMaps {
 			if v == prw {
 				xlog.Debugln("remove eid:", eid)
-				delete(proxyInst.entityMaps, eid)
+				delete(p.entityMaps, eid)
 			}
 		}
 
 	}()
 
 	func() {
-		proxyInst.svcMtx.Lock()
-		defer proxyInst.svcMtx.Unlock()
-		for svc, svcPrw := range proxyInst.svcMaps {
+		p.svcMtx.Lock()
+		defer p.svcMtx.Unlock()
+		for svc, svcPrw := range p.svcMaps {
 			if prw == svcPrw {
-				delete(proxyInst.svcMaps, svc)
+				delete(p.svcMaps, svc)
 			}
 		}
 	}()
 }
 
-func (ch *ConnHandler) HandleTimeOut(prw *codec.PacketReadWriter) {
-	ch.HandleEOF(prw)
+func (p *Proxy) HandleTimeOut(prw *codec.PacketReadWriter) {
+	p.HandleEOF(prw)
 }
 
-func (ch *ConnHandler) HandleFail(prw *codec.PacketReadWriter) {
-
+func (p *Proxy) HandleFail(prw *codec.PacketReadWriter) {
+	p.HandleEOF(prw)
 }

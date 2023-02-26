@@ -13,31 +13,35 @@ type Client struct {
 	entity.IEntity
 
 	Gate *nets.Client
+
+	EntityMgr *entity.EntityManager
 }
 
 func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.ServerInterceptor) *Client {
 
+	client := &Client{
+		EntityMgr: entity.NewEntityManager(),
+	}
+
 	cfg := conf.C.Gate.Inst[0]
 	gate, err := nets.Connect(
-		nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, nets.WithPacketHandler(&ClientPacketHandler{}))
+		nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, nets.WithPacketHandler(client.EntityMgr))
 	if err != nil {
 		panic(err)
 	}
 
-	client := &Client{}
-
-	entity.Manager.RegisterEntity(sd, ss)
+	client.EntityMgr.RegisterEntityDesc(sd, ss)
 
 	eid := &bbq.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
 
-	client.IEntity, err = entity.NewEntity(nil, eid)
+	client.IEntity, err = client.EntityMgr.NewEntity(nil, eid)
 	if err != nil {
 		panic(err)
 	}
 
 	client.Gate = gate
 
-	gateSvc := gatepb.NewGateServiceClient(gate.GetPacketReadWriter())
+	gateSvc := gatepb.NewGateServiceClient(client.EntityMgr, gate.GetPacketReadWriter())
 	go func() {
 		client.Run()
 
@@ -54,8 +58,4 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	client.EntityID().ProxyID = rsp.EntityID.ProxyID
 
 	return client
-}
-
-type ClientPacketHandler struct {
-	entity.MethodPacketHandler
 }

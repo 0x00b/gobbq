@@ -5,33 +5,38 @@
 package gatepb
 
 import (
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
 
-func RegisterGateService(impl GateService) {
-	entity.Manager.RegisterService(&GateServiceDesc, impl)
+func RegisterGateService(etyMgr *entity.EntityManager, impl GateService) {
+	etyMgr.RegisterService(&GateServiceDesc, impl)
 }
 
-func NewGateServiceClient(client *codec.PacketReadWriter) *gateService {
-	t := &gateService{client: client}
+func NewGateServiceClient(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *gateService {
+	t := &gateService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
-func NewGateService(client *codec.PacketReadWriter) *gateService {
-	t := &gateService{client: client}
+func NewGateService(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *gateService {
+	t := &gateService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
 type gateService struct {
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -57,7 +62,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -117,7 +122,7 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	err := entity.HandleCallLocalMethod(pkt, req, nil)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, nil)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return err
@@ -161,7 +166,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err

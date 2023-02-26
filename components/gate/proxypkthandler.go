@@ -8,20 +8,11 @@ import (
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
-var _ nets.PacketHandler = &ProxyPacketHandler{}
+var _ nets.PacketHandler = &Gate{}
 
-type ProxyPacketHandler struct {
-	*entity.MethodPacketHandler
-}
+func (gt *Gate) HandlePacket(pkt *codec.Packet) error {
 
-func NewProxyPacketHandler() *ProxyPacketHandler {
-	st := &ProxyPacketHandler{entity.NewMethodPacketHandler()}
-	return st
-}
-
-func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
-
-	err := st.MethodPacketHandler.HandlePacket(pkt)
+	err := gt.Server.EntityMgr.HandlePacket(pkt)
 	if err == nil {
 		// handle succ
 		return nil
@@ -30,7 +21,11 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 	if entity.NotMyMethod(err) {
 		// send to client
 		id := pkt.Header.GetDstEntity()
-		rw, ok := cltMap[id.ID]
+
+		gt.cltMtx.Lock()
+		defer gt.cltMtx.Unlock()
+
+		rw, ok := gt.cltMap[id.ID]
 		if !ok {
 			return errors.New("unknown client")
 		}

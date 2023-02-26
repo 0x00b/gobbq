@@ -5,39 +5,45 @@
 package proxypb
 
 import (
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
-
 )
 
 var _ = snowflake.GenUUID()
 
-func RegisterProxyEtyEntity(impl ProxyEtyEntity) {
-	entity.Manager.RegisterEntity(&ProxyEtyEntityDesc, impl)
+func RegisterProxyEtyEntity(etyMgr *entity.EntityManager, impl ProxyEtyEntity) {
+	etyMgr.RegisterEntityDesc(&ProxyEtyEntityDesc, impl)
 }
 
-func NewProxyEtyEntityClient(client *codec.PacketReadWriter, entity *bbq.EntityID) *proxyEtyEntity {
-	t := &proxyEtyEntity{client: client, entity: entity}
+func NewProxyEtyEntityClient(client *codec.PacketReadWriter, etyMgr *entity.EntityManager, entity *bbq.EntityID) *proxyEtyEntity {
+	t := &proxyEtyEntity{
+		client: client,
+		etyMgr: etyMgr,
+		entity: entity,
+	}
 	return t
 }
 
-func NewProxyEtyEntity(c entity.Context, client *codec.PacketReadWriter) *proxyEtyEntity {
-	return NewProxyEtyEntityWithID(c, entity.NewEntityID.NewEntityID("proxypb.ProxyEtyEntity"), client)
+func NewProxyEtyEntity(c entity.Context, etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *proxyEtyEntity {
+	return NewProxyEtyEntityWithID(c, etyMgr, etyMgr.EntityIDGenerator.NewEntityID("proxypb.ProxyEtyEntity"), client)
 }
 
-func NewProxyEtyEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *proxyEtyEntity {
+func NewProxyEtyEntityWithID(c entity.Context, etyMgr *entity.EntityManager, id *bbq.EntityID, client *codec.PacketReadWriter) *proxyEtyEntity {
 
-	_, err := entity.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &proxyEtyEntity{entity: id, client: client}
+	t := &proxyEtyEntity{
+		entity: id,
+		client: client,
+		etyMgr: etyMgr,
+	}
 
 	return t
 }
@@ -45,6 +51,7 @@ func NewProxyEtyEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.P
 type proxyEtyEntity struct {
 	entity *bbq.EntityID
 
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -70,7 +77,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -132,7 +139,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -194,7 +201,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -518,21 +525,28 @@ var ProxyEtyEntityDesc = entity.EntityDesc{
 	Metadata: "proxy.proto",
 }
 
-func RegisterProxySvcService(impl ProxySvcService) {
-	entity.Manager.RegisterService(&ProxySvcServiceDesc, impl)
+func RegisterProxySvcService(etyMgr *entity.EntityManager, impl ProxySvcService) {
+	etyMgr.RegisterService(&ProxySvcServiceDesc, impl)
 }
 
-func NewProxySvcServiceClient(client *codec.PacketReadWriter) *proxySvcService {
-	t := &proxySvcService{client: client}
+func NewProxySvcServiceClient(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *proxySvcService {
+	t := &proxySvcService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
-func NewProxySvcService(client *codec.PacketReadWriter) *proxySvcService {
-	t := &proxySvcService{client: client}
+func NewProxySvcService(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *proxySvcService {
+	t := &proxySvcService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
 type proxySvcService struct {
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -558,7 +572,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -620,7 +634,7 @@ func (t *proxySvcService) RegisterEntity(c entity.Context, req *RegisterEntityRe
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -682,7 +696,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -744,7 +758,7 @@ func (t *proxySvcService) UnregisterEntity(c entity.Context, req *RegisterEntity
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -806,7 +820,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -868,7 +882,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err

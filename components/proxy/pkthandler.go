@@ -10,24 +10,20 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-var _ nets.PacketHandler = &ProxyPacketHandler{}
+var _ nets.PacketHandler = &Proxy{}
 
-type ProxyPacketHandler struct {
-	*entity.MethodPacketHandler
-}
+func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
 
-func NewProxyPacketHandler() *ProxyPacketHandler {
-	st := &ProxyPacketHandler{entity.NewMethodPacketHandler()}
-	return st
-}
+	xlog.Debugln("proxy 1")
 
-func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 	hdr := pkt.Header
-	err := st.MethodPacketHandler.HandlePacket(pkt)
+	err := p.Server.EntityMgr.HandlePacket(pkt)
 	if err == nil {
 		// handle succ
 		return nil
 	}
+
+	xlog.Debugln("proxy 2")
 
 	if entity.NotMyMethod(err) {
 		// request
@@ -38,10 +34,12 @@ func (st *ProxyPacketHandler) HandlePacket(pkt *codec.Packet) error {
 				xlog.Errorln("bad req header:", hdr.String())
 				return errors.New("bad call, call entity but no dst entity")
 			}
-			proxyInst.ProxyToEntity(hdr.DstEntity, pkt)
+			xlog.Debugln("proxy 3")
+			p.ProxyToEntity(hdr.DstEntity, pkt)
+			xlog.Debugln("proxy 4")
 		} else {
 			// call service
-			proxyInst.ProxyToService(hdr, pkt)
+			p.ProxyToService(hdr, pkt)
 		}
 
 		return nil

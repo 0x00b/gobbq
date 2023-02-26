@@ -7,13 +7,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
 // NewSever return gobbq server
 func NewServer() *Server {
 
-	svr := &Server{}
+	svr := &Server{
+		EntityMgr: entity.NewEntityManager(),
+	}
 
 	return svr
 }
@@ -32,6 +35,8 @@ type Server struct {
 	signalCh  chan os.Signal
 	closeCh   chan struct{}
 	closeOnce sync.Once
+
+	EntityMgr *entity.EntityManager
 }
 
 var ErrServerStopped = errors.New("gobbq: the server has been stopped")
@@ -88,8 +93,23 @@ func (s *Server) tryClose() {
 		defer cancel()
 
 		var wg sync.WaitGroup
-		for _, service := range s.netsvc {
 
+		wg.Add(1)
+		// close entity manager
+		go func() {
+			defer wg.Done()
+
+			c := make(chan struct{}, 1)
+			s.EntityMgr.Close(c)
+
+			select {
+			case <-c:
+			case <-ctx.Done():
+			}
+		}()
+
+		// close conn
+		for _, service := range s.netsvc {
 			wg.Add(1)
 			go func(srv nets.NetService) {
 				defer wg.Done()

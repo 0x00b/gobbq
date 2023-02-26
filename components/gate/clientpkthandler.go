@@ -10,17 +10,19 @@ import (
 var _ nets.PacketHandler = &ClientPacketHandler{}
 
 type ClientPacketHandler struct {
-	*entity.MethodPacketHandler
+	nets.PacketHandler
 }
 
-func NewClientPacketHandler() *ClientPacketHandler {
-	st := &ClientPacketHandler{entity.NewMethodPacketHandler()}
+func NewClientPacketHandler(etyMgr *entity.EntityManager) *ClientPacketHandler {
+	st := &ClientPacketHandler{
+		PacketHandler: etyMgr,
+	}
 	return st
 }
 
 func (st *ClientPacketHandler) HandlePacket(pkt *codec.Packet) error {
 
-	err := st.MethodPacketHandler.HandlePacket(pkt)
+	err := st.PacketHandler.HandlePacket(pkt)
 	if err == nil {
 		// handle succ
 		return nil

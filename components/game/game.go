@@ -13,65 +13,40 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-func Init() {
-
-	ex.ConnProxy(nets.WithPacketHandler(NewGamePacketHandler()))
-
-	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
-
-	rsp, err := client.RegisterInst(Inst.Context(), &proxypb.RegisterInstRequest{
-		InstID: Inst.EntityID().ID,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	Inst.ProxyID = rsp.ProxyID
-}
-
-func Run() {
-	for {
-		xlog.Debug("Run Game")
-		sleepTime := 50
-		for {
-			time.Sleep(time.Duration(sleepTime) * time.Millisecond)
-		}
-	}
-}
-
 type Game struct {
 	entity.Entity
 
 	ProxyID string
+
+	EntityMgr *entity.EntityManager
 }
 
 func NewGame() *Game {
 
 	conf.Init("game.yaml")
 
-	entity.ProxyRegister = &RegisterProxy{}
-	entity.NewEntityID = &EntityIDGenerator{}
+	gm := &Game{
+		EntityMgr: entity.NewEntityManager(),
+	}
+	gm.EntityMgr.ProxyRegister = gm
+	gm.EntityMgr.EntityIDGenerator = gm
 
-	gm := &Game{}
 	eid := snowflake.GenUUID()
 
-	entity.RegisterEntity(nil, &bbq.EntityID{ID: eid, ProxyID: eid}, gm)
+	gm.EntityMgr.RegisterEntity(nil, &bbq.EntityID{ID: eid, ProxyID: eid}, gm)
 
 	go gm.Run()
+
+	gm.init()
 
 	return gm
 }
 
-var Inst = NewGame()
+func (g *Game) RegisterEntityToProxy(eid *bbq.EntityID) error {
 
-type RegisterProxy struct {
-}
+	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
 
-func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
-
-	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
-
-	_, err := client.RegisterEntity(Inst.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
+	_, err := client.RegisterEntity(g.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
 	if err != nil {
 		return err
 	}
@@ -80,11 +55,11 @@ func (*RegisterProxy) RegisterEntityToProxy(eid *bbq.EntityID) error {
 	return nil
 }
 
-func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
+func (g *Game) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
 
-	_, err := client.RegisterService(Inst.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
+	_, err := client.RegisterService(g.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {
 		return err
 	}
@@ -94,9 +69,32 @@ func (*RegisterProxy) RegisterServiceToProxy(svcName string) error {
 	return nil
 }
 
-type EntityIDGenerator struct {
+func (g *Game) NewEntityID(typeName string) *bbq.EntityID {
+	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: g.ProxyID}
 }
 
-func (n *EntityIDGenerator) NewEntityID(typeName string) *bbq.EntityID {
-	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: Inst.ProxyID}
+func (g *Game) init() {
+
+	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr))
+
+	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+
+	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{
+		InstID: g.EntityID().ID,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	g.ProxyID = rsp.ProxyID
+}
+
+func (g *Game) Serve() {
+	for {
+		xlog.Debug("Run Game")
+		sleepTime := 50
+		for {
+			time.Sleep(time.Duration(sleepTime) * time.Millisecond)
+		}
+	}
 }

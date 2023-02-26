@@ -5,9 +5,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -43,7 +44,7 @@ type NetService interface {
 
 	ListenAndServe() error
 
-	Close(chan struct{})
+	Close(chan struct{}) error
 }
 
 type service struct {
@@ -54,11 +55,19 @@ type service struct {
 
 	idleTimeout time.Duration
 	lastVisited time.Time
+
+	closed atomic.Bool
+
+	connMtx sync.Mutex
+	conns   map[*conn]struct{}
+
+	websocket *WebSocketService
 }
 
 func NewNetService(opts ...Option) *service {
 	svc := &service{
-		opts: &Options{},
+		opts:  &Options{},
+		conns: make(map[*conn]struct{}),
 	}
 
 	svc.ctx, svc.cancel = context.WithCancel(context.Background())
@@ -74,15 +83,26 @@ func (s *service) ListenAndServe() error {
 	return s.listenAndServe(s.opts.network, s.opts.address, s.opts)
 }
 
-func (s *service) Close(closeChan chan struct{}) {
+func (s *service) Close(closeChan chan struct{}) error {
 
 	xlog.Infoln("server closing", s.opts.network, s.opts.address)
 
 	s.cancel()
 
+	defer s.closed.Store(true)
+
+	if s.websocket != nil {
+		err := s.websocket.Close(closeChan)
+		if err != nil {
+			return err
+		}
+	}
+
+	s.closeAll()
+
 	closeChan <- struct{}{}
 
-	return
+	return nil
 }
 
 func (s *service) Name() string {
@@ -94,7 +114,8 @@ func (s *service) Name() string {
 func (s *service) listenAndServe(network NetWorkName, address string, opts *Options) error {
 
 	if network == WebSocket {
-		return newWebSocketService().ListenAndServe(network, address, opts)
+		s.websocket = newWebSocketService(s)
+		return s.websocket.ListenAndServe(network, address, opts)
 	}
 
 	var ln net.Listener
@@ -102,9 +123,9 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 
 	switch network {
 	case KCP:
-		ln, err = NewDefaultKCPListener().Listen(network, address, opts)
+		ln, err = NewDefaultKCPListener(opts).Listen(network, address)
 	case TCP, TCP6:
-		ln, err = NewTCPListener(network).Listen(network, address, opts)
+		ln, err = NewTCPListener(network, opts).Listen(network, address)
 	default:
 		panic(fmt.Sprintf("unkown network:%s", network))
 	}
@@ -114,11 +135,18 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 	}
 	xlog.Infoln("listenAndServe from:", network, address)
 
-	defer ln.Close()
+	var once sync.Once
+	closeListener := func() {
+		if err := ln.Close(); err != nil {
+			xlog.Error("listener close err:%s", err.Error())
+		}
+	}
+	defer once.Do(closeListener)
 
 	for {
 		select {
 		case <-s.ctx.Done():
+			return nil
 		default:
 		}
 
@@ -133,21 +161,15 @@ func (s *service) listenAndServe(network NetWorkName, address string, opts *Opti
 
 		xlog.Infof("Connection from: %s", conn.RemoteAddr())
 
-		go s.handleConn(conn, opts)
+		s.handleConn(conn, opts)
 	}
 }
 
 func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 
-	// tcpConn.SetNoDelay(consts.CLIENT_PROXY_SET_TCP_NO_DELAY)
-
-	// kcpCon.SetReadBuffer(consts.CLIENT_PROXY_READ_BUFFER_SIZE)
-	// conn.SetWriteBuffer(consts.CLIENT_PROXY_WRITE_BUFFER_SIZE)
-	// // turn on turbo mode according to https://github.com/skywind3000/kcp/blob/master/README.en.md#protocol-configuration
-	// conn.SetNoDelay(consts.KCP_NO_DELAY, consts.KCP_INTERNAL_UPDATE_TIMER_INTERVAL, consts.KCP_ENABLE_FAST_RESEND, consts.KCP_DISABLE_CONGESTION_CONTROL)
-	// conn.SetStreamMode(consts.KCP_SET_STREAM_MODE)
-	// conn.SetWriteDelay(consts.KCP_SET_WRITE_DELAY)
-	// conn.SetACKNoDelay(consts.KCP_SET_ACK_NO_DELAY)
+	if s.closed.Load() {
+		return
+	}
 
 	if s.opts.TLSCertFile != "" && s.opts.TLSKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(s.opts.TLSCertFile, s.opts.TLSKeyFile)
@@ -171,21 +193,93 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 		rawConn = net.Conn(tlsConn)
 	}
 
-	xlog.Traceln("handleconn")
-
 	ctx, cancel := context.WithCancel(context.Background())
-	cn := newDefaultConn(ctx)
+	cn := newDefaultConn(ctx, rawConn, opts)
 	cn.cancel = cancel
 
-	cn.rwc = rawConn
-	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
-	cn.PacketHandler = opts.PacketHandler
-	cn.opts = opts
-	if opts.ConnHandler != nil {
-		cn.ConnHandler = opts.ConnHandler
-	}
+	// con err handler
+	cn.registerConErrHandler(s)
 
-	cn.Serve()
+	s.storeConn(cn)
+
+	go cn.Serve()
 
 	return
+}
+
+const MaxCloseWaitTime = 10
+
+func (s *service) closeAll() {
+	if s.closed.Load() {
+		return
+	}
+
+	// close all conn
+	closeWaitTime := s.opts.MaxCloseWaitTime
+	if closeWaitTime < MaxCloseWaitTime {
+		closeWaitTime = MaxCloseWaitTime
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), closeWaitTime)
+	defer cancel()
+
+	var wg sync.WaitGroup
+
+	s.connMtx.Lock()
+	defer s.connMtx.Unlock()
+
+	for cn := range s.conns {
+
+		wg.Add(1)
+		go func(cn *conn) {
+			defer wg.Done()
+
+			c := make(chan struct{}, 1)
+			go cn.Close(c)
+
+			select {
+			case <-c:
+			case <-ctx.Done():
+			}
+		}(cn)
+	}
+
+	wg.Wait()
+}
+
+func (s *service) storeConn(cn *conn) {
+	if s.closed.Load() {
+		return
+	}
+	s.connMtx.Lock()
+	defer s.connMtx.Unlock()
+
+	s.conns[cn] = struct{}{}
+}
+
+func (s *service) unstoreConn(cn *conn) {
+	if s.closed.Load() {
+		return
+	}
+	s.connMtx.Lock()
+	defer s.connMtx.Unlock()
+
+	delete(s.conns, cn)
+}
+
+// ConnErrHandler
+
+func (s *service) HandleEOF(cn *conn) {
+	if cn == nil {
+		return
+	}
+	s.unstoreConn(cn)
+}
+
+func (s *service) HandleTimeOut(cn *conn) {
+	s.HandleEOF(cn)
+}
+
+func (s *service) HandleFail(cn *conn) {
+	s.HandleEOF(cn)
 }

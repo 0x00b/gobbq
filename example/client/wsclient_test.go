@@ -24,12 +24,12 @@ func (*ClientService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*
 
 func TestWSClient(m *testing.T) {
 
-	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("info", true, true, os.Stdout, xlog.DefaultLogTag{})
 	conf.Init("client.yaml")
 
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
-	es := exampb.NewEchoSvc2ServiceClient(client.Gate.GetPacketReadWriter())
+	es := exampb.NewEchoSvc2ServiceClient(client.EntityMgr, client.Gate.GetPacketReadWriter())
 	rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{
 		Text:     "hello",
 		CLientID: client.EntityID(),

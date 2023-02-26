@@ -4,33 +4,37 @@ import (
 	"fmt"
 	"os"
 
-	bbq "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
+
+type ProxySvc struct {
+	*Proxy
+
+	entity.Service
+}
 
 func main() {
 
 	fmt.Println(conf.C)
 
-	proxyInst.ConnOtherProxy(nets.WithPacketHandler(NewProxyPacketHandler()))
-
 	xlog.Init("info", false, true, os.Stdout, xlog.DefaultLogTag{})
 
-	proxypb.RegisterProxySvcService(&ProxyService{})
+	p := NewProxy()
 
-	svr := bbq.NewServer()
+	proxypb.RegisterProxyEtyEntity(p.Server.EntityMgr, p)
+	proxypb.RegisterProxySvcService(p.Server.EntityMgr, &ProxySvc{Proxy: p})
 
-	svr.RegisterNetService(nets.NewNetService(
-		nets.WithPacketHandler(NewProxyPacketHandler()),
-		nets.WithConnHandler(&ConnHandler{}),
-		nets.WithNetwork(nets.TCP),
-		nets.WithAddress(fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
+	p.Server.RegisterNetService(nets.NewNetService(
+		nets.WithPacketHandler(p),
+		// nets.WithConnErrHandler(p),
+		nets.WithNetwork(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
 	)
 
-	err := svr.ListenAndServe()
+	err := p.Server.ListenAndServe()
 
 	fmt.Println(err)
 }

@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"sync"
@@ -24,6 +25,9 @@ type Packet struct {
 
 	// data(header + body)
 	bytes *bytespool.Bytes
+
+	// 管理pkt的生命周期
+	ctx context.Context
 }
 
 const (
@@ -79,7 +83,7 @@ func allocPacket() *Packet {
 
 	pkt.reset()
 
-	// xlog.Tracef("pkt pool get: %d", unsafe.Pointer(pkt))
+	// xlog.Printf("pkt pool get: %d", unsafe.Pointer(pkt))
 
 	return pkt
 }
@@ -88,9 +92,13 @@ func allocPacket() *Packet {
 func NewPacket() (*Packet, ReleasePkt) {
 	pkt := allocPacket()
 	return pkt, func() {
-		// xlog.Tracef("release callback %d", unsafe.Pointer(pkt))
+		// xlog.Printf("release callback %d", unsafe.Pointer(pkt))
 		pkt.Release()
 	}
+}
+
+func (p *Packet) Context() context.Context {
+	return p.ctx
 }
 
 func (p *Packet) String() string {
@@ -102,7 +110,7 @@ func (p *Packet) Retain() {
 
 	refcount := atomic.AddInt32(&p.refcount, 1)
 	_ = refcount
-	// xlog.Tracef("retain pkt:%d, %d", unsafe.Pointer(p), refcount)
+	// xlog.Printf("retain pkt:%d, %d", unsafe.Pointer(p), refcount)
 
 }
 
@@ -111,10 +119,10 @@ func (p *Packet) Release() {
 
 	refcount := atomic.AddInt32(&p.refcount, -1)
 
-	// xlog.Tracef("release pkt:%d, %d", unsafe.Pointer(p), refcount)
+	// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), refcount)
 
 	if refcount == 0 {
-		// xlog.Tracef("release pkt:%d, %d", unsafe.Pointer(p), unsafe.Pointer(p.bytes))
+		// xlog.Printf("release pkt:%d, %d", unsafe.Pointer(p), unsafe.Pointer(p.bytes))
 
 		bytespool.Put(p.bytes)
 		packetPool.Put(p)
@@ -194,7 +202,7 @@ func (p *Packet) extendPacketData(size uint32) []byte {
 		panic("bytespool get bytes error")
 	}
 
-	// xlog.Tracef("bytes pool get: %d %d", unsafe.Pointer(p), unsafe.Pointer(bs))
+	// xlog.Printf("bytes pool get: %d %d", unsafe.Pointer(p), unsafe.Pointer(bs))
 
 	// copy(bs.Bytes(), p.Data())
 	oldBytes := p.bytes

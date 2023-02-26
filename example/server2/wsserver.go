@@ -12,17 +12,19 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
+var g = game.NewGame()
+
 func main() {
 
-	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("info", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	fmt.Println(conf.C)
 
-	game.Init()
+	g := game.NewGame()
 
-	exampb.RegisterEchoSvc2Service(&EchoService2{})
+	exampb.RegisterEchoSvc2Service(g.EntityMgr, &EchoService2{})
 
-	game.Run()
+	g.Serve()
 }
 
 type EchoService2 struct {
@@ -33,7 +35,7 @@ func (*EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*e
 
 	xlog.Println("service2222 req", c.Packet().Header.String(), req.String())
 
-	echoClient := exampb.NewEchoServiceClient(ex.ProxyClient.GetPacketReadWriter())
+	echoClient := exampb.NewEchoServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err

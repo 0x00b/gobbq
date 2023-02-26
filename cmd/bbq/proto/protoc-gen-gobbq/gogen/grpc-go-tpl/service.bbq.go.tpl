@@ -32,47 +32,62 @@ var _= snowflake.GenUUID()
 {{- if $isSvc}}
 	{{$typeName = concat "" $sName "Service"}}
 
-func Register{{$typeName}}(impl {{$typeName}}) {
-	entity.Manager.RegisterService(&{{$typeName}}Desc, impl)
+func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
+	etyMgr.RegisterService(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{client:client}
+func New{{$typeName}}Client(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
+	t := &{{lowerCamelcase $typeName}}{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
-func New{{$typeName}}(client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{client:client}
+func New{{$typeName}}(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
+	t := &{{lowerCamelcase $typeName}}{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
 type {{lowerCamelcase $typeName}} struct{
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
 {{else}}
 
-func Register{{$typeName}}(impl {{$typeName}}) {
-	entity.Manager.RegisterEntity(&{{$typeName}}Desc, impl)
+func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
+	etyMgr.RegisterEntityDesc(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *codec.PacketReadWriter, entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{client:client, entity:entity}
+func New{{$typeName}}Client(client *codec.PacketReadWriter, etyMgr *entity.EntityManager, entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
+	t := &{{lowerCamelcase $typeName}}{
+		client: client,
+		etyMgr: etyMgr,
+		entity:entity,
+	}
 	return t
 }
 
-func New{{$typeName}}(c entity.Context, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
-	return New{{$typeName}}WithID(c, entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
+func New{{$typeName}}(c entity.Context, etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
+	return New{{$typeName}}WithID(c, etyMgr, entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
 }
 
-func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, etyMgr *entity.EntityManager, id *bbq.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
 
 	_, err := entity.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &{{lowerCamelcase $typeName}}{entity: id, client:client}
+	t := &{{lowerCamelcase $typeName}}{
+		entity: id,
+	 	client:client,
+		etyMgr: etyMgr,
+	}
 
 	return t
 }
@@ -80,6 +95,7 @@ func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID, client *codec.Pa
 type {{lowerCamelcase $typeName}} struct{
 	entity *bbq.EntityID
 
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 {{end -}}
@@ -112,7 +128,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 
 	{{if $m.HasResponse}}var chanRsp chan any= make(chan any){{end}}
 	
-	err := entity.HandleCallLocalMethod(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return {{if $m.HasResponse}}nil,{{end}} err

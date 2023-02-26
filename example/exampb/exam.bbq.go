@@ -5,33 +5,38 @@
 package exampb
 
 import (
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// exampb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
 
-func RegisterEchoService(impl EchoService) {
-	entity.Manager.RegisterService(&EchoServiceDesc, impl)
+func RegisterEchoService(etyMgr *entity.EntityManager, impl EchoService) {
+	etyMgr.RegisterService(&EchoServiceDesc, impl)
 }
 
-func NewEchoServiceClient(client *codec.PacketReadWriter) *echoService {
-	t := &echoService{client: client}
+func NewEchoServiceClient(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *echoService {
+	t := &echoService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
-func NewEchoService(client *codec.PacketReadWriter) *echoService {
-	t := &echoService{client: client}
+func NewEchoService(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *echoService {
+	t := &echoService{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
 type echoService struct {
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -57,7 +62,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -201,27 +206,35 @@ var EchoServiceDesc = entity.EntityDesc{
 	Metadata: "exam.proto",
 }
 
-func RegisterEchoEtyEntity(impl EchoEtyEntity) {
-	entity.Manager.RegisterEntity(&EchoEtyEntityDesc, impl)
+func RegisterEchoEtyEntity(etyMgr *entity.EntityManager, impl EchoEtyEntity) {
+	etyMgr.RegisterEntityDesc(&EchoEtyEntityDesc, impl)
 }
 
-func NewEchoEtyEntityClient(client *codec.PacketReadWriter, entity *bbq.EntityID) *echoEtyEntity {
-	t := &echoEtyEntity{client: client, entity: entity}
+func NewEchoEtyEntityClient(client *codec.PacketReadWriter, etyMgr *entity.EntityManager, entity *bbq.EntityID) *echoEtyEntity {
+	t := &echoEtyEntity{
+		client: client,
+		etyMgr: etyMgr,
+		entity: entity,
+	}
 	return t
 }
 
-func NewEchoEtyEntity(c entity.Context, client *codec.PacketReadWriter) *echoEtyEntity {
-	return NewEchoEtyEntityWithID(c, entity.NewEntityID.NewEntityID("exampb.EchoEtyEntity"), client)
+func NewEchoEtyEntity(c entity.Context, etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *echoEtyEntity {
+	return NewEchoEtyEntityWithID(c, etyMgr, etyMgr.EntityIDGenerator.NewEntityID("exampb.EchoEtyEntity"), client)
 }
 
-func NewEchoEtyEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *echoEtyEntity {
+func NewEchoEtyEntityWithID(c entity.Context, etyMgr *entity.EntityManager, id *bbq.EntityID, client *codec.PacketReadWriter) *echoEtyEntity {
 
-	_, err := entity.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &echoEtyEntity{entity: id, client: client}
+	t := &echoEtyEntity{
+		entity: id,
+		client: client,
+		etyMgr: etyMgr,
+	}
 
 	return t
 }
@@ -229,6 +242,7 @@ func NewEchoEtyEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.Pa
 type echoEtyEntity struct {
 	entity *bbq.EntityID
 
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -254,7 +268,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -398,21 +412,28 @@ var EchoEtyEntityDesc = entity.EntityDesc{
 	Metadata: "exam.proto",
 }
 
-func RegisterEchoSvc2Service(impl EchoSvc2Service) {
-	entity.Manager.RegisterService(&EchoSvc2ServiceDesc, impl)
+func RegisterEchoSvc2Service(etyMgr *entity.EntityManager, impl EchoSvc2Service) {
+	etyMgr.RegisterService(&EchoSvc2ServiceDesc, impl)
 }
 
-func NewEchoSvc2ServiceClient(client *codec.PacketReadWriter) *echoSvc2Service {
-	t := &echoSvc2Service{client: client}
+func NewEchoSvc2ServiceClient(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *echoSvc2Service {
+	t := &echoSvc2Service{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
-func NewEchoSvc2Service(client *codec.PacketReadWriter) *echoSvc2Service {
-	t := &echoSvc2Service{client: client}
+func NewEchoSvc2Service(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *echoSvc2Service {
+	t := &echoSvc2Service{
+		client: client,
+		etyMgr: etyMgr,
+	}
 	return t
 }
 
 type echoSvc2Service struct {
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -438,7 +459,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -582,27 +603,35 @@ var EchoSvc2ServiceDesc = entity.EntityDesc{
 	Metadata: "exam.proto",
 }
 
-func RegisterClientEntity(impl ClientEntity) {
-	entity.Manager.RegisterEntity(&ClientEntityDesc, impl)
+func RegisterClientEntity(etyMgr *entity.EntityManager, impl ClientEntity) {
+	etyMgr.RegisterEntityDesc(&ClientEntityDesc, impl)
 }
 
-func NewClientEntityClient(client *codec.PacketReadWriter, entity *bbq.EntityID) *clientEntity {
-	t := &clientEntity{client: client, entity: entity}
+func NewClientEntityClient(client *codec.PacketReadWriter, etyMgr *entity.EntityManager, entity *bbq.EntityID) *clientEntity {
+	t := &clientEntity{
+		client: client,
+		etyMgr: etyMgr,
+		entity: entity,
+	}
 	return t
 }
 
-func NewClientEntity(c entity.Context, client *codec.PacketReadWriter) *clientEntity {
-	return NewClientEntityWithID(c, entity.NewEntityID.NewEntityID("exampb.ClientEntity"), client)
+func NewClientEntity(c entity.Context, etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *clientEntity {
+	return NewClientEntityWithID(c, etyMgr, etyMgr.EntityIDGenerator.NewEntityID("exampb.ClientEntity"), client)
 }
 
-func NewClientEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.PacketReadWriter) *clientEntity {
+func NewClientEntityWithID(c entity.Context, etyMgr *entity.EntityManager, id *bbq.EntityID, client *codec.PacketReadWriter) *clientEntity {
 
-	_, err := entity.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &clientEntity{entity: id, client: client}
+	t := &clientEntity{
+		entity: id,
+		client: client,
+		etyMgr: etyMgr,
+	}
 
 	return t
 }
@@ -610,6 +639,7 @@ func NewClientEntityWithID(c entity.Context, id *bbq.EntityID, client *codec.Pac
 type clientEntity struct {
 	entity *bbq.EntityID
 
+	etyMgr *entity.EntityManager
 	client *codec.PacketReadWriter
 }
 
@@ -635,7 +665,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 
 	var chanRsp chan any = make(chan any)
 
-	err := entity.HandleCallLocalMethod(pkt, req, chanRsp)
+	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err

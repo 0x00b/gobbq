@@ -72,6 +72,7 @@ func (pc *PacketReadWriter) WritePacket(packet *Packet) error {
 	if err != nil {
 		return err
 	}
+	xlog.Traceln("send raw done")
 
 	pc.writeMsgCnt++
 
@@ -90,7 +91,9 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 
 	var tempBuff [4]byte
 
+	xlog.Traceln("recv raw 1 ")
 	_, err = io.ReadFull(pc.rw, tempBuff[:])
+	xlog.Traceln("recv raw 2 ")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -105,13 +108,17 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	packet.Src = pc
 	packet.totalLen = packetDataSize
 
+	xlog.Traceln("recv raw 3 ")
 	//extendPacketBody 返回的时候已经把header buff排除了
 	packetData := packet.extendPacketData(packetDataSize)
+	xlog.Traceln("recv raw 4 ")
 	_, err = io.ReadFull(pc.rw, packetData)
 	if err != nil {
 		release()
 		return nil, nil, err
 	}
+
+	xlog.Traceln("recv raw 5 ")
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
 

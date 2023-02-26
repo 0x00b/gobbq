@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/xlog"
 	"golang.org/x/net/websocket"
 )
@@ -14,11 +13,14 @@ import (
 // curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host: example.com:80" --header "Origin: http://example.com:80" --header "Sec-WebSocketService-Key: SGVsbG8sIHdvcmxkIQ==" --header "Sec-WebSocketService-Version: 13" localhost:80
 
 type WebSocketService struct {
-	hs http.Server
+	hs  http.Server
+	svc *service
 }
 
-func newWebSocketService() *WebSocketService {
-	return &WebSocketService{}
+func newWebSocketService(svc *service) *WebSocketService {
+	return &WebSocketService{
+		svc: svc,
+	}
 }
 
 func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, opts *Options) error {
@@ -29,6 +31,10 @@ func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, 
 	xlog.Infoln("websocket listenAndServe from:", network, address)
 
 	ws.hs.Addr = address
+	ws.hs.SetKeepAlivesEnabled(opts.NetKeepAlive)
+	ws.hs.RegisterOnShutdown(func() {
+
+	})
 
 	h := websocket.Handler(func(conn *websocket.Conn) {
 		conn.PayloadType = websocket.BinaryFrame
@@ -46,8 +52,9 @@ func (ws *WebSocketService) ListenAndServe(network NetWorkName, address string, 
 }
 
 func (ws *WebSocketService) Close(chan struct{}) error {
-	ws.hs.Shutdown(context.Background())
-	return nil
+
+	err := ws.hs.Shutdown(context.Background())
+	return err
 }
 
 func (ws *WebSocketService) Name() NetWorkName {
@@ -55,18 +62,19 @@ func (ws *WebSocketService) Name() NetWorkName {
 }
 
 func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
-
-	xlog.Traceln("handleconn")
-
-	cn := newDefaultConn(context.Background())
-
-	cn.rwc = rawConn
-	cn.packetReadWriter = codec.NewPacketReadWriter(rawConn)
-	cn.PacketHandler = opts.PacketHandler
-	cn.opts = opts
-	if opts.ConnHandler != nil {
-		cn.ConnHandler = opts.ConnHandler
+	if ws.svc.closed.Load() {
+		xlog.Infoln("closed", ws.hs.Addr)
+		return
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cn := newDefaultConn(ctx, rawConn, opts)
+	cn.cancel = cancel
+
+	// con err handler
+	cn.registerConErrHandler(ws.svc)
+
+	ws.svc.storeConn(cn)
 
 	cn.Serve()
 

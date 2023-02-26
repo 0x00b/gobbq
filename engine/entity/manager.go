@@ -10,21 +10,6 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-var Manager EntityManager = EntityManager{
-	Services:    make(map[string]IService),
-	entityDescs: make(map[string]*EntityDesc),
-	Entities:    make(map[string]IBaseEntity),
-}
-var ProxyRegister RegisterProxy
-
-type RegisterProxy interface {
-	RegisterEntityToProxy(eid *bbq.EntityID) error
-	RegisterServiceToProxy(svcName string) error
-
-	// UnregisterEntityToProxy(eid EntityID) error
-	// UnregisterServiceToProxy(svcName TypeName) error
-}
-
 // EntityManager manage entity lifecycle
 type EntityManager struct {
 	mu    sync.RWMutex // guards following
@@ -34,9 +19,29 @@ type EntityManager struct {
 	entityDescs map[string]*EntityDesc // entity name -> entity info
 	Entities    map[string]IBaseEntity // entity id -> entity impl
 
+	ProxyRegister RegisterProxy
+
+	EntityIDGenerator EntityIDGenerator
 }
 
-func RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
+func NewEntityManager() *EntityManager {
+
+	return &EntityManager{
+		Services:    make(map[string]IService),
+		entityDescs: make(map[string]*EntityDesc),
+		Entities:    make(map[string]IBaseEntity),
+	}
+}
+
+type RegisterProxy interface {
+	RegisterEntityToProxy(eid *bbq.EntityID) error
+	RegisterServiceToProxy(svcName string) error
+
+	// UnregisterEntityToProxy(eid EntityID) error
+	// UnregisterServiceToProxy(svcName TypeName) error
+}
+
+func (s *EntityManager) RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
 	ctx := allocContext(c)
 	ctx.entity = entity
 	entity.onInit(ctx, id)
@@ -47,15 +52,15 @@ func RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
 		c.Entity().addChildren(entity)
 	}
 
-	Manager.mu.Lock()
-	defer Manager.mu.Unlock()
-	Manager.Entities[id.ID] = entity
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Entities[id.ID] = entity
 
 	return nil
 }
 
-func NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
-	desc, ok := Manager.entityDescs[id.Type]
+func (s *EntityManager) NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
+	desc, ok := s.entityDescs[id.Type]
 	if !ok {
 		xlog.Errorln("EntityManager.RegisterService new entity desc %s", id.Type)
 		return nil, fmt.Errorf("EntityManager.RegisterService new entity desc %s", id.Type)
@@ -80,22 +85,22 @@ func NewEntity(c Context, id *bbq.EntityID) (IEntity, error) {
 
 	newDesc := *desc
 	newDesc.EntityImpl = entity
-	entity.setDesc(&newDesc)
+	entity.SetDesc(&newDesc)
 
-	RegisterEntity(c, id, entity)
+	s.RegisterEntity(c, id, entity)
 
 	// start message loop
 	go entity.Run()
 
 	// send to poxy
-	if ProxyRegister != nil {
-		ProxyRegister.RegisterEntityToProxy(id)
+	if s.ProxyRegister != nil {
+		s.ProxyRegister.RegisterEntityToProxy(id)
 	}
 
 	return entity, nil
 }
 
-func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) RegisterEntityDesc(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	if ss != nil {
 		ht := reflect.TypeOf(sd.HandlerType).Elem()
 		st := reflect.TypeOf(ss)
@@ -104,10 +109,26 @@ func (s *EntityManager) RegisterEntity(sd *EntityDesc, ss IEntity, intercepter .
 			return
 		}
 	}
-	s.registerEntity(sd, ss, intercepter...)
+	s.registerEntityDesc(sd, ss, intercepter...)
 }
 
-func (s *EntityManager) registerEntity(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
+func (s *EntityManager) Close(ch chan struct{}) error {
+	// close svc
+	for _, v := range s.Services {
+		v.onDestroy()
+		v.OnDestroy()
+	}
+
+	// close entity
+	for _, v := range s.Entities {
+		v.onDestroy()
+		v.OnDestroy()
+	}
+
+	return nil
+}
+
+func (s *EntityManager) registerEntityDesc(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	xlog.Tracef("registerEntity(%q)", sd.TypeName)
@@ -145,7 +166,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	}
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
-	ss.setDesc(sd)
+	ss.SetDesc(sd)
 
 	s.registerServiceEntity(sd, ss)
 
@@ -154,9 +175,9 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	// start msg loop
 	go ss.Run()
 
-	if ProxyRegister != nil {
-		ProxyRegister.RegisterServiceToProxy(sd.TypeName)
-		ProxyRegister.RegisterEntityToProxy(ss.EntityID())
+	if s.ProxyRegister != nil {
+		s.ProxyRegister.RegisterServiceToProxy(sd.TypeName)
+		s.ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
 }
 
@@ -164,17 +185,17 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 
 	eid := entity.EntityID()
 	if eid == nil || eid.ID == "" {
-		if NewEntityID != nil {
-			eid = NewEntityID.NewEntityID(sd.TypeName)
+		if s.EntityIDGenerator != nil {
+			eid = s.EntityIDGenerator.NewEntityID(sd.TypeName)
 		} else {
 			eid = &bbq.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
 		}
 	}
 
-	RegisterEntity(nil, eid, entity)
+	s.RegisterEntity(nil, eid, entity)
 
-	Manager.mu.Lock()
-	defer Manager.mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.Services[sd.TypeName] = entity
 
 	return nil

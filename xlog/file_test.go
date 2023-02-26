@@ -11,7 +11,7 @@ import (
 
 func TestFileLogger(t *testing.T) {
 
-	xlog.Init("trace", true, true, &lumberjack.Logger{
+	xlog.Init("info", true, true, &lumberjack.Logger{
 		Filename:  "./test.log",
 		MaxAge:    7,
 		LocalTime: true,

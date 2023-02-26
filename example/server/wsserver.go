@@ -12,20 +12,20 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
+var g = game.NewGame()
+
 func main() {
 
-	xlog.Init("debug", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("info", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	fmt.Println(conf.C)
 
-	game.Init()
-
 	// exampb.RegisterEchoService(&EchoService{})
-	exampb.RegisterEchoService(&EchoService{})
+	exampb.RegisterEchoService(g.EntityMgr, &EchoService{})
 
-	exampb.RegisterEchoEtyEntity(&EchoEntity{})
+	exampb.RegisterEchoEtyEntity(g.EntityMgr, &EchoEntity{})
 
-	game.Run()
+	g.Serve()
 }
 
 type EchoService struct {
@@ -36,7 +36,7 @@ func (*EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*ex
 
 	xlog.Println("service", c.Packet().Header.String(), req.String())
 
-	echoClient := exampb.NewEchoEtyEntity(c, ex.ProxyClient.GetPacketReadWriter())
+	echoClient := exampb.NewEchoEtyEntity(c, g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (*EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exa
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
-	client := exampb.NewClientEntityClient(ex.ProxyClient.GetPacketReadWriter(), req.CLientID)
+	client := exampb.NewClientEntityClient(ex.ProxyClient.GetPacketReadWriter(), g.EntityMgr, req.CLientID)
 	rsp, err := client.SayHello(c, req)
 	if err != nil {
 		return nil, err

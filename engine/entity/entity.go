@@ -9,40 +9,9 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-// just for inner
-// type EntityID bbq.EntityID
-
 type EntityIDGenerator interface {
 	NewEntityID(typeName string) *bbq.EntityID
 }
-
-var NewEntityID EntityIDGenerator
-
-// func ToEntityID(id *bbq.EntityID) *EntityID {
-// 	if id == nil {
-// 		return nil
-// 	}
-// 	return &EntityID{
-// 		ID:      id.ID,
-// 		Type:    TypeName(id.Type),
-// 		ProxyID: id.ProxyID,
-// 	}
-// }
-
-// func ToPBEntityID(id *EntityID) *bbq.EntityID {
-// 	if id == nil {
-// 		return nil
-// 	}
-
-// 	return &bbq.EntityID{
-// 		ID:      id.ID,
-// 		Type:    string(id.Type),
-// 		ProxyID: id.ProxyID,
-// 	}
-// }
-
-// just for inner
-// type TypeName string
 
 var _ IEntity = &Entity{}
 
@@ -77,7 +46,7 @@ type IBaseEntity interface {
 
 	registerCallback(requestID string, cb Callback)
 
-	setDesc(desc *EntityDesc)
+	SetDesc(desc *EntityDesc)
 
 	onInit(c Context, id *bbq.EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
@@ -178,19 +147,18 @@ func (e *baseEntity) Run() {
 
 	}()
 
-	wg.Add(1)
-
 	// response
 	go func() {
-		defer wg.Done()
 		for {
 			select {
 			case <-e.context.Done():
 				xlog.Debugln("ctx done", e)
 				return
 			case pkt := <-e.respChan:
+				wg.Add(1)
 				xlog.Tracef("handle: %s", pkt.String())
 				e.handleMethodRsp(e.context, pkt)
+				wg.Done()
 			}
 		}
 	}()
@@ -203,19 +171,23 @@ func (e *baseEntity) Run() {
 			return
 
 		case pkt := <-e.callChan:
+			wg.Add(1)
 			xlog.Tracef("handle: %s", pkt.String())
 			err := e.handleCallMethod(e.context, pkt)
 			if err != nil {
 				xlog.Errorln(err)
 			}
 			xlog.Tracef("handle done: %s", pkt.String())
+			wg.Done()
 		case lc := <-e.localCallChan:
+			wg.Add(1)
 			xlog.Tracef("handle local call: %s", lc.pkt.String())
 			err := e.handleLocalCallMethod(e.context, lc)
 			if err != nil {
 				xlog.Errorln(err)
 			}
 			xlog.Tracef("handle local call done: %s", lc.pkt.String())
+			wg.Done()
 		}
 	}
 }
@@ -250,7 +222,7 @@ func (e *baseEntity) onDestroy() {
 	releaseContext(e.context)
 }
 
-func (e *baseEntity) setDesc(desc *EntityDesc) {
+func (e *baseEntity) SetDesc(desc *EntityDesc) {
 	e.desc = desc
 }
 
