@@ -33,6 +33,7 @@ func NewProxy() *Proxy {
 
 	desc := proxypb.ProxyEtyEntityDesc
 	desc.EntityImpl = p
+	desc.EntityMgr = p.Server.EntityMgr
 	p.SetDesc(&desc)
 
 	eid := &bbq.EntityID{ID: conf.C.Proxy.Inst[0].ID, Type: proxypb.ProxyEtyEntityDesc.TypeName}
@@ -111,7 +112,7 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		prw, ok := p.entityMaps[eid.ID]
 		if ok {
 			xlog.Debugln("proxy to id:", eid)
-			prw.WritePacket(pkt)
+			prw.SendPackt(pkt)
 			xlog.Debugln("proxy 22")
 			return true
 		}
@@ -128,7 +129,7 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		proxyID := pkt.Header.DstEntity.ProxyID
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
-			prw.WritePacket(pkt)
+			prw.SendPackt(pkt)
 			xlog.Debugln("proxy 44")
 			return true
 		}
@@ -159,7 +160,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 		prw, ok := p.svcMaps[svcType]
 		if ok {
 			xlog.Debugln("proxy to svc", prw)
-			prw.WritePacket(pkt)
+			prw.SendPackt(pkt)
 			return true
 		}
 		return false
@@ -174,7 +175,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 		typ := pkt.Header.DstEntity.Type
 		prw, ok := p.proxySvcMap[typ]
 		if ok {
-			prw.WritePacket(pkt)
+			prw.SendPackt(pkt)
 			return true
 		}
 		return false
@@ -203,8 +204,13 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 			panic(err)
 		}
 
-		rsp, err := proxypb.NewProxyEtyEntityClient(prxy.GetPacketReadWriter(), p.Server.EntityMgr, &bbq.EntityID{ID: cfg.ID, ProxyID: cfg.ID}).
-			RegisterProxy(p.Context(), &proxypb.RegisterProxyRequest{
+		c, release := p.Context().Copy()
+		defer release()
+
+		entity.SetRemoteEntityManager(c, prxy)
+
+		rsp, err := proxypb.NewProxyEtyEntityClient(&bbq.EntityID{ID: cfg.ID, ProxyID: cfg.ID}).
+			RegisterProxy(c, &proxypb.RegisterProxyRequest{
 				ProxyID: string(p.EntityID().ID),
 			})
 		if err != nil {

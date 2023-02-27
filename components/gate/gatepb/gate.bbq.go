@@ -5,12 +5,15 @@
 package gatepb
 
 import (
-	"github.com/0x00b/gobbq/engine/codec"
+	"errors"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -19,25 +22,17 @@ func RegisterGateService(etyMgr *entity.EntityManager, impl GateService) {
 	etyMgr.RegisterService(&GateServiceDesc, impl)
 }
 
-func NewGateServiceClient(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *gateService {
-	t := &gateService{
-		client: client,
-		etyMgr: etyMgr,
-	}
+func NewGateServiceClient() *gateService {
+	t := &gateService{}
 	return t
 }
 
-func NewGateService(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *gateService {
-	t := &gateService{
-		client: client,
-		etyMgr: etyMgr,
-	}
+func NewGateService() *gateService {
+	t := &gateService{}
 	return t
 }
 
 type gateService struct {
-	etyMgr *entity.EntityManager
-	client *codec.PacketReadWriter
 }
 
 func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
@@ -61,8 +56,11 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
-
-	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil {
+		return nil, errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -76,10 +74,13 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 		pkt.WriteBody(hdrBytes)
 
-		t.client.WritePacket(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 
 		// register callback
-		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -122,7 +123,11 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	err := t.etyMgr.HandleCallLocalMethod(pkt, req, nil)
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil {
+		return errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, nil)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return err
@@ -136,7 +141,10 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 		pkt.WriteBody(hdrBytes)
 
-		t.client.WritePacket(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return err
+		}
 
 	}
 
@@ -165,8 +173,11 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
-
-	err := t.etyMgr.HandleCallLocalMethod(pkt, req, chanRsp)
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil {
+		return nil, errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -180,10 +191,13 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		pkt.WriteBody(hdrBytes)
 
-		t.client.WritePacket(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 
 		// register callback
-		c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -293,9 +307,9 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.WritePacket(npkt)
+	err = pkt.Src.SendPackt(npkt)
 	if err != nil {
-		xlog.Errorln("WritePacket", err)
+		xlog.Errorln("SendPackt", err)
 		return
 	}
 
@@ -419,9 +433,9 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Pa
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.WritePacket(npkt)
+	err = pkt.Src.SendPackt(npkt)
 	if err != nil {
-		xlog.Errorln("WritePacket", err)
+		xlog.Errorln("SendPackt", err)
 		return
 	}
 

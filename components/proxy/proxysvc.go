@@ -10,7 +10,7 @@ import (
 // RegisterProxy
 func (p *Proxy) RegisterProxy(c entity.Context, req *proxypb.RegisterProxyRequest) (*proxypb.RegisterProxyResponse, error) {
 
-	p.proxyMap[req.ProxyID] = c.Packet().Src
+	p.proxyMap[req.ProxyID] = entity.GetPacket(c).Src
 	svcs := []string{}
 	for n := range p.Server.EntityMgr.Services {
 		svcs = append(svcs, string(n))
@@ -26,7 +26,7 @@ func (p *Proxy) RegisterProxy(c entity.Context, req *proxypb.RegisterProxyReques
 // SyncService
 func (p *Proxy) SyncService(c entity.Context, req *proxypb.SyncServiceRequest) (*proxypb.SyncServiceResponse, error) {
 
-	p.RegisterProxyService(req.SvcName, c.Packet().Src)
+	p.RegisterProxyService(req.SvcName, entity.GetPacket(c).Src)
 
 	return &proxypb.SyncServiceResponse{}, nil
 }
@@ -46,7 +46,7 @@ func (p *Proxy) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest)
 // RegisterEntity
 func (p *Proxy) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
-	p.registerEntity(req.EntityID, c.Packet().Src)
+	p.registerEntity(req.EntityID, entity.GetPacket(c).Src)
 
 	return &proxypb.RegisterEntityResponse{}, nil
 }
@@ -55,10 +55,12 @@ func (p *Proxy) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequ
 func (p *Proxy) RegisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	xlog.Debugln("register service:", req.ServiceName)
-	p.registerService(req.ServiceName, c.Packet().Src)
+	p.registerService(req.ServiceName, entity.GetPacket(c).Src)
 
 	for id, prw := range p.proxyMap {
-		_, err := proxypb.NewProxyEtyEntityClient(prw, p.Server.EntityMgr, &bbq.EntityID{ID: id, ProxyID: id}).SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
+		_ = prw
+		entity.SetRemoteEntityManager(c, prw)
+		_, err := proxypb.NewProxyEtyEntityClient(&bbq.EntityID{ID: id, ProxyID: id}).SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
 		if err != nil {
 			xlog.Errorln("sync svc", err)
 			return nil, err

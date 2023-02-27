@@ -30,7 +30,7 @@ func (gt *Gate) HandlePacket(pkt *codec.Packet) error {
 			return errors.New("unknown client")
 		}
 
-		return rw.WritePacket(pkt)
+		return rw.SendPackt(pkt)
 	}
 
 	return err

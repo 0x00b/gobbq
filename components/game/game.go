@@ -33,6 +33,11 @@ func NewGame() *Game {
 
 	eid := snowflake.GenUUID()
 
+	desc := entity.EntityDesc{}
+	desc.EntityImpl = gm
+	desc.EntityMgr = gm.EntityMgr
+	gm.SetDesc(&desc)
+
 	gm.EntityMgr.RegisterEntity(nil, &bbq.EntityID{ID: eid, ProxyID: eid}, gm)
 
 	go gm.Run()
@@ -44,7 +49,7 @@ func NewGame() *Game {
 
 func (g *Game) RegisterEntityToProxy(eid *bbq.EntityID) error {
 
-	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient()
 
 	_, err := client.RegisterEntity(g.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
 	if err != nil {
@@ -57,7 +62,7 @@ func (g *Game) RegisterEntityToProxy(eid *bbq.EntityID) error {
 
 func (g *Game) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient()
 
 	_, err := client.RegisterService(g.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {
@@ -77,7 +82,9 @@ func (g *Game) init() {
 
 	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr))
 
-	client := proxypb.NewProxySvcServiceClient(g.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	g.EntityMgr.RemoteEntityManager = ex.ProxyClient
+
+	client := proxypb.NewProxySvcServiceClient()
 
 	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{
 		InstID: g.EntityID().ID,

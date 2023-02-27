@@ -11,6 +11,7 @@ import (
 	{{- $path.Alias}} "{{$path.ImportPath -}}"
 	{{end}}
 {{else}}
+	"errors"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
@@ -36,25 +37,19 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterService(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client() *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{
-		client: client,
-		etyMgr: etyMgr,
 	}
 	return t
 }
 
-func New{{$typeName}}(etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}() *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{
-		client: client,
-		etyMgr: etyMgr,
 	}
 	return t
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	etyMgr *entity.EntityManager
-	client *codec.PacketReadWriter
 }
 
 {{else}}
@@ -63,30 +58,28 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterEntityDesc(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(client *codec.PacketReadWriter, etyMgr *entity.EntityManager, entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{
-		client: client,
-		etyMgr: etyMgr,
 		entity:entity,
 	}
 	return t
 }
 
-func New{{$typeName}}(c entity.Context, etyMgr *entity.EntityManager, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
-	return New{{$typeName}}WithID(c, etyMgr, entity.NewEntityID.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"), client)
+func New{{$typeName}}(c entity.Context) *{{lowerCamelcase $typeName}}  {
+	etyMgr := entity.GetEntityMgr(c)
+	return New{{$typeName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"))
 }
 
-func New{{$typeName}}WithID(c entity.Context, etyMgr *entity.EntityManager, id *bbq.EntityID, client *codec.PacketReadWriter) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID) *{{lowerCamelcase $typeName}}  {
 
-	_, err := entity.NewEntity(c, id)
+	etyMgr := entity.GetEntityMgr(c)
+	_, err := etyMgr.NewEntity(c, id)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
 	}
 	t := &{{lowerCamelcase $typeName}}{
 		entity: id,
-	 	client:client,
-		etyMgr: etyMgr,
 	}
 
 	return t
@@ -94,9 +87,6 @@ func New{{$typeName}}WithID(c entity.Context, etyMgr *entity.EntityManager, id *
 
 type {{lowerCamelcase $typeName}} struct{
 	entity *bbq.EntityID
-
-	etyMgr *entity.EntityManager
-	client *codec.PacketReadWriter
 }
 {{end -}}
 
@@ -127,8 +117,11 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.ErrMsg=       "" 
 
 	{{if $m.HasResponse}}var chanRsp chan any= make(chan any){{end}}
-	
-	err := t.etyMgr.HandleCallLocalMethod(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil{
+		return {{if $m.HasResponse}}nil,{{end}} errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return {{if $m.HasResponse}}nil,{{end}} err
@@ -143,11 +136,14 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 
 		pkt.WriteBody(hdrBytes)
 
-		t.client.WritePacket(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil{
+			return {{if $m.HasResponse}}nil,{{end}} err
+		}
 		
 		{{if $m.HasResponse}}
 			// register callback
-			c.RegisterCallback(pkt.Header.RequestId, func(pkt *codec.Packet) {
+			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
 				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -275,9 +271,9 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.WritePacket(npkt)
+	err = pkt.Src.SendPackt(npkt)
 	if err != nil {
-		xlog.Errorln("WritePacket", err)
+		xlog.Errorln("SendPackt", err)
 		return
 	}
 {{else}}

@@ -78,7 +78,7 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
 // =========
 
-func (st *EntityManager) HandleCallLocalMethod(pkt *codec.Packet, in any, respChan chan any) error {
+func (st *EntityManager) LocalCall(pkt *codec.Packet, in any, respChan chan any) error {
 	switch pkt.Header.ServiceType {
 	case bbq.ServiceType_Entity:
 		return st.handleLocalCallEntity(pkt, in, respChan)
@@ -105,7 +105,7 @@ func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respC
 
 func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respChan chan any) error {
 
-	xlog.Traceln("handleLocalCallEntity 1", pkt.Header.String())
+	// xlog.Traceln("handleLocalCallEntity 1", pkt.Header.String())
 
 	ety := pkt.Header.GetDstEntity()
 	if ety == nil {
@@ -118,7 +118,7 @@ func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respCh
 	if !ok {
 		return ErrEntityNotFound
 	}
-	xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())
+	// xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())
 
 	return entity.dispatchLocalCall(pkt, in, respChan)
 }

@@ -63,20 +63,20 @@ func (st *conn) Close(closeChan chan struct{}) error {
 	return nil
 }
 
-func (st *conn) WritePacket(pkt *codec.Packet) error {
-	return st.packetReadWriter.WritePacket(pkt)
+func (st *conn) SendPackt(pkt *codec.Packet) error {
+	return st.packetReadWriter.SendPackt(pkt)
 }
 
 func (st *conn) Serve() {
 	for {
-		xlog.Traceln("serve 1")
+		// xlog.Traceln("serve 1")
 		// 检查上游是否关闭
 		select {
 		case <-st.ctx.Done():
 			return
 		default:
 		}
-		xlog.Traceln("serve 2")
+		// xlog.Traceln("serve 2")
 
 		if st.idleTimeout > 0 {
 			now := time.Now()
@@ -90,9 +90,9 @@ func (st *conn) Serve() {
 			}
 		}
 
-		xlog.Traceln("serve 3")
+		// xlog.Traceln("serve 3")
 		pkt, release, err := st.packetReadWriter.ReadPacket()
-		xlog.Traceln("serve 4")
+		// xlog.Traceln("serve 4")
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				st.handleEOF(err)
@@ -107,7 +107,7 @@ func (st *conn) Serve() {
 		}
 
 		err = st.handle(pkt, release)
-		xlog.Traceln("serve 5")
+		// xlog.Traceln("serve 5")
 		if err != nil {
 			xlog.Errorln("handle failed", err)
 		}

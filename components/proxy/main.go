@@ -21,7 +21,7 @@ func main() {
 
 	fmt.Println(conf.C)
 
-	xlog.Init("info", false, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
 
 	p := NewProxy()
 

@@ -38,7 +38,7 @@ func main() {
 
 	// fmt.Println("data:", len(pkt.PacketBody()), pkt.PacketBody())
 
-	// ct.WritePacket(pkt)
+	// ct.SendPackt(pkt)
 
 	// ct.Serve()
 	// time.Sleep(1 * time.Minute)

@@ -30,6 +30,8 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 		panic(err)
 	}
 
+	client.EntityMgr.RemoteEntityManager = gate
+
 	client.EntityMgr.RegisterEntityDesc(sd, ss)
 
 	eid := &bbq.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
@@ -41,7 +43,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 
 	client.Gate = gate
 
-	gateSvc := gatepb.NewGateServiceClient(client.EntityMgr, gate.GetPacketReadWriter())
+	gateSvc := gatepb.NewGateServiceClient()
 	go func() {
 		client.Run()
 

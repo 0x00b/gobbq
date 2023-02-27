@@ -5,13 +5,19 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
+var _ nets.PacketHandler = &EntityManager{}
+
 // EntityManager manage entity lifecycle
 type EntityManager struct {
+	RemoteEntityManager
+
 	mu    sync.RWMutex // guards following
 	serve bool
 
@@ -31,6 +37,11 @@ func NewEntityManager() *EntityManager {
 		entityDescs: make(map[string]*EntityDesc),
 		Entities:    make(map[string]IBaseEntity),
 	}
+}
+
+type RemoteEntityManager interface {
+	// for remote call, just send request packet, dont handle response
+	SendPackt(pkt *codec.Packet) error
 }
 
 type RegisterProxy interface {
@@ -139,6 +150,7 @@ func (s *EntityManager) registerEntityDesc(sd *EntityDesc, ss IEntity, intercept
 		xlog.Tracef("grpc: EntityManager.registerEntity found duplicate entity registration for %q", sd.TypeName)
 		return
 	}
+	sd.EntityMgr = s
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
 	s.entityDescs[sd.TypeName] = sd
@@ -164,6 +176,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 		xlog.Tracef("grpc: EntityManager.RegisterService found duplicate service registration for %q", sd.TypeName)
 		return
 	}
+	sd.EntityMgr = s
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
 	ss.SetDesc(sd)

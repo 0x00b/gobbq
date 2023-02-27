@@ -12,7 +12,7 @@ import (
 
 func main() {
 
-	xlog.Init("info", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
 
 	gt := NewGate()
 

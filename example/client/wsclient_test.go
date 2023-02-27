@@ -17,19 +17,19 @@ type ClientService struct {
 
 func (*ClientService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
-	xlog.Println("server req", c.Packet().Header.String(), req.String())
+	xlog.Println("server req", entity.GetPacket(c).Header.String(), req.String())
 
 	return &exampb.SayHelloResponse{Text: "client service response"}, nil
 }
 
 func TestWSClient(m *testing.T) {
 
-	xlog.Init("info", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
 	conf.Init("client.yaml")
 
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
-	es := exampb.NewEchoSvc2ServiceClient(client.EntityMgr, client.Gate.GetPacketReadWriter())
+	es := exampb.NewEchoSvc2ServiceClient()
 	rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{
 		Text:     "hello",
 		CLientID: client.EntityID(),

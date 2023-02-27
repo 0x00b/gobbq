@@ -23,12 +23,7 @@ type Context interface {
 
 	Entity() IBaseEntity
 
-	Packet() *codec.Packet
-	setPacket(*codec.Packet)
-
 	EntityID() *bbq.EntityID
-
-	RegisterCallback(requestID string, cb Callback)
 
 	/************************************/
 	/******** METADATA MANAGEMENT********/
@@ -85,6 +80,71 @@ type Context interface {
 	GetStringMapStringSlice(key string) (smss map[string][]string)
 }
 
+// ============ for bbq inner start=================
+// 不想通过context暴露给其他开发者
+
+const (
+	_bbq_ctx_pkt_key_            = "_bbq_ctx_pkt_key_"
+	_bbq_ctx_remote_manager_key_ = "_bbq_ctx_remote_manager_key_"
+	_bbq_ctx_entity_manager_key_ = "_bbq_ctx_entity_manager_key_"
+)
+
+func GetPacket(c Context) *codec.Packet {
+	v, ok := c.Get(_bbq_ctx_pkt_key_)
+	if ok && v != nil {
+		return v.(*codec.Packet)
+	}
+	return nil
+}
+
+func setPacket(c Context, pkt *codec.Packet) {
+	if pkt == nil {
+		return
+	}
+	c.Set(_bbq_ctx_pkt_key_, pkt)
+}
+
+func RegisterCallback(c Context, requestID string, cb Callback) {
+	e := c.Entity()
+	if e != nil {
+		e.registerCallback(requestID, cb)
+	}
+}
+
+func GetRemoteEntityManager(c Context) RemoteEntityManager {
+	v, ok := c.Get(_bbq_ctx_remote_manager_key_)
+	if ok && v != nil {
+		return v.(RemoteEntityManager)
+	}
+
+	etyMgr := GetEntityMgr(c)
+	return etyMgr.RemoteEntityManager
+}
+
+func SetRemoteEntityManager(c Context, rem RemoteEntityManager) {
+	if rem == nil {
+		return
+	}
+	c.Set(_bbq_ctx_remote_manager_key_, rem)
+}
+
+func GetEntityMgr(c Context) *EntityManager {
+	// v, ok := c.Get(_bbq_ctx_entity_manager_key_)
+	// if ok && v != nil {
+	// 	return v.(*EntityManager)
+	// }
+	return c.Entity().Desc().EntityMgr
+}
+
+// func SetEntityMgr(c Context, em *EntityManager) {
+// 	if em == nil {
+// 		return
+// 	}
+// 	c.Set(_bbq_ctx_entity_manager_key_, em)
+// }
+
+// ============ for bbq inner end=================
+
 var _ Context = &baseContext{}
 
 var contextPool *sync.Pool = &sync.Pool{
@@ -130,9 +190,6 @@ type baseContext struct {
 	// 属于这个entity
 	entity IBaseEntity
 
-	// 当前正在处理的pkt
-	pkt *codec.Packet
-
 	err error
 
 	// This mutex protects Keys map.
@@ -170,15 +227,7 @@ func (c *baseContext) RegisterCallback(requestID string, cb Callback) {
 
 func (c *baseContext) reset() {
 	c.entity = nil
-	c.pkt = nil
 	c.err = nil
-}
-
-func (c *baseContext) Packet() *codec.Packet {
-	return c.pkt
-}
-func (c *baseContext) setPacket(pkt *codec.Packet) {
-	c.pkt = pkt
 }
 
 func (c *baseContext) EntityID() *bbq.EntityID {

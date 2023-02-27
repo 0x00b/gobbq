@@ -134,8 +134,8 @@ func (s *Server) RegisterOnShutdown(fn func()) {
 		return
 	}
 	s.mux.Lock()
+	defer s.mux.Unlock()
 	s.onShutdownHooks = append(s.onShutdownHooks, fn)
-	s.mux.Unlock()
 }
 
 func (s *Server) RegisterNetService(ns nets.NetService) {

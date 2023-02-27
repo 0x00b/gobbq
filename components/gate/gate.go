@@ -28,15 +28,37 @@ func NewGate() *Gate {
 	gt.Server.EntityMgr.ProxyRegister = gt
 	gt.Server.EntityMgr.EntityIDGenerator = gt
 
-	eid := snowflake.GenUUID()
+	desc := gatepb.GateServiceDesc
+	desc.EntityImpl = gt
+	desc.EntityMgr = gt.Server.EntityMgr
+	gt.SetDesc(&desc)
 
-	gt.Server.EntityMgr.RegisterEntity(nil, &bbq.EntityID{ID: eid}, gt)
+	eid := &bbq.EntityID{ID: snowflake.GenUUID(), Type: gatepb.GateServiceDesc.TypeName}
+
+	gt.Server.EntityMgr.RegisterEntity(nil, eid, gt)
 
 	go gt.Run()
 
 	gt.init()
 
 	return gt
+}
+
+func (gt *Gate) init() {
+	ex.ConnProxy(nets.WithPacketHandler(gt))
+
+	gt.EntityMgr.RemoteEntityManager = ex.ProxyClient
+
+	client := proxypb.NewProxySvcServiceClient()
+
+	rsp, err := client.RegisterInst(gt.Context(), &proxypb.RegisterInstRequest{
+		InstID: gt.EntityID().ID,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	gt.ProxyID = rsp.ProxyID
 }
 
 type Gate struct {
@@ -69,9 +91,9 @@ func (gt *Gate) RegisterClient(c entity.Context, req *gatepb.RegisterClientReque
 
 	req.EntityID.ProxyID = gt.ProxyID
 
-	gt.RegisterEntity(req.EntityID, c.Packet().Src)
+	gt.RegisterEntity(req.EntityID, entity.GetPacket(c).Src)
 
-	client := proxypb.NewProxySvcServiceClient(gt.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient()
 	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
 	if err != nil {
 		return nil, err
@@ -91,7 +113,7 @@ func (gt *Gate) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, 
 }
 
 func (gt *Gate) RegisterEntityToProxy(eid *bbq.EntityID) error {
-	client := proxypb.NewProxySvcServiceClient(gt.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient()
 
 	_, err := client.RegisterEntity(gt.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
 	if err != nil {
@@ -105,7 +127,7 @@ func (gt *Gate) RegisterEntityToProxy(eid *bbq.EntityID) error {
 
 func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcServiceClient(gt.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
+	client := proxypb.NewProxySvcServiceClient()
 
 	_, err := client.RegisterService(gt.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {
@@ -120,21 +142,6 @@ func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 func (gt *Gate) NewEntityID(typeName string) *bbq.EntityID {
 	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: gt.ProxyID}
 }
-
-func (gt *Gate) init() {
-	ex.ConnProxy(nets.WithPacketHandler(gt))
-	client := proxypb.NewProxySvcServiceClient(gt.EntityMgr, ex.ProxyClient.GetPacketReadWriter())
-
-	rsp, err := client.RegisterInst(gt.Context(), &proxypb.RegisterInstRequest{
-		InstID: gt.EntityID().ID,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	gt.ProxyID = rsp.ProxyID
-}
-
 func (gt *Gate) Serve() error {
 	return gt.Server.ListenAndServe()
 }

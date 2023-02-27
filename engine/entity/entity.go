@@ -87,6 +87,8 @@ type EntityDesc struct {
 	Metadata    any
 
 	interceptors []ServerInterceptor
+
+	EntityMgr *EntityManager
 }
 
 type localCall struct {
@@ -254,10 +256,15 @@ func (e *baseEntity) dispatchLocalCall(pkt *codec.Packet, req any, respChan chan
 	return ErrBadRequest
 }
 
+func (e *baseEntity) initContext(c Context, pkt *codec.Packet) {
+	setPacket(c, pkt)
+	// SetEntityMgr(c, e.desc.EntityMgr)
+}
+
 func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	c.setPacket(pkt)
+	e.initContext(c, pkt)
 
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.callback[pkt.Header.RequestId]
@@ -279,7 +286,7 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
 	defer lc.pkt.Release()
 
-	c.setPacket(lc.pkt)
+	e.initContext(c, lc.pkt)
 
 	hdr := lc.pkt.Header
 
@@ -309,7 +316,8 @@ func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
 func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet) error {
 	defer pkt.Release()
 
-	c.setPacket(pkt)
+	e.initContext(c, pkt)
+
 	sd := e.desc
 
 	hdr := pkt.Header
