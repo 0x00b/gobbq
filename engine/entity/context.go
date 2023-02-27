@@ -111,6 +111,14 @@ func RegisterCallback(c Context, requestID string, cb Callback) {
 	}
 }
 
+func PopCallback(c Context, requestID string) (Callback, bool) {
+	e := c.Entity()
+	if e != nil {
+		return e.popCallback(requestID)
+	}
+	return nil, false
+}
+
 func GetRemoteEntityManager(c Context) RemoteEntityManager {
 	v, ok := c.Get(_bbq_ctx_remote_manager_key_)
 	if ok && v != nil {
@@ -219,10 +227,6 @@ func (c *baseContext) Copy() (Context, releaseCtx) {
 	return tc, func() {
 		releaseContext(tc)
 	}
-}
-
-func (c *baseContext) RegisterCallback(requestID string, cb Callback) {
-	c.entity.registerCallback(requestID, cb)
 }
 
 func (c *baseContext) reset() {

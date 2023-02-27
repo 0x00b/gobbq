@@ -6,14 +6,14 @@ package exampb
 
 import (
 	"errors"
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
+	"time"
+
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// exampb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -23,11 +23,6 @@ func RegisterEchoService(etyMgr *entity.EntityManager, impl EchoService) {
 }
 
 func NewEchoServiceClient() *echoService {
-	t := &echoService{}
-	return t
-}
-
-func NewEchoService() *echoService {
 	t := &echoService{}
 	return t
 }
@@ -93,7 +88,17 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
@@ -211,9 +216,9 @@ func RegisterEchoEtyEntity(etyMgr *entity.EntityManager, impl EchoEtyEntity) {
 	etyMgr.RegisterEntityDesc(&EchoEtyEntityDesc, impl)
 }
 
-func NewEchoEtyEntityClient(entity *bbq.EntityID) *echoEtyEntity {
+func NewEchoEtyEntityClient(eid *bbq.EntityID) *echoEtyEntity {
 	t := &echoEtyEntity{
-		entity: entity,
+		EntityID: eid,
 	}
 	return t
 }
@@ -232,14 +237,14 @@ func NewEchoEtyEntityWithID(c entity.Context, id *bbq.EntityID) *echoEtyEntity {
 		return nil
 	}
 	t := &echoEtyEntity{
-		entity: id,
+		EntityID: id,
 	}
 
 	return t
 }
 
 type echoEtyEntity struct {
-	entity *bbq.EntityID
+	EntityID *bbq.EntityID
 }
 
 func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
@@ -253,7 +258,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.DstEntity = t.EntityID
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -300,7 +305,17 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
@@ -423,11 +438,6 @@ func NewEchoSvc2ServiceClient() *echoSvc2Service {
 	return t
 }
 
-func NewEchoSvc2Service() *echoSvc2Service {
-	t := &echoSvc2Service{}
-	return t
-}
-
 type echoSvc2Service struct {
 }
 
@@ -489,7 +499,17 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
@@ -607,9 +627,9 @@ func RegisterClientEntity(etyMgr *entity.EntityManager, impl ClientEntity) {
 	etyMgr.RegisterEntityDesc(&ClientEntityDesc, impl)
 }
 
-func NewClientEntityClient(entity *bbq.EntityID) *clientEntity {
+func NewClientEntityClient(eid *bbq.EntityID) *clientEntity {
 	t := &clientEntity{
-		entity: entity,
+		EntityID: eid,
 	}
 	return t
 }
@@ -628,14 +648,14 @@ func NewClientEntityWithID(c entity.Context, id *bbq.EntityID) *clientEntity {
 		return nil
 	}
 	t := &clientEntity{
-		entity: id,
+		EntityID: id,
 	}
 
 	return t
 }
 
 type clientEntity struct {
-	entity *bbq.EntityID
+	EntityID *bbq.EntityID
 }
 
 func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
@@ -649,7 +669,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.DstEntity = t.EntityID
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -696,7 +716,17 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {

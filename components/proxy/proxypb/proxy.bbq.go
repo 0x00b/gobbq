@@ -6,6 +6,8 @@ package proxypb
 
 import (
 	"errors"
+	"time"
+
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
@@ -22,9 +24,9 @@ func RegisterProxyEtyEntity(etyMgr *entity.EntityManager, impl ProxyEtyEntity) {
 	etyMgr.RegisterEntityDesc(&ProxyEtyEntityDesc, impl)
 }
 
-func NewProxyEtyEntityClient(entity *bbq.EntityID) *proxyEtyEntity {
+func NewProxyEtyEntityClient(eid *bbq.EntityID) *proxyEtyEntity {
 	t := &proxyEtyEntity{
-		entity: entity,
+		EntityID: eid,
 	}
 	return t
 }
@@ -43,14 +45,14 @@ func NewProxyEtyEntityWithID(c entity.Context, id *bbq.EntityID) *proxyEtyEntity
 		return nil
 	}
 	t := &proxyEtyEntity{
-		entity: id,
+		EntityID: id,
 	}
 
 	return t
 }
 
 type proxyEtyEntity struct {
-	entity *bbq.EntityID
+	EntityID *bbq.EntityID
 }
 
 func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
@@ -64,7 +66,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.DstEntity = t.EntityID
 	pkt.Header.Method = "RegisterProxy"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -111,7 +113,17 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterProxyResponse); ok {
@@ -132,7 +144,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.DstEntity = t.EntityID
 	pkt.Header.Method = "SyncService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -179,7 +191,17 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*SyncServiceResponse); ok {
@@ -200,7 +222,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.entity
+	pkt.Header.DstEntity = t.EntityID
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -247,7 +269,17 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {
@@ -550,11 +582,6 @@ func NewProxySvcServiceClient() *proxySvcService {
 	return t
 }
 
-func NewProxySvcService() *proxySvcService {
-	t := &proxySvcService{}
-	return t
-}
-
 type proxySvcService struct {
 }
 
@@ -616,7 +643,17 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterInstResponse); ok {
@@ -684,7 +721,17 @@ func (t *proxySvcService) RegisterEntity(c entity.Context, req *RegisterEntityRe
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterEntityResponse); ok {
@@ -752,7 +799,17 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterServiceResponse); ok {
@@ -820,7 +877,17 @@ func (t *proxySvcService) UnregisterEntity(c entity.Context, req *RegisterEntity
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterEntityResponse); ok {
@@ -888,7 +955,17 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterServiceResponse); ok {
@@ -956,7 +1033,17 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {

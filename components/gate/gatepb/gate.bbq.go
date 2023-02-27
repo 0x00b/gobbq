@@ -6,6 +6,8 @@ package gatepb
 
 import (
 	"errors"
+	"time"
+
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
@@ -23,11 +25,6 @@ func RegisterGateService(etyMgr *entity.EntityManager, impl GateService) {
 }
 
 func NewGateServiceClient() *gateService {
-	t := &gateService{}
-	return t
-}
-
-func NewGateService() *gateService {
 	t := &gateService{}
 	return t
 }
@@ -93,7 +90,17 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterClientResponse); ok {
@@ -210,7 +217,17 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	}
 
-	rsp := <-chanRsp
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
 	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {

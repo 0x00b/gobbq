@@ -12,6 +12,8 @@ import (
 	{{end}}
 {{else}}
 	"errors"
+	"time"
+
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
@@ -43,12 +45,6 @@ func New{{$typeName}}Client() *{{lowerCamelcase $typeName}} {
 	return t
 }
 
-func New{{$typeName}}() *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{
-	}
-	return t
-}
-
 type {{lowerCamelcase $typeName}} struct{
 }
 
@@ -58,9 +54,9 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterEntityDesc(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(entity *bbq.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(eid *bbq.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{
-		entity:entity,
+		EntityID:eid,
 	}
 	return t
 }
@@ -79,14 +75,14 @@ func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID) *{{lowerCamelcas
 		return nil
 	}
 	t := &{{lowerCamelcase $typeName}}{
-		entity: id,
+		EntityID: id,
 	}
 
 	return t
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	entity *bbq.EntityID
+	EntityID *bbq.EntityID
 }
 {{end -}}
 
@@ -107,7 +103,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
 	pkt.Header.SrcEntity =  c.EntityID()
-	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}t.entity{{end}}
+	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}t.EntityID{{end}}
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None
@@ -157,7 +153,17 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	}
 
 	{{if $m.HasResponse}}
-		rsp := <-chanRsp
+		var rsp any
+		select {
+		case <-c.Done():
+			entity.PopCallback(c, pkt.Header.RequestId)
+			return nil, errors.New("context done")
+		case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+			entity.PopCallback(c, pkt.Header.RequestId)
+			return nil, errors.New("time out")
+		case rsp = <-chanRsp:
+		}
+
 		close(chanRsp)
 
 		if rsp, ok := rsp.(*{{$m.GoOutput.GoIdent.GoName}}); ok {

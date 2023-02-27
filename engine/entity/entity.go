@@ -45,6 +45,7 @@ type IBaseEntity interface {
 	// for inner
 
 	registerCallback(requestID string, cb Callback)
+	popCallback(requestID string) (Callback, bool)
 
 	SetDesc(desc *EntityDesc)
 
@@ -208,6 +209,24 @@ func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	e.callback[requestID] = cb
 }
 
+func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
+	if requestID == "" {
+		return nil, false
+	}
+
+	xlog.Debugln("unregister callback:", requestID)
+
+	e.cbMtx.Lock()
+	defer e.cbMtx.Unlock()
+	cb, ok := e.callback[requestID]
+	if !ok {
+		return nil, false
+	}
+	delete(e.callback, requestID)
+
+	return cb, true
+}
+
 func (e *baseEntity) onInit(c Context, id *bbq.EntityID) {
 	e.context = c
 	e.entityID = id
@@ -267,12 +286,9 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	e.initContext(c, pkt)
 
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
-		cb, ok := e.callback[pkt.Header.RequestId]
+		cb, ok := e.popCallback(pkt.Header.RequestId)
 		if ok {
 			xlog.Debugln("callback:", pkt.Header.RequestId)
-			e.cbMtx.Lock()
-			defer e.cbMtx.Unlock()
-			delete(e.callback, pkt.Header.RequestId)
 			cb(pkt)
 			return nil
 		}
