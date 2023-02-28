@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type ProxySvc struct {
@@ -21,7 +21,11 @@ func main() {
 
 	fmt.Println(conf.C)
 
-	xlog.Init("trace", false, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("info", false, true, &lumberjack.Logger{
+		Filename:  "./proxy.log",
+		MaxAge:    7,
+		LocalTime: true,
+	}, xlog.DefaultLogTag{})
 
 	p := NewProxy()
 

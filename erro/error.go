@@ -4,6 +4,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+type Error interface {
+	Code() int64
+	Msg() string
+}
+
 type timeoutError interface {
 	Timeout() bool // Is it a timeout error
 }

@@ -104,7 +104,7 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 
 func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 
-	xlog.Debugln("proxy 11")
+	// xlog.Debugln("proxy 11")
 	// proxy to local
 	sendLocal := func() bool {
 		p.etyMtx.RLock()
@@ -113,13 +113,13 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		if ok {
 			xlog.Debugln("proxy to id:", eid)
 			prw.SendPackt(pkt)
-			xlog.Debugln("proxy 22")
+			// xlog.Debugln("proxy 22")
 			return true
 		}
 		return false
 	}()
 
-	xlog.Debugln("proxy 33")
+	// xlog.Debugln("proxy 33")
 	if sendLocal {
 		return
 	}
@@ -130,14 +130,14 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
 			prw.SendPackt(pkt)
-			xlog.Debugln("proxy 44")
+			// xlog.Debugln("proxy 44")
 			return true
 		}
 		xlog.Errorln("unknown proxyid", proxyID)
 		return false
 	}()
 
-	xlog.Debugln("proxy 55")
+	// xlog.Debugln("proxy 55")
 
 	if !sendProxy {
 		xlog.Errorln("unknown entity", eid)

@@ -44,12 +44,14 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	client.Gate = gate
 
 	gateSvc := gatepb.NewGateServiceClient()
-	go func() {
-		client.Run()
+	// go func() {
+	// 	client.Run()
 
-		// unregister
-		gateSvc.UnregisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: client.EntityID()})
-	}()
+	// 	// unregister
+	// 	gateSvc.UnregisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: client.EntityID()})
+	// }()
+
+	// time.Sleep(1 * time.Second)
 
 	rsp, err := gateSvc.RegisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: client.EntityID()})
 

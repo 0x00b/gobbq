@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
@@ -53,9 +54,10 @@ type RegisterProxy interface {
 }
 
 func (s *EntityManager) RegisterEntity(c Context, id *bbq.EntityID, entity IBaseEntity) error {
-	ctx := allocContext(c)
+	ctx, cancel := allocContext(c)
 	ctx.entity = entity
-	entity.onInit(ctx, id)
+
+	entity.onInit(ctx, cancel, id)
 	entity.OnInit()
 
 	if c != nil {
@@ -82,7 +84,7 @@ func (s *EntityManager) NewEntity(c Context, id *bbq.EntityID) (IEntity, error) 
 	if svcType.Kind() == reflect.Pointer {
 		svcType = svcType.Elem()
 	}
-	// 类型不对就在这里panic吧
+
 	svcValue := reflect.New(svcType)
 	svc := svcValue.Interface()
 	entity, ok := svc.(IEntity)
@@ -92,10 +94,11 @@ func (s *EntityManager) NewEntity(c Context, id *bbq.EntityID) (IEntity, error) 
 	}
 	// init
 
-	xlog.Debugln("register entity id:", id.String())
+	xlog.Infoln("register entity id:", unsafe.Pointer(s), id.String())
 
 	newDesc := *desc
 	newDesc.EntityImpl = entity
+	newDesc.EntityMgr = s
 	entity.SetDesc(&newDesc)
 
 	s.RegisterEntity(c, id, entity)
@@ -126,14 +129,14 @@ func (s *EntityManager) RegisterEntityDesc(sd *EntityDesc, ss IEntity, intercept
 func (s *EntityManager) Close(ch chan struct{}) error {
 	// close svc
 	for _, v := range s.Services {
-		v.onDestroy()
 		v.OnDestroy()
+		v.onDestroy()
 	}
 
 	// close entity
 	for _, v := range s.Entities {
-		v.onDestroy()
 		v.OnDestroy()
+		v.onDestroy()
 	}
 
 	return nil

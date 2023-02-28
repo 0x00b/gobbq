@@ -99,7 +99,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 
 	pkt.Header.Version=      1
 	pkt.Header.RequestId=    snowflake.GenUUID()
-	pkt.Header.Timeout=      1
+	pkt.Header.Timeout=      10
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
 	pkt.Header.SrcEntity =  c.EntityID()
@@ -132,13 +132,8 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil{
-			return {{if $m.HasResponse}}nil,{{end}} err
-		}
-		
 		{{if $m.HasResponse}}
-			// register callback
+			// register callback first, than SendPackt
 			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
@@ -150,6 +145,11 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 				chanRsp <- rsp
 			})
 		{{end}}
+		
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil{
+			return {{if $m.HasResponse}}nil,{{end}} err
+		}
 	}
 
 	{{if $m.HasResponse}}

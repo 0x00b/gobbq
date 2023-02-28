@@ -2,17 +2,21 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
 
-	xlog.Init("trace", true, true, os.Stdout, xlog.DefaultLogTag{})
+	xlog.Init("trace", true, true, &lumberjack.Logger{
+		Filename:  "./gate.log",
+		MaxAge:    7,
+		LocalTime: true,
+	}, xlog.DefaultLogTag{})
 
 	gt := NewGate()
 

@@ -8,12 +8,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// exampb "github.com/0x00b/gobbq/example/exampb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -37,7 +39,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -69,12 +71,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -86,6 +83,10 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -254,7 +255,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
@@ -286,12 +287,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -303,6 +299,10 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -448,7 +448,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -480,12 +480,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -497,6 +492,10 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -665,7 +664,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
@@ -697,12 +696,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
@@ -714,6 +708,10 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any

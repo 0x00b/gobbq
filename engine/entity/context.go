@@ -162,13 +162,17 @@ var contextPool *sync.Pool = &sync.Pool{
 	},
 }
 
-func allocContext(parent context.Context) *baseContext {
+func allocContext(parent context.Context) (*baseContext, func()) {
 	c := contextPool.Get().(*baseContext)
 
 	c.reset()
-	c.ctx = parent
+	if parent == nil {
+		parent = context.Background()
+	}
+	tctx, cancel := context.WithCancel(parent)
+	c.ctx = tctx
 
-	return c
+	return c, cancel
 }
 
 func releaseContext(c Context) {
@@ -185,9 +189,10 @@ type releaseCtx func()
 
 // NewPacket allocates a new packet
 func NewContext(parent context.Context) (Context, releaseCtx) {
-	c := allocContext(parent)
+	c, cancel := allocContext(parent)
 
 	return c, func() {
+		cancel()
 		releaseContext(c)
 	}
 }
@@ -212,7 +217,7 @@ func (c *baseContext) Entity() IBaseEntity {
 
 func (c *baseContext) Copy() (Context, releaseCtx) {
 
-	tc := allocContext(c.ctx)
+	tc, cancel := allocContext(c.ctx)
 	tc.reset()
 
 	tc.entity = c.entity
@@ -225,12 +230,14 @@ func (c *baseContext) Copy() (Context, releaseCtx) {
 	}
 
 	return tc, func() {
+		cancel()
 		releaseContext(tc)
 	}
 }
 
 func (c *baseContext) reset() {
 	c.entity = nil
+	c.ctx = nil
 	c.err = nil
 }
 

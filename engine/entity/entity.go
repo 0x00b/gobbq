@@ -49,7 +49,7 @@ type IBaseEntity interface {
 
 	SetDesc(desc *EntityDesc)
 
-	onInit(c Context, id *bbq.EntityID)
+	onInit(c Context, cancel func(), id *bbq.EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
@@ -104,6 +104,7 @@ type baseEntity struct {
 
 	// context
 	context Context
+	cancel  func()
 
 	desc *EntityDesc
 
@@ -227,8 +228,9 @@ func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
 	return cb, true
 }
 
-func (e *baseEntity) onInit(c Context, id *bbq.EntityID) {
+func (e *baseEntity) onInit(c Context, cancel func(), id *bbq.EntityID) {
 	e.context = c
+	e.cancel = cancel
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 1000)
 	e.localCallChan = make(chan *localCall, 1000)
@@ -239,7 +241,10 @@ func (e *baseEntity) onInit(c Context, id *bbq.EntityID) {
 }
 
 func (e *baseEntity) onDestroy() {
+	e.cancel()
+
 	e.OnDestroy()
+
 	releaseContext(e.context)
 }
 
@@ -249,7 +254,7 @@ func (e *baseEntity) SetDesc(desc *EntityDesc) {
 
 func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
 	if pkt != nil {
-		xlog.Traceln("dispatch:", e, pkt.String())
+		xlog.Traceln("dispatch:", pkt.String())
 		pkt.Retain()
 		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
 			e.callChan <- pkt

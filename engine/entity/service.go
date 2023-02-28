@@ -20,8 +20,9 @@ type Service struct {
 
 func (e *Service) serviceType() {}
 
-func (e *Service) onInit(c Context, id *bbq.EntityID) {
+func (e *Service) onInit(c Context, cancel func(), id *bbq.EntityID) {
 	e.context = c
+	e.cancel = cancel
 	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 10000)
 	e.localCallChan = make(chan *localCall, 10000)

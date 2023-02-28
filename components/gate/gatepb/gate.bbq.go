@@ -39,7 +39,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -71,12 +71,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
@@ -88,6 +83,10 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -117,7 +116,7 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -152,7 +151,6 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil
@@ -166,7 +164,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -198,12 +196,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -215,6 +208,10 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any

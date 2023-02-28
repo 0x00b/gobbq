@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"io"
 	"runtime"
+	"sync"
 
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/xlog"
@@ -30,7 +31,8 @@ func DefaultConfig() *Config {
 type PacketReadWriter struct {
 	Config Config
 
-	rw io.ReadWriter
+	rwMtx *sync.Mutex
+	rw    io.ReadWriter
 
 	// write will inc 1
 	writeMsgCnt uint32
@@ -55,6 +57,7 @@ func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWri
 	pc := &PacketReadWriter{
 		rw:     rw,
 		Config: *cfg,
+		rwMtx:  &sync.Mutex{},
 	}
 
 	return pc
@@ -65,6 +68,9 @@ func (pc *PacketReadWriter) SendPackt(packet *Packet) error {
 	pdata := packet.Data()
 
 	xlog.Traceln("send raw:", packet.String())
+
+	pc.rwMtx.Lock()
+	defer pc.rwMtx.Unlock()
 
 	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
 
@@ -121,6 +127,8 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	// xlog.Traceln("recv raw 5 ")
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
+
+	// xlog.Traceln("recv raw:", packet.headerLen, string(packetData))
 
 	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
 	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.Header)

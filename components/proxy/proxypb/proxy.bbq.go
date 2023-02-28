@@ -62,7 +62,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
@@ -94,12 +94,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterProxyResponse)
 			reqbuf := pkt.PacketBody()
@@ -111,6 +106,10 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -140,7 +139,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
@@ -172,12 +171,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SyncServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -189,6 +183,10 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -218,7 +216,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = c.EntityID()
@@ -250,12 +248,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -267,6 +260,10 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -592,7 +589,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -624,12 +621,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterInstResponse)
 			reqbuf := pkt.PacketBody()
@@ -641,6 +633,10 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -670,7 +666,7 @@ func (t *proxySvcService) RegisterEntity(c entity.Context, req *RegisterEntityRe
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -702,12 +698,7 @@ func (t *proxySvcService) RegisterEntity(c entity.Context, req *RegisterEntityRe
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterEntityResponse)
 			reqbuf := pkt.PacketBody()
@@ -719,6 +710,10 @@ func (t *proxySvcService) RegisterEntity(c entity.Context, req *RegisterEntityRe
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -748,7 +743,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -780,12 +775,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -797,6 +787,10 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -826,7 +820,7 @@ func (t *proxySvcService) UnregisterEntity(c entity.Context, req *RegisterEntity
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -858,12 +852,7 @@ func (t *proxySvcService) UnregisterEntity(c entity.Context, req *RegisterEntity
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterEntityResponse)
 			reqbuf := pkt.PacketBody()
@@ -875,6 +864,10 @@ func (t *proxySvcService) UnregisterEntity(c entity.Context, req *RegisterEntity
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -904,7 +897,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -936,12 +929,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -953,6 +941,10 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any
@@ -982,7 +974,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 1
+	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = c.EntityID()
@@ -1014,12 +1006,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
-		if err != nil {
-			return nil, err
-		}
-
-		// register callback
+		// register callback first, than SendPackt
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -1031,6 +1018,10 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 			chanRsp <- rsp
 		})
 
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var rsp any

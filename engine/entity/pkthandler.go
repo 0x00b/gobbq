@@ -2,6 +2,7 @@ package entity
 
 import (
 	"errors"
+	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -43,6 +44,7 @@ func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
 
 	svc, ok := st.Services[service]
 	if !ok {
+		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
 		return ErrServiceNotFound
 	}
 
@@ -59,17 +61,17 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 		return ErrEmptyEntityID
 	}
 
-	xlog.Traceln("start find entity")
+	// xlog.Traceln("start find entity")
 
 	st.mu.RLock()
 	defer st.mu.RUnlock()
 	entity, ok := st.Entities[eid.ID]
 	if !ok {
-		xlog.Traceln("recv no entity:", pkt.Header.RequestId, ErrEmptyEntityID)
+		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID)
 		return ErrEntityNotFound
 	}
 
-	xlog.Traceln("dispatchPkt send:", pkt.Header.RequestId)
+	// xlog.Traceln("dispatchPkt send:", pkt.Header.RequestId)
 
 	entity.dispatchPkt(pkt)
 
@@ -95,6 +97,7 @@ func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respC
 
 	ss, ok := st.Services[service]
 	if !ok {
+		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
 		return ErrServiceNotFound
 	}
 
@@ -116,6 +119,7 @@ func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respCh
 	defer st.mu.RUnlock()
 	entity, ok := st.Entities[(ety.ID)]
 	if !ok {
+		xlog.Traceln("entity not found in local", unsafe.Pointer(st), ety.ID)
 		return ErrEntityNotFound
 	}
 	// xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())
