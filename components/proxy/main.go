@@ -29,16 +29,16 @@ func main() {
 
 	p := NewProxy()
 
-	proxypb.RegisterProxyEtyEntity(p.Server.EntityMgr, p)
-	proxypb.RegisterProxySvcService(p.Server.EntityMgr, &ProxySvc{Proxy: p})
+	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
+	proxypb.RegisterProxySvcService(p.EntityMgr, &ProxySvc{Proxy: p})
 
-	p.Server.RegisterNetService(nets.NewNetService(
+	p.RegisterNetService(nets.NewNetService(
 		nets.WithPacketHandler(p),
 		// nets.WithConnErrHandler(p),
 		nets.WithNetwork(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
 	)
 
-	err := p.Server.ListenAndServe()
+	err := p.Serve()
 
 	fmt.Println(err)
 }

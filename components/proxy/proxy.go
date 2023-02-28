@@ -29,16 +29,16 @@ func NewProxy() *Proxy {
 		Server: bs.NewServer(),
 	}
 
-	p.Server.EntityMgr.EntityIDGenerator = p
+	p.EntityMgr.EntityIDGenerator = p
 
 	desc := proxypb.ProxyEtyEntityDesc
 	desc.EntityImpl = p
-	desc.EntityMgr = p.Server.EntityMgr
+	desc.EntityMgr = p.EntityMgr
 	p.SetDesc(&desc)
 
 	eid := &bbq.EntityID{ID: conf.C.Proxy.Inst[0].ID, Type: proxypb.ProxyEtyEntityDesc.TypeName}
 
-	p.Server.EntityMgr.RegisterEntity(nil, eid, p)
+	p.EntityMgr.RegisterEntity(nil, eid, p)
 
 	go p.Run()
 
@@ -48,6 +48,8 @@ func NewProxy() *Proxy {
 }
 
 type Proxy struct {
+	*bs.Server
+
 	entity.Entity
 
 	etyMtx     sync.RWMutex
@@ -60,8 +62,6 @@ type Proxy struct {
 
 	proxySvcMtx sync.RWMutex
 	proxySvcMap ProxySvcMap
-
-	Server *bs.Server
 }
 
 type ProxyMap map[string]*codec.PacketReadWriter
@@ -226,4 +226,8 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 
 func (p *Proxy) NewEntityID(tn string) *bbq.EntityID {
 	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: p.EntityID().ID}
+}
+
+func (p *Proxy) Serve() error {
+	return p.Server.ListenAndServe()
 }

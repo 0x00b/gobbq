@@ -3,11 +3,19 @@ gobbq is golang game server framework.
 
 why gobbq? because I often go to barbecue with friends,  I'd rather everyone have time to barbecue than work all the time.
 
+gobbq 是一个游戏后台开发框架。我想做游戏，更想去烧烤，总之不想加班，所以我需要一个框架，能免去我的运维烦恼，提升开发效率，这就是 gobbq。
+
 ## components
 gate
-proxy - sidecar
+proxy <=> sidecar
 game
 client
+
+## 使用consul实现服务注册与发现
+
+## 热更新方案
+
+## 自动扩缩容
 
 # note!!! this repo is a baby now. everything is variable. but I hope to reach this feature:
 
@@ -40,7 +48,7 @@ client
 * 消息保序：同一对互相通信的节点，多个连续包需要保证顺序达到
 
 ### 支持动态脚本： lua, python，简化逻辑编写或实现快速热更能力
-### RPC：不管是gRPC, Spp, TAF, Tars, TRPC, IRPC(tsf4g2.0)，都需要有良好网络协议支持、IDL、多语言、性能和周边生态。
+### RPC：不管是gRPC, TRPC，都需要有良好网络协议支持、IDL、多语言、性能和周边生态。
 ### 序列化：跨语言、高性能、自动代码生成或无IDL的自解析，良好的跨版本兼容能力。
 ### 定时器和事件循环：支持不同颗粒度的高性能定时器模块。
 ### 存储层抽象：需要一个解耦的存储接口层，并处理好实现的细节（如不同DB版本的特性兼容，分布式存储特性支持）
@@ -58,7 +66,7 @@ client
 * 多线程模型（可选）
 ### 游戏业务通用能力
 #### 并发编程模型: 多线程被证明不是一个很好的选择，CSP有局限性，相比之下，actor或许更加成熟，理解成本更低
-#### 异步抽象（tsf4g里叫做transation）：80%的开发时间都在跟它打交道
+#### 异步抽象：
 * 异步回调：代码编写复杂，开发周期长，维护困难，BUG多
 * 有限状态机（FSM）:本质是回调，但通过提前约定状态和流转，控制了严重BUG的出现几率
 * Promise/Future
@@ -68,7 +76,7 @@ client
 * 数据分区方式：如何分配数据（关键词 or hash or 多级索引）; 如何选主（主从，多主节点）
 * 容灾方式：节点的新增、删除、数据恢复和数据迁移
 #### 游戏资源管理： 游戏资源的热更和运营干预能力
-#### 游戏配置管理：支持统一配置管理中心（如七彩石），实现配置的跨环境、多版本管理、权限管理、快速回滚/复制/灰度/校验、发布管理
+#### 游戏配置管理：支持统一配置管理中心，实现配置的跨环境、多版本管理、权限管理、快速回滚/复制/灰度/校验、发布管理
 * 事务一致性支持：从框架层面支持事务特性，能大大减少经济道具类的风险
 ### 完善的工具链和周边
 #### 可测试性：符合测试左移的理念，保证提交质量可控，减少手工活

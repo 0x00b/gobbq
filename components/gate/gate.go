@@ -25,17 +25,17 @@ func NewGate() *Gate {
 		cltMap: make(clientMap),
 	}
 
-	gt.Server.EntityMgr.ProxyRegister = gt
-	gt.Server.EntityMgr.EntityIDGenerator = gt
+	gt.EntityMgr.ProxyRegister = gt
+	gt.EntityMgr.EntityIDGenerator = gt
 
 	desc := gatepb.GateServiceDesc
 	desc.EntityImpl = gt
-	desc.EntityMgr = gt.Server.EntityMgr
+	desc.EntityMgr = gt.EntityMgr
 	gt.SetDesc(&desc)
 
 	eid := &bbq.EntityID{ID: snowflake.GenUUID(), Type: gatepb.GateServiceDesc.TypeName}
 
-	gt.Server.EntityMgr.RegisterEntity(nil, eid, gt)
+	gt.EntityMgr.RegisterEntity(nil, eid, gt)
 
 	go gt.Run()
 

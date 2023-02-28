@@ -33,7 +33,7 @@ func TestWSClient(m *testing.T) {
 	}, xlog.DefaultLogTag{})
 	conf.Init("client.yaml")
 
-	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
+	// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 	wg := sync.WaitGroup{}
 	for i := 0; i < 10000; i++ {
@@ -42,7 +42,7 @@ func TestWSClient(m *testing.T) {
 		i := i
 		go func() {
 
-			// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
+			client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 			es := exampb.NewEchoSvc2ServiceClient()
 			rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{
