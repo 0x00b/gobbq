@@ -40,6 +40,8 @@ type IBaseEntity interface {
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
 
+	// OnTick()
+
 	// Watch/unwatch entity
 
 	// for inner
@@ -101,6 +103,13 @@ type localCall struct {
 type baseEntity struct {
 	// id
 	entityID *bbq.EntityID
+
+	// 	// status
+	// （1）0，待运行：异常重启后恢复，未恢复完前的状态
+	// （2）1，正常状态：处于这个状态时，可以被分配用作帧消息转发
+	// （3）2，迁移：下线前，需要将对局都迁移到新的，迁移状态不接收新的对局
+	// （4）3，异常：的心跳丢失，异常状态持续一段时间后，进入迁移状态
+	// （5）4，销毁：完成迁移后，会进入销毁状态
 
 	// context
 	context Context
