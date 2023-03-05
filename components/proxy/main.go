@@ -21,7 +21,7 @@ func main() {
 
 	fmt.Println(conf.C)
 
-	xlog.Init("info", false, true, &lumberjack.Logger{
+	xlog.Init("trace", false, true, &lumberjack.Logger{
 		Filename:  "./proxy.log",
 		MaxAge:    7,
 		LocalTime: true,

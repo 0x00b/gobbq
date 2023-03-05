@@ -1,131 +1,122 @@
-import {SayHelloRequest, SayHelloResponse} from "./exam"
-import {CompressType,ServiceType,RequestType, ContentType}from  "./bbq"
+import { SayHelloRequest, SayHelloResponse } from "./exam"
+import { v4 as uuidv4 } from 'uuid';
+import * as packet from "../../ts/codec/packet"
+import * as client from "../../ts/client/client"
+import * as bbq from "../../proto/bbq/bbq"
 
-class EchoService {
-    async SayHello(c: EntityContext, req: SayHelloRequest): Promise<SayHelloResponse> {
-        const pkt = codec.NewPacket();
-        const release = pkt.release.bind(pkt);
+export class EchoService {
+    async SayHello(c: client.Client, req: SayHelloRequest): Promise<SayHelloResponse> {
+        const pkt = new packet.Packet();
 
         try {
+            let dstEntity = bbq.EntityID.create()
+            dstEntity.Type = "exampb.EchoService"
+
             pkt.Header.Version = 1;
-            pkt.Header.RequestId = snowflake.GenUUID();
+            pkt.Header.RequestId = uuidv4();
             pkt.Header.Timeout = 10;
-            pkt.Header.RequestType = RequestType.RequestRequest;
-            pkt.Header.ServiceType = ServiceType.Service;
-            pkt.Header.SrcEntity = c.EntityID();
-            pkt.Header.DstEntity = { Type: "exampb.EchoService" };
+            pkt.Header.RequestType = bbq.RequestType.RequestRequest;
+            pkt.Header.ServiceType = bbq.ServiceType.Service;
+            pkt.Header.SrcEntity = c.ID;
+            pkt.Header.DstEntity = dstEntity
             pkt.Header.Method = "SayHello";
-            pkt.Header.ContentType =  ContentType.Proto;
-            pkt.Header.CompressType = CompressType.None;
+            pkt.Header.ContentType = bbq.ContentType.Proto;
+            pkt.Header.CompressType = bbq.CompressType.None;
             pkt.Header.CheckFlags = 0;
             pkt.Header.TransInfo = {};
             pkt.Header.ErrCode = 0;
             pkt.Header.ErrMsg = "";
 
             const chanRsp: any = new Promise((resolve, reject) => {
-                const callback = (pkt: codec.Packet) => {
-                    const rsp = new SayHelloResponse();
+                const callback = (pkt: packet.Packet) => {
                     const reqbuf = pkt.PacketBody();
-                    const err = codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp);
-                    if (err != null) {
-                        reject(err);
-                        return;
+                    if (reqbuf != null) {
+                        const rsp = SayHelloResponse.decode(reqbuf);
+                        resolve(rsp);
                     }
-                    resolve(rsp);
+                    reject()
                 };
-                entity.RegisterCallback(c, pkt.Header.RequestId, callback);
+                c.RegisterCallback(pkt.Header.RequestId, callback);
             });
 
-            const etyMgr = entity.GetEntityMgr(c);
-            if (etyMgr == null) {
-                throw new Error("bad context");
-            }
-            const err = await etyMgr.LocalCall(pkt, req, chanRsp);
-            if (err != null) {
-                if (!entity.NotMyMethod(err)) {
-                    throw err;
-                }
+            const bodyBytes = SayHelloRequest.encode(req).finish();
+            pkt.WriteBody(Buffer.from(bodyBytes));
 
-                const hdrBytes = await codec.GetCodec(bbq.ContentType_Proto).Marshal(req);
-                pkt.WriteBody(hdrBytes);
-
-                // register callback first, than SendPackt
-                entity.RegisterCallback(c, pkt.Header.RequestId, (pkt: codec.Packet) => {
-                    const rsp = new SayHelloResponse();
-                    const reqbuf = pkt.PacketBody();
-                    const err = codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp);
-                    if (err != null) {
-                        chanRsp.reject(err);
-                        return;
-                    }
-                    chanRsp.resolve(rsp);
-                });
-
-                const remoteEntityManager = entity.GetRemoteEntityManager(c);
-                await remoteEntityManager.SendPackt(pkt);
-            }
+            c.SendPacket(pkt);
 
             const rsp = await chanRsp;
 
-            if (rsp instanceof SayHelloResponse) {
-                return rsp;
-            }
+            // if (rsp instanceof SayHelloResponse) {
+            //     return rsp;
+            // }
             throw rsp;
         } catch (e) {
             throw e;
         } finally {
-            release();
         }
     }
 }
+
 // EchoService
-interface EchoService {
-    iservice: entity.IService;
-  
+interface IEchoService {
+
     // SayHello
-    sayHello(ctx: entity.Context, request: SayHelloRequest): SayHelloResponse;
-  }
-  
-  function _EchoService_SayHello_Handler(svc: any, ctx: entity.Context, req: SayHelloRequest, interceptor: Entity.ServerInterceptor): SayHelloResponse {
-    if (!interceptor) {
-      return svc.echoService.sayHello(ctx, req);
+    SayHello(request: SayHelloRequest): SayHelloResponse;
+}
+
+function _EchoService_SayHello_Remote_Handler(svc: IEchoService, pkt: packet.Packet,) {
+
+    const reqBuf = pkt.PacketBody();
+    if (reqBuf == null) {
+        return
     }
-  
-    const info = {
-      server: svc,
-      fullMethod: "/exampb.EchoService/SayHello";
-    };
-  
-    const handler = function(ctx: entity.Context, res: any) {
-      return svc.echoService.sayHello(ctx, req);
-    };
-  
-    const res = interceptor(ctx, req, info, handler);
-  
-    return res as SayHelloResponse;
-  }
-  
-  function _EchoService_SayHello_Local_Handler(svc: any, ctx: Entity.Context, req: any, interceptor: Entity.ServerInterceptor): any {
-    return _EchoService_SayHello_Handler(svc, ctx, req as SayHelloRequest, interceptor);
-  }
-  
-  function _EchoService_SayHello_Remote_Handler(svc: any, ctx: Entity.Context, pkt: codec.Packet, interceptor: Entity.ServerInterceptor) {
-    const hdr = pkt.header;
-  
-    const req = new SayHelloRequest();
-    const reqBuf = pkt.packetBody();
-    const err = codec.getCodec(hdr.getContentType()).unmarshal(reqBuf, req);
-  
-    if (err) {
-      // nil, err
-      return;
-    }
-  
-    const res = _EchoService_SayHello_Handler(svc, ctx, req, interceptor);
-  
-    const npkt = codec.newPacket();
-    
-    npkt.header.version = hdr.version;
-    npkt.header.requestId = hdr.requestId;
-    npkt.header.timeout = hdr.timeout;
-    npkt.header.requestType
+
+    const req = SayHelloRequest.decode(Buffer.from(reqBuf));
+
+    // const res = _EchoService_SayHello_Handler(svc, ctx, req, interce
+    let rsp = svc.SayHello(req);
+
+    const npkt = new packet.Packet();
+
+    let hdr = pkt.Header
+
+    let sstEntity = bbq.EntityID.create()
+    sstEntity.Type = "exampb.EchoService"
+
+    npkt.Header.Version = hdr.Version;
+    npkt.Header.RequestId = hdr.RequestId;
+    npkt.Header.Timeout = hdr.Timeout;
+    npkt.Header.RequestType = bbq.RequestType.RequestRespone;
+    npkt.Header.ServiceType = bbq.ServiceType.Service;
+    npkt.Header.SrcEntity = sstEntity;
+    npkt.Header.DstEntity = hdr.SrcEntity
+    npkt.Header.Method = "SayHello";
+    npkt.Header.ContentType = bbq.ContentType.Proto;
+    npkt.Header.CompressType = bbq.CompressType.None;
+    npkt.Header.CheckFlags = 0;
+    npkt.Header.TransInfo = {};
+    npkt.Header.ErrCode = 0;
+    npkt.Header.ErrMsg = "";
+
+    const rspBuff = SayHelloResponse.encode(rsp).finish();
+
+    npkt.WriteBody(Buffer.from(rspBuff))
+}
+
+
+/** 客户端 */
+export type ClientDefinition = typeof ClientDefinition;
+export const ClientDefinition = {
+    name: "Client",
+    fullName: "exampb.Client",
+    methods: {
+        sayHello: {
+            name: "SayHello",
+            requestType: SayHelloRequest,
+            requestStream: false,
+            responseType: SayHelloResponse,
+            responseStream: false,
+            options: {},
+        },
+    },
+} as const;

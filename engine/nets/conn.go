@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/tool/utils"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -89,10 +90,12 @@ func (st *conn) Serve() {
 				}
 			}
 		}
+		// NOTE
+		// kcp需要实现断连逻辑，否则无法释放gorountine， 因为read的write不会返回
 
-		// xlog.Traceln("serve 3")
+		xlog.Traceln("serve 3", utils.GoID())
 		pkt, release, err := st.packetReadWriter.ReadPacket()
-		// xlog.Traceln("serve 4")
+		xlog.Traceln("serve 4")
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				st.handleEOF(err)

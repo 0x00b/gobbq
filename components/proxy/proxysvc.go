@@ -46,7 +46,9 @@ func (p *Proxy) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest)
 // RegisterEntity
 func (p *Proxy) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
 
+	xlog.Traceln("register entity", req.String())
 	p.registerEntity(req.EntityID, entity.GetPacket(c).Src)
+	xlog.Traceln("register entity done", req.String())
 
 	return &proxypb.RegisterEntityResponse{}, nil
 }

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import _m0 from "../../third/node_modules/protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "bbq";
 

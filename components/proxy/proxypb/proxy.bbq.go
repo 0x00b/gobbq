@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -1185,11 +1183,14 @@ func _ProxySvcService_RegisterEntity_Remote_Handler(svc any, ctx entity.Context,
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		// nil,err
+		xlog.Errorln("Unmarshal(reqbuf)", err)
 		return
 	}
 
 	rsp, err := _ProxySvcService_RegisterEntity_Handler(svc, ctx, in, interceptor)
+	if err != nil {
+		xlog.Errorln("Handler(req)", err)
+	}
 
 	npkt, release := codec.NewPacket()
 	defer release()
@@ -1226,6 +1227,7 @@ func _ProxySvcService_RegisterEntity_Remote_Handler(svc any, ctx entity.Context,
 		xlog.Errorln("SendPackt", err)
 		return
 	}
+	xlog.Errorln("SendPackt(rsp) done")
 
 }
 

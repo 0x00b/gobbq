@@ -38,3 +38,4 @@ tests/
 /examples/nil_game/nil_game
 /examples/unity_demo/unity_demo
 /go.sum
+/node_modules

@@ -2,7 +2,6 @@ package codec
 
 import (
 	"fmt"
-	"hash/crc32"
 	"io"
 	"runtime"
 	"sync"
@@ -82,12 +81,12 @@ func (pc *PacketReadWriter) SendPackt(packet *Packet) error {
 
 	pc.writeMsgCnt++
 
-	if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
-		var crc32Buffer [4]byte
-		packetBodyCrc := crc32.ChecksumIEEE(pdata)
-		packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
-		return writeFull(pc.rw, crc32Buffer[:])
-	}
+	// if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
+	// 	var crc32Buffer [4]byte
+	// 	packetBodyCrc := crc32.ChecksumIEEE(pdata)
+	// 	packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
+	// 	return writeFull(pc.rw, crc32Buffer[:])
+	// }
 	return nil
 }
 
@@ -142,19 +141,19 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	pc.readMsgCnt++
 
 	// receive checksum (uint32)
-	if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
-		_, err = io.ReadFull(pc.rw, tempBuff[:4])
-		if err != nil {
-			release()
-			return nil, nil, err
-		}
+	// if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
+	// 	_, err = io.ReadFull(pc.rw, tempBuff[:4])
+	// 	if err != nil {
+	// 		release()
+	// 		return nil, nil, err
+	// 	}
 
-		packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
-		if packetBodyCrc != packetEndian.Uint32(tempBuff[:4]) {
-			release()
-			return nil, nil, errChecksumError
-		}
-	}
+	// 	packetBodyCrc := crc32.ChecksumIEEE(packet.Data())
+	// 	if packetBodyCrc != packetEndian.Uint32(tempBuff[:4]) {
+	// 		release()
+	// 		return nil, nil, errChecksumError
+	// 	}
+	// }
 
 	return packet, release, nil
 }

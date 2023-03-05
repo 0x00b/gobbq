@@ -22,14 +22,18 @@ func (gt *Gate) HandlePacket(pkt *codec.Packet) error {
 		// send to client
 		id := pkt.Header.GetDstEntity()
 
-		gt.cltMtx.Lock()
-		defer gt.cltMtx.Unlock()
-
-		rw, ok := gt.cltMap[id.ID]
+		rw, ok := func() (*codec.PacketReadWriter, bool) {
+			gt.cltMtx.Lock()
+			defer gt.cltMtx.Unlock()
+			prw, ok := gt.cltMap[id.ID]
+			return prw, ok
+		}()
 		if !ok {
 			return errors.New("unknown client")
 		}
 
+		// todo 需要处理一下kcp的断开连接，否则会阻塞在这里，以及read也会阻塞，导致goroutine得不到释放
+		// https://github.com/skywind3000/kcp/issues/176
 		return rw.SendPackt(pkt)
 	}
 

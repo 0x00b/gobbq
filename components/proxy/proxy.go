@@ -107,6 +107,7 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 	// xlog.Debugln("proxy 11")
 	// proxy to local
 	sendLocal := func() bool {
+		xlog.Debugln("local proxy to id:", eid)
 		p.etyMtx.RLock()
 		defer p.etyMtx.RUnlock()
 		prw, ok := p.entityMaps[eid.ID]

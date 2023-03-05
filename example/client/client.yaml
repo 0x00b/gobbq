@@ -14,7 +14,7 @@ gate:
     heartbeat_check_interval: 0
   inst:
     - id: 1
-      net: "websocket" # kcp, websocket
+      net: "kcp" # tcp, kcp, websocket
       ip: "127.0.0.1"
       port: 59551
     - id: 2

@@ -1,4 +1,4 @@
-package main
+package client_test
 
 import (
 	"fmt"
@@ -33,16 +33,16 @@ func TestWSClient(m *testing.T) {
 	}, xlog.DefaultLogTag{})
 	conf.Init("client.yaml")
 
-	// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
+	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		wg.Add(1)
 
 		i := i
 		go func() {
 
-			client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
+			// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 			es := exampb.NewEchoSvc2ServiceClient()
 			rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{

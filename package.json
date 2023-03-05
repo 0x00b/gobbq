@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "grpc": "^1.24.11",
+    "grpc-tools": "^1.12.4",
+    "grpc-ts-protoc-gen": "^0.1.1",
+    "kcpjs": "^1.0.10",
+    "protoc-gen-grpc-ts": "^1.0.1",
+    "ts-proto": "^1.140.0",
+    "ts-protoc-gen": "^0.15.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.6"
+  }
+}

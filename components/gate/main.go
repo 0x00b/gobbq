@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
+	_ "net/http/pprof"
 
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
@@ -11,6 +14,11 @@ import (
 )
 
 func main() {
+
+	go func() {
+		fmt.Println("pprof start...")
+		fmt.Println(http.ListenAndServe(":9876", nil))
+	}()
 
 	xlog.Init("trace", true, true, &lumberjack.Logger{
 		Filename:  "./gate.log",
