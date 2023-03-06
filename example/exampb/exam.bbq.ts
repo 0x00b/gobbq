@@ -34,7 +34,7 @@ export class EchoService {
                         const rsp = SayHelloResponse.decode(reqbuf);
                         resolve(rsp);
                     }
-                    reject()
+                    reject(Error)
                 };
                 c.RegisterCallback(pkt.Header.RequestId, callback);
             });
@@ -46,10 +46,10 @@ export class EchoService {
 
             const rsp = await chanRsp;
 
-            // if (rsp instanceof SayHelloResponse) {
-            //     return rsp;
-            // }
-            throw rsp;
+            if (rsp instanceof Error) {
+                throw rsp;
+            }
+            return rsp;
         } catch (e) {
             throw e;
         } finally {
@@ -64,7 +64,7 @@ interface IEchoService {
     SayHello(request: SayHelloRequest): SayHelloResponse;
 }
 
-function _EchoService_SayHello_Remote_Handler(svc: IEchoService, pkt: packet.Packet,) {
+function _EchoService_SayHello_Remote_Handler(svc: any, pkt: packet.Packet,) {
 
     const reqBuf = pkt.PacketBody();
     if (reqBuf == null) {
@@ -74,7 +74,7 @@ function _EchoService_SayHello_Remote_Handler(svc: IEchoService, pkt: packet.Pac
     const req = SayHelloRequest.decode(Buffer.from(reqBuf));
 
     // const res = _EchoService_SayHello_Handler(svc, ctx, req, interce
-    let rsp = svc.SayHello(req);
+    let rsp = (svc as IEchoService).SayHello(req);
 
     const npkt = new packet.Packet();
 

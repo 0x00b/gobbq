@@ -1,6 +1,7 @@
 import * as kcp from 'kcpjs'
 import { buffer } from 'node:stream/consumers'
 import * as ex from "../../example/exampb/exam"
+import { Packet, ReadPacket } from '../codec/packet'
 
 let block = undefined
 // if (algorithm && key && iv) {
@@ -18,14 +19,34 @@ const session = kcp.DialWithOptions({
 })
 
 session.on("recv", (buff: Buffer) => {
-    console.log('recv:', buff.toString())
+
+    let pkt = ReadPacket(buff)
+    if (pkt == null) {
+        console.log('recv null xx', buff)
+        return
+    }
+
+    console.log('recv:', JSON.stringify(pkt))
 })
 
 setInterval(() => {
+
+    let pkt = new Packet()
+
+    pkt.Header.Method = "xxxx"
+    pkt.Header.RequestId = "1111"
+
     let req = ex.SayHelloRequest.create()
     req.text = "test"
+
     let msg = ex.SayHelloRequest.encode(req)
+
     let buf = Buffer.from(msg.finish())
-    console.log(`send: ${msg}`)
-    session.write(buf)
+
+    pkt.WriteBody(buf)
+
+    console.log(`send: ${JSON.stringify(pkt)}`)
+
+    session.write(pkt.Buffer)
+
 }, 1000)

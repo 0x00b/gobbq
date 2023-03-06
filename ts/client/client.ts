@@ -11,6 +11,9 @@ export class Client {
 
     callbacks: Map<string, (pkt: packet.Packet) => void>
 
+    // 实现接口
+    instance: any
+
     constructor() {
         this.ID = bbq.EntityID.create()
         this.ID.ID = uuidv4()
