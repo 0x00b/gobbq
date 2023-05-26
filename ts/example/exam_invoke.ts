@@ -1,9 +1,24 @@
 
 
- import { client } from '../src';
- import * as bbq from '../../proto/bbq/bbq';
-  
- 
+import { SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
+import { EchoDefinition } from '../../example/exampb/exam.bbq';
+import * as bbq from '../../proto/bbq/bbq';
+import { Client } from '../src';
+import { Context } from '../src/dispatcher/context';
+
+
+class Echo {
+  sayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
+    console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse", request.text)
+
+    let rsp = SayHelloResponse.create()
+    rsp.text = "xxxx"
+    return rsp
+  }
+}
+
+
+
 // var ClientService = exports.ClientService = {
 //     sayHello: {
 //       Method: '/exampb.Client/SayHello',
@@ -15,44 +30,49 @@
 //     },
 //   };
 
- async function invoke() {
-   /* 接口名 func */
- 
-   let hdr =  bbq.Header.create()
-   hdr.RequestId = "1111"
-   hdr.Timeout=1000
-   hdr.RequestType = bbq.RequestType.RequestRequest;
+async function invoke() {
+  /* 接口名 func */
 
-   hdr.ServiceType = bbq.ServiceType.Service;
-   hdr.Method = "SayHello";
+  let hdr = bbq.Header.create()
+  hdr.RequestId = "1111"
+  hdr.Timeout = 1000
+  hdr.RequestType = bbq.RequestType.RequestRequest;
 
-//    hdr.SrcEntity = c.ID;
-//    hdr.DstEntity = dstEntity
+  hdr.ServiceType = bbq.ServiceType.Service;
+  hdr.Method = "sayHello";
 
-   const data = Buffer.from(bbq.Header.encode(hdr).finish());
+  //    hdr.SrcEntity = c.ID;
+  hdr.DstEntity = bbq.EntityID.create()
+  hdr.DstEntity.Type = "exampb.Echo"
 
-   const contentType = bbq.ContentType.Proto;
- 
-   /**
-    * 远程接入点；
-    * 作为示例，我们直接传入 mock server 的接入点；
-    * 实际使用中，一般由名字服务中间件提供接入点；
-    */
-   const remote = {
-     port: 8899,
-     host: 'localhost',
-     protocol: 'tcp',
-   } as const;
-   let timeout = hdr.Timeout
-   const rpc = await client.channel.unaryInvoke(hdr, data, { contentType, remote, timeout });
- 
-   // 调用错误
-   console.log(__filename, rpc.error);
-   //  请求消息
-   console.log(__filename, rpc.request);
-   //  响应消息
-   console.log(__filename, rpc.response);
- }
- 
- invoke();
- 
+  const data = Buffer.from(bbq.Header.encode(hdr).finish());
+
+  const contentType = bbq.ContentType.Proto;
+
+  /**
+   * 远程接入点；
+   * 作为示例，我们直接传入 mock server 的接入点；
+   * 实际使用中，一般由名字服务中间件提供接入点；
+   */
+  const remote = {
+    port: 8899,
+    host: 'localhost',
+    protocol: 'tcp',
+  } as const;
+  let timeout = hdr.Timeout
+
+  const ctx: any = new Echo();
+  let client = new Client(EchoDefinition, ctx,[],[], {remote})
+
+  const rpc = await client.unaryInvoke(hdr, data, { contentType, remote, timeout });
+
+  // 调用错误
+  console.log(__filename, rpc.error);
+  //  请求消息
+  console.log(__filename, rpc.request);
+  //  响应消息
+  console.log(__filename, rpc.response);
+}
+
+invoke();
+

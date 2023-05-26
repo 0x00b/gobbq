@@ -10,6 +10,7 @@
  */
 // type only
 import { Kcp } from 'kcpjs';
+import { Packet } from '../codec/packet';
 import type { Endpoint } from '../endpoint';
 import type { /*StreamResult,*/ UnaryResult } from './base';
 
@@ -17,6 +18,7 @@ import type { /*StreamResult,*/ UnaryResult } from './base';
 import { ClientTransport } from './base';
 import { KCPTransport } from './kcp';
 import { TCPTransport } from './tcp';
+import { WSTransport } from './ws';
 // import { WSTransport } from './ws';
 
 export type CreateTransport = typeof createTransport;
@@ -28,15 +30,15 @@ export { TCPTransport, ClientTransport };
  * @param endPoint 远程接入点，根据 {@link Endpoint.protocol } 自动选择具体的传输实现
  * @param onDestroyed 销毁时的回调
  */
-export function createTransport(endPoint: Endpoint, onDestroyed: () => void): ClientTransport {
+export function createTransport(endPoint: Endpoint, onDestroyed: () => void, onUnaryMessage: (pkt:Packet) => void,): ClientTransport {
   switch (endPoint.protocol) {
     case 'kcp':
-      return new KCPTransport(endPoint, onDestroyed);
-    // case 'ws':
-    // case 'wss':
-    // return new WSTransport(endPoint, onDestroyed);
+      return new KCPTransport(endPoint, onDestroyed, onUnaryMessage);
+    case 'ws':
+    case 'wss':
+    // return new WSTransport(endPoint, onDestroyed, onUnaryMessage);
     default: // 默认使用 tcp
     case 'tcp':
-      return new TCPTransport(endPoint, onDestroyed);
+      return new TCPTransport(endPoint, onDestroyed, onUnaryMessage);
   }
 };

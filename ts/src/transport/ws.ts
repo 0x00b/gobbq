@@ -48,7 +48,7 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
   private deferredUnary = new Map<string, Deferred<UnaryResult, RpcError>>();
 
   private socket?: WebSocket;
-  private local: Endpoint = {
+  private localpoint: Endpoint = {
     host: 'NOHOST',
     port: 0,
     protocol: 'ws',
@@ -58,8 +58,9 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
   private connected = false;
   private destroyed = false;
   public constructor(
-    protected remote: Endpoint,
+    protected remotepoint: Endpoint,
     private readonly onDestroyed: () => void,
+    private readonly onUnaryMessage: (pkt:Packet) => void,
   ) {
     super();
   }
@@ -102,7 +103,7 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
     }
 
     this.promise = new Promise((resolve, reject) => {
-      const { port, host, protocol } = this.remote;
+      const { port, host, protocol } = this.remotepoint;
       var serverAddr = `${protocol}://${host}:${port}/ws`
       const websocket = new WebSocket(serverAddr)
       websocket.binaryType = 'arraybuffer'
@@ -140,59 +141,6 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
     });
 
     return this.promise;
-  }
-
-  /**
-   * 添加一个 unary 请求
-   * @returns 返回 Promise
-   * - 收到来自 server 的响应时，Promise 返回 UnaryRequestMessage
-   * - 发送过程中发生异常时，Promise 抛出一个 RpcError
-   * @param req 请求 Message
-   */
-  public async addUnary(req: UnaryRequestMessage): Promise<UnaryResult> {
-    DEBUGGER('[add] unary', `requestId:${req.Header.RequestId}`);
-
-    let buf: Buffer;
-    try {
-      buf = encode(req);
-    } catch (error) {
-      throw new RpcError(ERROR.CLIENT_ENCODE_ERR, "error.message, error");
-    }
-
-    const deferred = new Deferred<UnaryResult, RpcError>();
-    this.deferredUnary.set(req.Header.RequestId, deferred);
-
-    setTimeout(() => {
-      this.deferredUnary.delete(req.Header.RequestId);
-      deferred.reject(new RpcError(ERROR.CLIENT_INVOKE_TIMEOUT_ERR, 'Timeout'));
-    }, req.Header.Timeout);
-
-    // 稍后发送
-    setImmediate(() => {
-      try {
-        this.send(buf);
-      } catch (error) {
-        this.deferredUnary.delete(req.Header.RequestId);
-        deferred.reject(new RpcError(ERROR.CLIENT_NETWORK_ERR, "error.message, error"));
-      }
-    });
-
-    return deferred.promise;
-  }
-
-  /**
-   * 主动删除一个 unary 请求，会产生一个 RPC Error
-   * @param requestId 请求 id
-   * @param err 指定 RPC Error
-   */
-  public removeUnary(
-    requestId: string,
-    err = new RpcError(ERROR.CLIENT_CANCELED_ERR, 'unary request removed'),
-  ) {
-    const deferred = this.deferredUnary.get(requestId);
-    if (deferred === undefined) return;
-    this.deferredUnary.delete(requestId);
-    deferred.reject(err);
   }
 
   public send(buffer: Buffer) {
@@ -297,27 +245,12 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
     // }
   }
 
-  private onUnaryMessage(pkt: Packet) {
+  public  local(): Endpoint{
+    return this.localpoint
+  }
 
-    // request
-    if (pkt.Header.RequestType == bbq.RequestType.RequestRequest) {
-
-      return
-    }
-
-    // response
-    const { RequestId } = pkt.Header;
-    const deferred = this.deferredUnary.get(RequestId);
-    /* istanbul ignore if */
-    if (deferred === undefined) return;
-    this.deferredUnary.delete(RequestId);
-    deferred.resolve(
-      {
-        response: pkt,
-        local: this.local,
-        remote: this.remote,
-      }
-    );
+  public  remote(): Endpoint{
+    return this.remotepoint
   }
 
 }

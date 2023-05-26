@@ -15,17 +15,14 @@ import { Client } from './client';
 /**
  * 内置全局 Client 实例
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const client = new Client();
-
-export { Client, client };
+// eslint-disable-next-line @typescript-eslint/naming-convention 
+export { Client };
 export { ERROR } from './error';
 
 // namespace
 export * as transport from './transport';
 
-// type only
-export type { Channel, InitializeOptions } from './channel';
+// type only 
 export type { Middleware } from './middleware';
 export type { Endpoint } from './endpoint';
 export type { BaseContext, /*StreamContext, STREAM_CALL_TYPE, StreamOptions,*/ UnaryContext, Options, UnaryOptions } from './context';

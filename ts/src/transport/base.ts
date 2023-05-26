@@ -1,5 +1,6 @@
 // type only
 import type { UnaryRequestMessage, UnaryResponseMessage } from '../codec/msg';
+import { Dispatcher } from '../dispatcher/dispatcher';
 import type { Endpoint } from '../endpoint';
 
 interface Result {
@@ -30,21 +31,6 @@ export interface UnaryResult extends Result {
  * 参考内置的 {@link UDPTransport} 实现
  */
 export abstract class ClientTransport {
-  /** 绑定到远程接入点 */
-  protected abstract remote: Endpoint;
-
-  /**
-   * 收到服务端响应后 Promise 返回服务端响应，
-   * 以及本次传输使用的本地接入点和远程接入点
-   */
-  public abstract addUnary(req: UnaryRequestMessage): Promise<UnaryResult> | UnaryResult;
-  /**
-   * 流的 Init 阶段完成后 Promise 返回服务端 Init 响应、
-   * 用于后续流操作的句柄，
-   * 以及本次传输使用的本地接入点和远程接入点
-   */
-  // public abstract addStream(req: StreamInitMessage): Promise<StreamResult> | StreamResult;
-
   /**
    * 主动销毁
    */
@@ -56,10 +42,15 @@ export abstract class ClientTransport {
    * 某些传输层可能不需要”连接“，但仍然要实现此接口，返回 `Promise.promise()` 即可，
    * 参考内置的 实现
    */
-   public abstract connect(): Promise<void>;
+  public abstract connect(): Promise<void>;
 
 
-   public abstract send(buffer: Buffer):void;
+  public abstract send(buffer: Buffer): void;
+
+
+  public abstract local(): Endpoint;
+
+  public abstract remote(): Endpoint;
 
 }
 

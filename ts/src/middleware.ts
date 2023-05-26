@@ -1,5 +1,5 @@
-import type { BaseContext, Options } from './context';
-import type { InitializeOptions } from './channel';
+import { InitializeOptions } from './client';
+import type { BaseContext, Options } from './context'; 
 
 /**
  * 中间件定义

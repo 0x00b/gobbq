@@ -15,28 +15,25 @@ export type Middleware<CustomContextT = {}> = compose.Middleware<ParameterizedCo
 
 interface Options {
   middleware?: Middleware<any>[],
-  supportStream?: boolean,
 }
 
 export class Dispatcher<CustomContextT = {}> {
-  private inited:boolean=false;
-  
+  private inited: boolean = false;
+
   private readonly middleware: Middleware<CustomContextT & any>[] = [];
 
   private readonly handlers = new Map<string, MethodImpl<any, any>>();
 
   public constructor(
-    public readonly serviceName: string,
-    private options: Options = { supportStream: false },
+    def: ServiceDefinition, impl: any,
+    private options: Options = {},
   ) {
     this.options?.middleware?.forEach(fn => this.use(fn));
-  }
 
-  public RegisterClientImpl(def: ServiceDefinition, impl: any) {
     if (this.inited) {
       throw new Error("already init")
     }
-  
+
     const prototype = Object.getPrototypeOf(impl);
     let ma = Reflect.ownKeys(prototype)
     console.log(ma);
@@ -63,11 +60,11 @@ export class Dispatcher<CustomContextT = {}> {
         throw new Error("impl not impl def")
       }
 
-      let func = impl[key].bind(impl) 
+      let func = impl[key].bind(impl)
       this.handlers.set(def.typeName + "/" + key, { ...value, handle: func })
     }
 
-    this.inited = true 
+    this.inited = true
   }
 
   public use<NewCustomContextT = {}>(fn: Middleware<CustomContextT & NewCustomContextT>): this {
@@ -81,7 +78,7 @@ export class Dispatcher<CustomContextT = {}> {
     return this;
   }
 
-  public onUnaryRequest(pkt: Packet) {
+  public onUnaryMessage(pkt: Packet) {
 
     let methodName = pkt.Header.DstEntity?.Type + "/" + pkt.Header.Method
 
@@ -115,7 +112,7 @@ export class Dispatcher<CustomContextT = {}> {
     // console.log("req",JSON.stringify(ctx.req))
 
     return this.handleUnaryRequest(fn, ctx);
-    
+
   }
 
   private handleUnaryRequest(
@@ -129,8 +126,8 @@ export class Dispatcher<CustomContextT = {}> {
     fn(ctx)
       .then(handleResponse)
       .catch(onerror);
-    
-      return
+
+    return
   }
 }
 
@@ -139,7 +136,7 @@ function respondUnary(ctx: Context) {
   //   return;
   // }
 
-  console.log("rsp:",JSON.stringify( ctx.body))
+  console.log("rsp:", JSON.stringify(ctx.body))
 
   const code = ctx.status
     ?? (ctx.body ? 0 : 1) //RetCode.INVOKE_SUCCESS : RetCode.INVOKE_UNKNOWN_ERR);
@@ -151,89 +148,86 @@ function respondUnary(ctx: Context) {
 }
 
 
-class Echo {
-  sayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
-    console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse", request.text)
+// class Echo {
+//   sayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
+//     console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse", request.text)
 
-    let rsp = SayHelloResponse.create()
-    rsp.text = "xxxx"
-    return rsp
-  }
-}
-
-
-function exx(): number {
-  return 111
-}
-
-function exam(): Promise<number> {
-  // last called middleware #
-  return Promise.resolve(exx());
-
-};
-
-function test() {
-
-  // exam().then((x) => {
-  //   console.log("xxxx", x)
-  // })
+//     let rsp = SayHelloResponse.create()
+//     rsp.text = "xxxx"
+//     return rsp
+//   }
+// }
 
 
-  let d: Dispatcher = new Dispatcher("")
+// function exx(): number {
+//   return 111
+// }
 
-  const ctx: any = new Echo();
+// function exam(): Promise<number> {
+//   // last called middleware #
+//   return Promise.resolve(exx());
 
-  d.RegisterClientImpl(EchoDefinition, ctx)
+// };
 
-  d.use<{ cost: number }>(async (ctx, next) => {
-    const startTime = Date.now();
-    await next();
-    ctx.cost = Date.now() - startTime;
+// function test() {
 
-    console.log("const:", ctx.cost)
-  })
+//   // exam().then((x) => {
+//   //   console.log("xxxx", x)
+//   // })
+
+//   const ctx: any = new Echo();
+
+//   let d: Dispatcher = new Dispatcher(EchoDefinition, ctx)
+
+//   d.use<{ cost: number }>(async (ctx, next) => {
+//     const startTime = Date.now();
+//     await next();
+//     ctx.cost = Date.now() - startTime;
+
+//     console.log("const:", ctx.cost)
+//   })
 
 
-  let hdr = bbq.Header.create()
-  hdr.RequestId = "1111"
-  hdr.Timeout = 1000
-  hdr.RequestType = bbq.RequestType.RequestRequest;
+//   let hdr = bbq.Header.create()
+//   hdr.RequestId = "1111"
+//   hdr.Timeout = 1000
+//   hdr.RequestType = bbq.RequestType.RequestRequest;
 
-  hdr.ServiceType = bbq.ServiceType.Service;
-  hdr.Method = "sayHello";
-  hdr.DstEntity = bbq.EntityID.create()
-  hdr.DstEntity.Type="exampb.Echo"
+//   hdr.ServiceType = bbq.ServiceType.Service;
+//   hdr.Method = "sayHello";
+//   hdr.DstEntity = bbq.EntityID.create()
+//   hdr.DstEntity.Type = "exampb.Echo"
 
-  //    hdr.SrcEntity = c.ID;
-  //    hdr.DstEntity = dstEntity
+//   //    hdr.SrcEntity = c.ID;
+//   //    hdr.DstEntity = dstEntity
 
-  let req:SayHelloRequest = SayHelloRequest.create()
-  req.text="xxx"
+//   let req: SayHelloRequest = SayHelloRequest.create()
+//   req.text = "xxx"
 
-  const data = Buffer.from(SayHelloRequest.encode(req).finish());
+//   const data = Buffer.from(SayHelloRequest.encode(req).finish());
 
-  const message: UnaryRequestMessage = {
-    Header: hdr,
-    Body: Buffer.from(data),
-  };
-  
-  console.log("data", data)
+//   const message: UnaryRequestMessage = {
+//     Header: hdr,
+//     Body: Buffer.from(data),
+//   };
 
-  let edata = encode(message)
-  console.log("edata", edata)
-  let pkt = decode(edata)
+//   console.log("data", data)
 
-  if (!pkt) {
-    console.log("empty pkt")
-    return
-  }
-  console.log("pkt", JSON.stringify(pkt))
-  console.log("pkt", pkt.Buffer)
+//   let edata = encode(message)
+//   console.log("edata", edata)
+//   let pkt = decode(edata)
 
-  let res = d.onUnaryRequest(pkt)
-  console.log("xxx", res)
+//   if (!pkt) {
+//     console.log("empty pkt")
+//     return
+//   }
+//   console.log("pkt", JSON.stringify(pkt))
+//   console.log("pkt", pkt.Buffer)
 
-  // console.log(d)
-}
+//   let res = d.onUnaryMessage(pkt)
+//   console.log("xxx", res)
 
-test()
+//   // console.log(d)
+// }
+
+// test()

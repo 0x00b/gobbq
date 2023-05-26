@@ -44,11 +44,9 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
   // private streams = new Map<number, Source>();
   // /** INIT 阶段的 stream */
   // private deferredStream = new Map<number, Deferred<StreamResult, RpcError>>();
-  /** 未收到回包的 unary  */
-  private deferredUnary = new Map<string, Deferred<UnaryResult, RpcError>>();
 
   private socket?: net.Socket;
-  private local: Endpoint = {
+  private localpoint: Endpoint = {
     host: 'NOHOST',
     port: 0,
     protocol: 'tcp',
@@ -58,8 +56,9 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
   private connected = false;
   private destroyed = false;
   public constructor(
-    protected remote: Endpoint,
+    protected remotepoint: Endpoint,
     private readonly onDestroyed: () => void,
+    private readonly onUnaryMessage: (pkt:Packet) => void,
   ) {
     super();
   }
@@ -75,7 +74,7 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
     this.connected = false;
 
     // 清理请求
-    this.clear(error ?? new RpcError(ERROR.CLIENT_CANCELED_ERR, 'Destroyed'));
+    // this.clear(error ?? new RpcError(ERROR.CLIENT_CANCELED_ERR, 'Destroyed'));
 
     // 清理 socket
     this.socket?.destroy();
@@ -102,7 +101,7 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
     }
 
     this.promise = new Promise((resolve, reject) => {
-      const { port, host } = this.remote;
+      const { port, host } = this.remotepoint;
       const socket = net.createConnection({ port, host })
         .once('error', (error) => {
           reject(new RpcError(ERROR.CLIENT_NETWORK_ERR, error.message, error));
@@ -121,7 +120,7 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
           this.connected = true;
 
           if (socket.localAddress && socket.localPort) {
-            this.local = {
+            this.localpoint = {
               host: socket.localAddress,
               port: socket.localPort,
               protocol: 'tcp',
@@ -135,79 +134,6 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
     });
 
     return this.promise;
-  }
-
-  /**
-   * 添加一个 unary 请求
-   * @returns 返回 Promise
-   * - 收到来自 server 的响应时，Promise 返回 UnaryRequestMessage
-   * - 发送过程中发生异常时，Promise 抛出一个 RpcError
-   * @param req 请求 Message
-   */
-  public async addUnary(req: UnaryRequestMessage): Promise<UnaryResult> {
-    console.log('[add] unary', `requestId:${req.Header.RequestId}`);
-
-    let buf: Buffer;
-    try {
-      buf = encode(req);
-    } catch (error) {
-      throw new RpcError(ERROR.CLIENT_ENCODE_ERR, "error.message, error");
-    }
-
-    const deferred = new Deferred<UnaryResult, RpcError>();
-    this.deferredUnary.set(req.Header.RequestId, deferred);
-
-    // console.log(req.Header)
-
-    setTimeout(() => {
-      this.deferredUnary.delete(req.Header.RequestId);
-      deferred.reject(new RpcError(ERROR.CLIENT_INVOKE_TIMEOUT_ERR, 'Timeout'));
-    }, req.Header.Timeout);
-
-    // 稍后发送
-    setImmediate(() => {
-      try {
-        console.log("send:", buf)
-        this.send(buf);
-      } catch (error) {
-        this.deferredUnary.delete(req.Header.RequestId);
-        deferred.reject(new RpcError(ERROR.CLIENT_NETWORK_ERR, "error.message, error"));
-      }
-    });
-
-    return deferred.promise;
-  }
-
-  /**
-   * 主动删除一个 unary 请求，会产生一个 RPC Error
-   * @param requestId 请求 id
-   * @param err 指定 RPC Error
-   */
-  public removeUnary(
-    requestId: string,
-    err = new RpcError(ERROR.CLIENT_CANCELED_ERR, 'unary request removed'),
-  ) {
-    const deferred = this.deferredUnary.get(requestId);
-    if (deferred === undefined) return;
-    this.deferredUnary.delete(requestId);
-    deferred.reject(err);
-  }
-  public send(buffer: Buffer) {
-    console.log('[send]', `connected:${this.connected}`, `promise:${this.promise}`);
-
-    if (!this.connected) {
-      return false;
-    }
-
-    /* istanbul ignore if */
-    if (this.socket === undefined) {
-      throw new assert.AssertionError({
-        expected: '<net.Socket>',
-        actual: undefined,
-      });
-    }
-
-    return this.socket.write(buffer);
   }
 
   private onData(socket: net.Socket, handleData: (chunk: Buffer) => void, buffer: Buffer) {
@@ -235,7 +161,7 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
     this.promise = undefined;
 
     // 清理请求
-    this.clear(new RpcError(ERROR.CLIENT_CANCELED_ERR, 'Closed'));
+    // this.clear(new RpcError(ERROR.CLIENT_CANCELED_ERR, 'Closed'));
   }
 
   /**
@@ -248,37 +174,13 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
   private onError(err: Error) {
     console.log('[error]', err);
     this.connected = false;
-    this.clear(err instanceof RpcError ? err : new RpcError(ERROR.CLIENT_CONNECT_ERR, err.message, err));
+    // this.clear(err instanceof RpcError ? err : new RpcError(ERROR.CLIENT_CONNECT_ERR, err.message, err));
     // 清理 socket
     this.socket?.destroy();
     this.socket = undefined;
     this.promise = undefined;
   }
 
-  private clear(err: RpcError) {
-    // INIT 完成的 stream
-    // this.streams.forEach((source) => {
-    //   source.destroy(err);
-    // });
-
-    // this.streams.clear();
-
-    // INIT 阶段的 stream
-    // if (this.deferredStream.size > 0) {
-    //   this.deferredStream.forEach((d) => {
-    //     d.reject(err);
-    //   });
-    //   this.deferredStream.clear();
-    // }
-
-    // 未收到回包的 unary
-    if (this.deferredUnary.size > 0) {
-      this.deferredUnary.forEach((d) => {
-        d.reject(err);
-      });
-      this.deferredUnary.clear();
-    }
-  }
 
   /**
    * 处理从字节流中切分出的帧
@@ -298,29 +200,31 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
     //   this.onStreamMessage(message as StreamMessage);
     // }
   }
+  
+  public send(buffer: Buffer) {
+    console.log('[send]', `connected:${this.connected}`, `promise:${this.promise}`);
 
-  private onUnaryMessage(pkt: Packet) {
-
-    // request
-    if (pkt.Header.RequestType == bbq.RequestType.RequestRequest) {
-
-      let dis = new Dispatcher("")
-      dis.onUnaryRequest(pkt)
-
-      return
+    if (!this.connected) {
+      return false;
     }
 
-    // response
-    const { RequestId } = pkt.Header;
-    const deferred = this.deferredUnary.get(RequestId);
     /* istanbul ignore if */
-    if (deferred === undefined) return;
-    this.deferredUnary.delete(RequestId);
-    deferred.resolve({
-      response: pkt,
-      local: this.local,
-      remote: this.remote,
+    if (this.socket === undefined) {
+      throw new assert.AssertionError({
+        expected: '<net.Socket>',
+        actual: undefined,
+      });
     }
-    );
+
+    return this.socket.write(buffer);
   }
+  
+  public  local(): Endpoint{
+    return this.localpoint
+  }
+
+  public  remote(): Endpoint{
+    return this.remotepoint
+  }
+
 }
