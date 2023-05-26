@@ -29,10 +29,14 @@ enum ServiceType {
 }
 
 message EntityID {
-	string ID = 1;
-	string Type = 2;
-	// 记录自己所在的proxy，proxy就不用维护 [ID<->Proxy]的信息
-	string ProxyID = 3;
+	// 记录Entity所在的proxy
+	string ProxyID = 1;
+	// proxy上记录有哪些InstID
+	string InstID = 2;
+	// 具体的Entity在Inst上
+	string ID = 3;
+	// 具体的entity的类型
+	string Type = 4;
 }
 
 // 请求协议头

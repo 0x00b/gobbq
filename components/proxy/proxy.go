@@ -19,8 +19,8 @@ func NewProxy() *Proxy {
 	conf.Init("proxy.yaml")
 
 	p := &Proxy{
-		etyMtx:      sync.RWMutex{},
-		entityMaps:  make(entityMap),
+		instMtx:     sync.RWMutex{},
+		instMaps:    make(instMap),
 		svcMtx:      sync.RWMutex{},
 		svcMaps:     make(serviceMap),
 		proxyMap:    make(ProxyMap),
@@ -52,8 +52,8 @@ type Proxy struct {
 
 	entity.Entity
 
-	etyMtx     sync.RWMutex
-	entityMaps entityMap
+	instMtx  sync.RWMutex
+	instMaps instMap
 
 	svcMtx  sync.RWMutex
 	svcMaps serviceMap
@@ -66,18 +66,18 @@ type Proxy struct {
 
 type ProxyMap map[string]*codec.PacketReadWriter
 type ProxySvcMap map[string]*codec.PacketReadWriter
-type entityMap map[string]*codec.PacketReadWriter
+type instMap map[string]*codec.PacketReadWriter
 type serviceMap map[string]*codec.PacketReadWriter
 
-// RegisterEntity register serive
-func (p *Proxy) registerEntity(eid *bbq.EntityID, prw *codec.PacketReadWriter) {
-	p.etyMtx.Lock()
-	defer p.etyMtx.Unlock()
-	if _, ok := p.entityMaps[eid.ID]; ok {
-		xlog.Errorln("already has entity", eid)
+// // RegisterEntity register serive
+func (p *Proxy) registerInst(instID string, prw *codec.PacketReadWriter) {
+	p.instMtx.Lock()
+	defer p.instMtx.Unlock()
+	if _, ok := p.instMaps[instID]; ok {
+		xlog.Errorln("already has entity", instID)
 	}
-	xlog.Debugln("register entity id:", eid)
-	p.entityMaps[eid.ID] = prw
+	xlog.Debugln("register entity id:", instID)
+	p.instMaps[instID] = prw
 }
 
 // RegisterEntity register serive
@@ -105,12 +105,12 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 
 	// xlog.Debugln("proxy 11")
-	// proxy to local
-	sendLocal := func() bool {
+	// proxy to inst
+	sendInst := func() bool {
 		xlog.Debugln("local proxy to id:", eid)
-		p.etyMtx.RLock()
-		defer p.etyMtx.RUnlock()
-		prw, ok := p.entityMaps[eid.ID]
+		p.instMtx.RLock()
+		defer p.instMtx.RUnlock()
+		prw, ok := p.instMaps[eid.GetInstID()]
 		if ok {
 			xlog.Debugln("proxy to id:", eid)
 			prw.SendPackt(pkt)
@@ -121,7 +121,7 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 	}()
 
 	// xlog.Debugln("proxy 33")
-	if sendLocal {
+	if sendInst {
 		return
 	}
 
@@ -226,7 +226,7 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 }
 
 func (p *Proxy) NewEntityID(tn string) *bbq.EntityID {
-	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: p.EntityID().ID}
+	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: p.EntityID().ID, InstID: p.EntityID().ID}
 }
 
 func (p *Proxy) Serve() error {

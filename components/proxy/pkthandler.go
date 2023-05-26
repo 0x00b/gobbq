@@ -17,6 +17,10 @@ func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
 	xlog.Debugln("proxy 1")
 
 	hdr := pkt.Header
+
+	// todo
+	// if p.EntityID().ID == pkt.Header.DstEntity.InstID
+
 	err := p.Server.EntityMgr.HandlePacket(pkt)
 	if err == nil {
 		// handle succ

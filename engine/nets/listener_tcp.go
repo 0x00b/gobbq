@@ -50,7 +50,7 @@ func (tl *TCPListener) Accept() (net.Conn, error) {
 		return nil, errors.New("bug: conn is not tcpconn type")
 	}
 
-	// todo 研究一下，会导致收包延迟了50ms
+	// todo 研究一下，会导致收包延迟了50ms, tl.opts.NetNoDelay理论上是为true的
 	// if err := tconn.SetNoDelay(tl.opts.NetNoDelay); err != nil {
 	// 	return nil, err
 	// }
@@ -70,5 +70,5 @@ func (tl *TCPListener) Close() error {
 
 // Addr returns the listener's network address.
 func (tl *TCPListener) Addr() net.Addr {
-	return tl.Addr()
+	return tl.listener.Addr()
 }

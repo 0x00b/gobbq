@@ -42,13 +42,6 @@ message RegisterInstResponse{
 	string ProxyID = 1;
 }
 
-message RegisterEntityRequest{
-	bbq.EntityID EntityID = 1;
-}
-
-message RegisterEntityResponse{
-}
- 
 message RegisterServiceRequest{
 	string ServiceName = 1;
 }
@@ -62,10 +55,7 @@ service ProxySvc {
 
 	rpc RegisterInst(RegisterInstRequest) returns(RegisterInstResponse) {}
  
-	rpc RegisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
-
-	rpc UnregisterEntity(RegisterEntityRequest) returns(RegisterEntityResponse) {}
 	rpc UnregisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
 
 	rpc Ping(PingPong) returns(PingPong) {}

@@ -90,12 +90,12 @@ func (gt *Gate) RegisterClient(c entity.Context, req *gatepb.RegisterClientReque
 
 	gt.RegisterEntity(req.EntityID, entity.GetPacket(c).Src)
 
-	client := proxypb.NewProxySvcServiceClient()
-	rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
-	if err != nil {
-		return nil, err
-	}
-	xlog.Debugln("register proxy entity resp", rsp.String())
+	// client := proxypb.NewProxySvcServiceClient()
+	// rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// xlog.Debugln("register proxy entity resp", rsp.String())
 	return &gatepb.RegisterClientResponse{EntityID: gt.EntityID()}, nil
 }
 
@@ -109,18 +109,18 @@ func (gt *Gate) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, 
 	return nil, nil
 }
 
-func (gt *Gate) RegisterEntityToProxy(eid *bbq.EntityID) error {
-	client := proxypb.NewProxySvcServiceClient()
+// func (gt *Gate) RegisterEntityToProxy(eid *bbq.EntityID) error {
+// 	client := proxypb.NewProxySvcServiceClient()
 
-	_, err := client.RegisterEntity(gt.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
-	if err != nil {
-		return err
-	}
+// 	_, err := client.RegisterEntity(gt.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	xlog.Debugln("register proxy entity resp")
+// 	xlog.Debugln("register proxy entity resp")
 
-	return nil
-}
+// 	return nil
+// }
 
 func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 
@@ -137,7 +137,7 @@ func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 }
 
 func (gt *Gate) NewEntityID(typeName string) *bbq.EntityID {
-	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: gt.EntityID().ProxyID}
+	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: gt.EntityID().ProxyID, InstID: gt.EntityID().ID}
 }
 
 func (gt *Gate) Serve() error {

@@ -30,13 +30,13 @@ func TestTcpServer(m *testing.T) {
 			for {
 
 				var b [1024]byte
-				_, err := conn.Read(b[:])
+				len, err := conn.Read(b[:])
 				if err != nil {
-					panic(err)
+					fmt.Println(err)
+					return
 				}
-				fmt.Println("recv", string(b[:]))
-				t := "send:" + string(b[:])
-				conn.Write([]byte(t))
+				fmt.Println("recv & send", len, string(b[:len]))
+				conn.Write([]byte(b[:len]))
 
 				fmt.Println("send", string(b[:]))
 			}

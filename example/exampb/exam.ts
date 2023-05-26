@@ -128,70 +128,22 @@ export const SayHelloResponse = {
   },
 };
 
-export type EchoDefinition = typeof EchoDefinition;
-export const EchoDefinition = {
-  name: "Echo",
-  fullName: "exampb.Echo",
-  methods: {
-    sayHello: {
-      name: "SayHello",
-      requestType: SayHelloRequest,
-      requestStream: false,
-      responseType: SayHelloResponse,
-      responseStream: false,
-      options: {},
-    },
-  },
-} as const;
+export interface Echo {
+  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
+}
 
-export type EchoEtyDefinition = typeof EchoEtyDefinition;
-export const EchoEtyDefinition = {
-  name: "EchoEty",
-  fullName: "exampb.EchoEty",
-  methods: {
-    sayHello: {
-      name: "SayHello",
-      requestType: SayHelloRequest,
-      requestStream: false,
-      responseType: SayHelloResponse,
-      responseStream: false,
-      options: {},
-    },
-  },
-} as const;
+export interface EchoEty {
+  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
+}
 
-export type EchoSvc2Definition = typeof EchoSvc2Definition;
-export const EchoSvc2Definition = {
-  name: "EchoSvc2",
-  fullName: "exampb.EchoSvc2",
-  methods: {
-    sayHello: {
-      name: "SayHello",
-      requestType: SayHelloRequest,
-      requestStream: false,
-      responseType: SayHelloResponse,
-      responseStream: false,
-      options: {},
-    },
-  },
-} as const;
+export interface EchoSvc2 {
+  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
+}
 
 /** 客户端 */
-export type ClientDefinition = typeof ClientDefinition;
-export const ClientDefinition = {
-  name: "Client",
-  fullName: "exampb.Client",
-  methods: {
-    sayHello: {
-      name: "SayHello",
-      requestType: SayHelloRequest,
-      requestStream: false,
-      responseType: SayHelloResponse,
-      responseStream: false,
-      options: {},
-    },
-  },
-} as const;
+export interface Client {
+  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
+}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 

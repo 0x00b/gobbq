@@ -132,10 +132,14 @@ export function serviceTypeToJSON(object: ServiceType): string {
 }
 
 export interface EntityID {
-  ID: string;
-  Type: string;
-  /** 记录自己所在的proxy，proxy就不用维护 [ID<->Proxy]的信息 */
+  /** 记录Entity所在的proxy */
   ProxyID: string;
+  /** proxy上记录有哪些InstID */
+  InstID: string;
+  /** 具体的Entity在Inst上 */
+  ID: string;
+  /** 具体的entity的类型 */
+  Type: string;
 }
 
 /** 请求协议头 */
@@ -187,19 +191,22 @@ export interface Header_TransInfoEntry {
 }
 
 function createBaseEntityID(): EntityID {
-  return { ID: "", Type: "", ProxyID: "" };
+  return { ProxyID: "", InstID: "", ID: "", Type: "" };
 }
 
 export const EntityID = {
   encode(message: EntityID, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.ProxyID !== "") {
+      writer.uint32(10).string(message.ProxyID);
+    }
+    if (message.InstID !== "") {
+      writer.uint32(18).string(message.InstID);
+    }
     if (message.ID !== "") {
-      writer.uint32(10).string(message.ID);
+      writer.uint32(26).string(message.ID);
     }
     if (message.Type !== "") {
-      writer.uint32(18).string(message.Type);
-    }
-    if (message.ProxyID !== "") {
-      writer.uint32(26).string(message.ProxyID);
+      writer.uint32(34).string(message.Type);
     }
     return writer;
   },
@@ -212,13 +219,16 @@ export const EntityID = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.ID = reader.string();
+          message.ProxyID = reader.string();
           break;
         case 2:
-          message.Type = reader.string();
+          message.InstID = reader.string();
           break;
         case 3:
-          message.ProxyID = reader.string();
+          message.ID = reader.string();
+          break;
+        case 4:
+          message.Type = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -230,17 +240,19 @@ export const EntityID = {
 
   fromJSON(object: any): EntityID {
     return {
+      ProxyID: isSet(object.ProxyID) ? String(object.ProxyID) : "",
+      InstID: isSet(object.InstID) ? String(object.InstID) : "",
       ID: isSet(object.ID) ? String(object.ID) : "",
       Type: isSet(object.Type) ? String(object.Type) : "",
-      ProxyID: isSet(object.ProxyID) ? String(object.ProxyID) : "",
     };
   },
 
   toJSON(message: EntityID): unknown {
     const obj: any = {};
+    message.ProxyID !== undefined && (obj.ProxyID = message.ProxyID);
+    message.InstID !== undefined && (obj.InstID = message.InstID);
     message.ID !== undefined && (obj.ID = message.ID);
     message.Type !== undefined && (obj.Type = message.Type);
-    message.ProxyID !== undefined && (obj.ProxyID = message.ProxyID);
     return obj;
   },
 
@@ -250,9 +262,10 @@ export const EntityID = {
 
   fromPartial(object: DeepPartial<EntityID>): EntityID {
     const message = createBaseEntityID();
+    message.ProxyID = object.ProxyID ?? "";
+    message.InstID = object.InstID ?? "";
     message.ID = object.ID ?? "";
     message.Type = object.Type ?? "";
-    message.ProxyID = object.ProxyID ?? "";
     return message;
   },
 };

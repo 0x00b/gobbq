@@ -7,7 +7,6 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -53,8 +52,8 @@ type service struct {
 	ctx    context.Context
 	cancel func()
 
-	idleTimeout time.Duration
-	lastVisited time.Time
+	// idleTimeout time.Duration
+	// lastVisited time.Time
 
 	closed atomic.Bool
 
@@ -204,7 +203,6 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 
 	go cn.Serve()
 
-	return
 }
 
 const MaxCloseWaitTime = 10

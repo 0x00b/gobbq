@@ -77,6 +77,4 @@ func (ws *WebSocketService) handleConn(rawConn net.Conn, opts *Options) {
 	ws.svc.storeConn(cn)
 
 	cn.Serve()
-
-	return
 }

@@ -7,12 +7,12 @@ import (
 
 func (p *Proxy) HandleEOF(prw *codec.PacketReadWriter) {
 	func() {
-		p.etyMtx.Lock()
-		defer p.etyMtx.Unlock()
-		for eid, v := range p.entityMaps {
+		p.instMtx.Lock()
+		defer p.instMtx.Unlock()
+		for eid, v := range p.instMaps {
 			if v == prw {
 				xlog.Debugln("remove eid:", eid)
-				delete(p.entityMaps, eid)
+				delete(p.instMaps, eid)
 			}
 		}
 

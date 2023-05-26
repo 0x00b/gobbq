@@ -5,6 +5,20 @@ why gobbq? because I often go to barbecue with friends,  I'd rather everyone hav
 
 gobbq 是一个游戏后台开发框架。我想做游戏，更想去烧烤，总之不想加班，所以我需要一个框架，能免去我的运维烦恼，提升开发效率，这就是 gobbq。
 
+
+## EntityID
+EntityID = ProxyID + InstID + entityid
+
+消息转发，根据ProxyID转发到对应的proxy机器，proxy机器根据对应的InstID确认直连服务器，服务器根据entityid确认entity。
+
+proxy需要知道其他proxy的id和ip，还需要知道直连自己的服务器InstID和ip
+
+* proxy启动时，需要做服务发现，发现其他proxy，同时向其他proxy注册自己。
+* Inst启动时，需要向自己的proxy注册，同时proxy告诉自己对应的ProxyID。
+* gate启动时需要向proxy注册自己为一个Inst
+* client只能有一个entity，向gate注册，同时知道gate的InstID
+* service需要向proxy注册，proxy广播（看看能不能优化）
+
 ## components
 gate
 proxy <=> sidecar
@@ -48,7 +62,7 @@ client
 * 消息保序：同一对互相通信的节点，多个连续包需要保证顺序达到
 
 ### 支持动态脚本： lua, python，简化逻辑编写或实现快速热更能力
-### RPC：不管是gRPC, TRPC，都需要有良好网络协议支持、IDL、多语言、性能和周边生态。
+### RPC：不管是gRPC, ，都需要有良好网络协议支持、IDL、多语言、性能和周边生态。
 ### 序列化：跨语言、高性能、自动代码生成或无IDL的自解析，良好的跨版本兼容能力。
 ### 定时器和事件循环：支持不同颗粒度的高性能定时器模块。
 ### 存储层抽象：需要一个解耦的存储接口层，并处理好实现的细节（如不同DB版本的特性兼容，分布式存储特性支持）

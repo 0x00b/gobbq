@@ -1,7 +1,7 @@
-FROM ccr.ccs.tencentyun.com/aeras/aeras-ubuntu:v3
+FROM ccr.ccs.yun.com/aeras/aeras-ubuntu:v3
 
-# docker build . -t csighub.tencentyun.com/genejli/gobbq:v0.0.1
-# docker run -it  -v /your/app/path:/app csighub.tencentyun.com/genejli/gobbq:v0.0.1  bbq new your/app/name
+# docker build . -t csighub.yun.com/genejli/gobbq:v0.0.1
+# docker run -it  -v /your/app/path:/app csighub.yun.com/genejli/gobbq:v0.0.1  bbq new your/app/name
 
 # USER root
 WORKDIR /tmp
@@ -40,7 +40,7 @@ RUN go install github.com/envoyproxy/protoc-gen-validate@latest
 RUN go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
 # 安装代码检查工具 
-RUN wget https://mirrors.tencent.com/repository/generic/vlib/tools/gonote/release/linux/latest/gonote && cp gonote /root/go/bin
+RUN wget https://mirrors..com/repository/generic/vlib/tools/gonote/release/linux/latest/gonote && cp gonote /root/go/bin
 RUN curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin 
 RUN	go install golang.org/x/tools/cmd/goimports@latest
 

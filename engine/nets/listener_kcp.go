@@ -74,5 +74,5 @@ func (kl *KCPListener) Close() error {
 
 // Addr returns the listener's network address.
 func (kl *KCPListener) Addr() net.Addr {
-	return kl.Addr()
+	return kl.listener.Addr()
 }

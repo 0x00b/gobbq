@@ -39,18 +39,10 @@ func (p *Proxy) Ping(c entity.Context, req *proxypb.PingPong) (*proxypb.PingPong
 
 // RegisterInst
 func (p *Proxy) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
-
+	xlog.Traceln("register inst", req.String())
+	p.registerInst(req.GetInstID(), entity.GetPacket(c).Src)
+	xlog.Traceln("register inst done", req.String())
 	return &proxypb.RegisterInstResponse{ProxyID: p.EntityID().ID}, nil
-}
-
-// RegisterEntity
-func (p *Proxy) RegisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
-
-	xlog.Traceln("register entity", req.String())
-	p.registerEntity(req.EntityID, entity.GetPacket(c).Src)
-	xlog.Traceln("register entity done", req.String())
-
-	return &proxypb.RegisterEntityResponse{}, nil
 }
 
 // RegisterEntity
@@ -70,12 +62,6 @@ func (p *Proxy) RegisterService(c entity.Context, req *proxypb.RegisterServiceRe
 	}
 
 	return &proxypb.RegisterServiceResponse{}, nil
-}
-
-// UnregisterEntity
-func (p *Proxy) UnregisterEntity(c entity.Context, req *proxypb.RegisterEntityRequest) (*proxypb.RegisterEntityResponse, error) {
-
-	return &proxypb.RegisterEntityResponse{}, nil
 }
 
 // RegisterEntity

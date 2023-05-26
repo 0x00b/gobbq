@@ -1,8 +1,10 @@
 {
   "dependencies": {
+    "@types/websocket": "^1.0.5",
     "grpc": "^1.24.11",
     "grpc-tools": "^1.12.4",
     "grpc-ts-protoc-gen": "^0.1.1",
+    "grpc-ts-server": "^0.0.1",
     "kcpjs": "^1.0.10",
     "protoc-gen-grpc-ts": "^1.0.1",
     "ts-proto": "^1.140.0",

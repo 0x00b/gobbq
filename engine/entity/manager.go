@@ -46,7 +46,7 @@ type RemoteEntityManager interface {
 }
 
 type RegisterProxy interface {
-	RegisterEntityToProxy(eid *bbq.EntityID) error
+	// RegisterEntityToProxy(eid *bbq.EntityID) error
 	RegisterServiceToProxy(svcName string) error
 
 	// UnregisterEntityToProxy(eid EntityID) error
@@ -107,9 +107,9 @@ func (s *EntityManager) NewEntity(c Context, id *bbq.EntityID) (IEntity, error) 
 	go entity.Run()
 
 	// send to poxy
-	if s.ProxyRegister != nil {
-		s.ProxyRegister.RegisterEntityToProxy(id)
-	}
+	// if s.ProxyRegister != nil {
+	// s.ProxyRegister.RegisterEntityToProxy(id)
+	// }
 
 	return entity, nil
 }
@@ -193,7 +193,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 
 	if s.ProxyRegister != nil {
 		s.ProxyRegister.RegisterServiceToProxy(sd.TypeName)
-		s.ProxyRegister.RegisterEntityToProxy(ss.EntityID())
+		// s.ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
 }
 

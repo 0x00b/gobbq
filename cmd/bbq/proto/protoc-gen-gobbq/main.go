@@ -17,7 +17,7 @@ import (
 
 var (
 	flags        flag.FlagSet
-	plugins      = flags.String("plugins", "grpc", "base framework, grpc/trpc")
+	plugins      = flags.String("plugins", "grpc", "base framework, grpc/")
 	importPrefix = flags.String("import_prefix", "", "prefix to prepend to import paths")
 	lang         = flags.String("lang", "go", "language, eg: go")
 	tplDir       = flags.String("tpl_dir", "", "tpl dir")

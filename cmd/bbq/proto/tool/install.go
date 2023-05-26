@@ -40,7 +40,7 @@ func install(cmd *cobra.Command, args []string) {
 		[]string{"grpc-go-tpl"}); err != nil {
 		panic(err)
 	}
-	tplRepo := base.NewRepo("https://git.code.tencent.com/gobbq/gobbq-template.git", "")
+	tplRepo := base.NewRepo("https://git.code..com/gobbq/gobbq-template.git", "")
 	if err := tplRepo.CopyFilesTo(ctx, TemplatePath,
 		[]string{""}); err != nil {
 		panic(err)
