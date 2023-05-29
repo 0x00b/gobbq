@@ -35,10 +35,8 @@ func TestTcpServer(m *testing.T) {
 					fmt.Println(err)
 					return
 				}
-				fmt.Println("recv & send", len, string(b[:len]))
+				xlog.Println("rs:", len, string(b[:len]))
 				conn.Write([]byte(b[:len]))
-
-				fmt.Println("send", string(b[:]))
 			}
 
 		}()

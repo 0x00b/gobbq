@@ -15,11 +15,8 @@ export class Packet {
   }
 
   // returns the total packetBody of packet
-  public PacketBody(): Buffer | null {
-    if (!this.Buffer) {
-      return null
-    }
-    return this.Buffer.subarray(4+this.HeaderLen, 4+this.TotalLen)
+  public PacketBody(): Buffer {
+    return this.Buffer?.subarray(4+this.HeaderLen, 4+this.TotalLen)
   }
 
 }

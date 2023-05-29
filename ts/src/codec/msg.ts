@@ -6,7 +6,7 @@ import { Packet } from "./packet"
 
 const MaxBufferCap = 16 * 1024 * 1024 //16M
 
-export class UnaryRequestMessage {
+export class UnaryMessage {
   Header: bbq.Header
   Body: Buffer
 
@@ -16,12 +16,17 @@ export class UnaryRequestMessage {
   }
 }
 
-export interface UnaryResponseMessage extends Packet {
+export interface UnaryRequestMessage extends UnaryMessage{}
+
+export interface UnaryResponseMessage extends UnaryMessage {
+}
+
+export interface UnaryResponsePacket extends Packet {
 }
 
 
 // appends slice of bytes to the end of packetBody
-export function encode(request: UnaryRequestMessage): Buffer {
+export function encode(request: UnaryMessage): Buffer {
   if (!request.Header) {
     throw "invalid req header"
   }

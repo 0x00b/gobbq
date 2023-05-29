@@ -1,5 +1,6 @@
 // type only
-import type { UnaryRequestMessage, UnaryResponseMessage } from '../codec/msg';
+import type { UnaryRequestMessage, UnaryResponseMessage, UnaryResponsePacket } from '../codec/msg';
+import { Packet } from '../codec/packet';
 import { Dispatcher } from '../dispatcher/dispatcher';
 import type { Endpoint } from '../endpoint';
 
@@ -19,7 +20,7 @@ interface Result {
 
 export interface UnaryResult extends Result {
   /** Server 端返回的 Message */
-  response: UnaryResponseMessage;
+  response: UnaryResponsePacket;
 }
 
 /**

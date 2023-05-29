@@ -1,9 +1,10 @@
 import { RequestType } from '../../../example/exampb/bbq';
 import { SayHelloRequest, SayHelloResponse } from '../../../example/exampb/exam';
-import { CompressType, ContentType, ServiceType } from '../../../proto/bbq/bbq';
+import { CompressType, ContentType, Header, ServiceType } from '../../../proto/bbq/bbq';
 import * as _m0 from "protobufjs/minimal";
 
 import {
+  encode,
   // StreamInitMessage,
   // ,
   UnaryRequestMessage,
@@ -11,8 +12,8 @@ import {
   UnaryResponseMessage,
 } from '../codec/msg';
 import { Packet } from '../codec/packet';
-
-type PartialUnaryResponseMessage = Partial<UnaryResponseMessage>;
+import { MethodDefinition } from './service';
+import { ClientTransport } from '../transport/base';
 
 const noopNext = () => Promise.resolve();
 
@@ -26,13 +27,13 @@ const DEFAULT_WINDOW_SIZE = 2097151;
 class Context {
   public readonly timestamp = Date.now();
 
-  public type: 'unary' | 'stream';
+  // public type: 'unary' | 'stream';
 
   /**
    * 用于unary调用
    * pkt
    */
-  public pkt: Packet | undefined;
+  // public pkt: Packet | undefined;
   /**
    * 用于unary调用
    * request
@@ -54,20 +55,26 @@ class Context {
   /**
    * 用于unary调用
    */
-  private unaryResCode = 0//RetCode.INVOKE_SUCCESS;
-  private unaryResMessage: PartialUnaryResponseMessage = {};
+  // private unaryResCode = 0//RetCode.INVOKE_SUCCESS;
+  private unaryResMessage: any;
 
   // private source: Source | undefined;
-  // private transport: ITransport | undefined;
+  // private transport: ClientTransport | undefined;
   // private streamHandle?: Middleware<any>;
   private internalResponded = false;
 
+  // private methodDef:MethodDefinition<any,any>;
 
-  public constructor(pkt: Packet /*| StreamInitMessage, source: Source | ITransport*/) {
+  public constructor(private pkt: Packet, private methodDef: MethodDefinition<any, any>, private transport: ClientTransport /*| StreamInitMessage, source: Source | ITransport*/) {
     // if (isUnaryMessage(req)) {
-    this.type = 'unary';
-    this.pkt = pkt;
+    // this.type = 'unary';
+    // this.pkt = pkt;
 
+    let {
+      requestDeserialize
+    } = methodDef
+
+    this.req = requestDeserialize(pkt.PacketBody())
 
     // this.transport = source as ITransport;
     // } else {
@@ -180,43 +187,43 @@ class Context {
    * status:  retCode
    */
   public get status(): number {
-    return this.unaryResCode;
+    return 0//this.unaryResCode;
   }
 
   public set status(status: number) {
-    this.unaryResCode = status;
+    // this.unaryResCode = status;
   }
 
   /**
    * 用于unary调用
    *  unary调用响应消息
    */
-  public get body(): PartialUnaryResponseMessage {
+  public get responseBody(): any {
     return this.unaryResMessage;
   }
 
-  public set body(message: PartialUnaryResponseMessage) {
+  public set responseBody(message: any) {
     this.unaryResMessage = message;
   }
 
-  /**
-   * 用于client-side streaimg RPC调用
-   * @param data Buffer
-   */
-  public respond(data?: Buffer): void
+  // /**
+  //  * 用于client-side streaimg RPC调用
+  //  * @param data Buffer
+  //  */
+  // public respond(data?: Buffer): void
 
-  /**
-   * 用于unary返回响应
-   * @param message
-   */
-  public respond(message: PartialUnaryResponseMessage): void;
+  // /**
+  //  * 用于unary返回响应
+  //  * @param message
+  //  */
+  // public respond(message: UnaryResponseMessage): void;
 
-  public respond(message?: Buffer | PartialUnaryResponseMessage): void {
-    if (this.type === 'unary') {
-      this.respondUnary(message as PartialUnaryResponseMessage);
-    } else {
-      // this.respondStream(Buffer.isBuffer(message) ? message : undefined);
-    }
+  public respond(/*message?: Buffer | UnaryResponseMessage*/): void {
+    // if (this.type === 'unary') {
+    this.respondUnary(/*message as UnaryResponseMessage*/);
+    // } else {
+    // this.respondStream(Buffer.isBuffer(message) ? message : undefined);
+    // }
   }
 
   // 发送init系统错误
@@ -230,12 +237,12 @@ class Context {
     //   //   initWindowSize: this.remoteWriteWindowSize,
     //   // });
     // } else {
-      this.respond({
-        // Header:{
-        //   ErrCode: code,
-        //   ErrMsg:message,
-        // }
-      });
+    // this.respond({
+    //   // Header:{
+    //   //   ErrCode: code,
+    //   //   ErrMsg:message,
+    //   // }
+    // });
     // }
   }
 
@@ -247,17 +254,23 @@ class Context {
     this.error(1, err?.message || 'sys error');
   }
 
-  private respondUnary(message: PartialUnaryResponseMessage): void {
-    // if (this.internalResponded || this.callType === CallType.ONEWAY_CALL) {
-    // return;
-    // }
+  private respondUnary(/*message: UnaryResponseMessage*/): void {
+    if (this.internalResponded /*|| this.callType === CallType.ONEWAY_CALL*/) {
+      return;
+    }
+
+    let respHdr = Header.create({ ...this.pkt?.Header })
+    respHdr.RequestType = RequestType.RequestRespone
+    respHdr.DstEntity = this.pkt?.Header.SrcEntity
+    respHdr.SrcEntity = this.pkt?.Header.DstEntity
+
+    let {
+      responseSerialize
+    } = this.methodDef
 
     this.internalResponded = true;
-    // this.transport?.send({
-    //   ...message,
-    //   requestId: this.requestId as number,
-    //   retCode: message.retCode ?? RetCode.INVOKE_SUCCESS,
-    // });
+
+    this.transport?.send(encode({ Header: respHdr, Body: responseSerialize(this.responseBody) }));
   }
 }
 

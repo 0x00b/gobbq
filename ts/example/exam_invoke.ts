@@ -9,7 +9,7 @@ import { Context } from '../src/dispatcher/context';
 
 class Echo {
   sayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
-    console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse", request.text)
+    console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
 
     let rsp = SayHelloResponse.create()
     rsp.text = "xxxx"
@@ -34,18 +34,22 @@ async function invoke() {
   /* 接口名 func */
 
   let hdr = bbq.Header.create()
-  hdr.RequestId = "1111"
-  hdr.Timeout = 1000
+  hdr.DstEntity = bbq.EntityID.create()
+
+  hdr.ServiceType = EchoDefinition.serviceType;
+  hdr.DstEntity.Type = EchoDefinition.typeName
+  hdr.Method = EchoDefinition.methods.sayHello.methodName
+
   hdr.RequestType = bbq.RequestType.RequestRequest;
 
-  hdr.ServiceType = bbq.ServiceType.Service;
-  hdr.Method = "sayHello";
+  hdr.RequestId = "1111"
+  hdr.Timeout = 1000
 
   //    hdr.SrcEntity = c.ID;
-  hdr.DstEntity = bbq.EntityID.create()
-  hdr.DstEntity.Type = "exampb.Echo"
 
-  const data = Buffer.from(bbq.Header.encode(hdr).finish());
+  let req = SayHelloRequest.create()
+  req.text = "request"
+  const data = Buffer.from(SayHelloRequest.encode(req).finish());
 
   const contentType = bbq.ContentType.Proto;
 
@@ -62,16 +66,16 @@ async function invoke() {
   let timeout = hdr.Timeout
 
   const ctx: any = new Echo();
-  let client = new Client(EchoDefinition, ctx,[],[], {remote})
+  let client = new Client(EchoDefinition, ctx, [], [], { remote })
 
   const rpc = await client.unaryInvoke(hdr, data, { contentType, remote, timeout });
 
   // 调用错误
-  console.log(__filename, rpc.error);
+  console.log("err", rpc.error);
   //  请求消息
-  console.log(__filename, rpc.request);
+  console.log("requst", rpc.request);
   //  响应消息
-  console.log(__filename, rpc.response);
+  console.log("response", rpc.response);
 }
 
 invoke();

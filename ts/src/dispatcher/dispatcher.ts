@@ -10,6 +10,7 @@ import { EchoDefinition } from '../../../example/exampb/exam.bbq';
 import { SayHelloRequest, SayHelloResponse } from '../../../example/exampb/exam';
 import * as bbq from '../../../proto/bbq/bbq';
 import { decode, encode, UnaryRequestMessage } from '../codec/msg';
+import { ClientTransport } from '../transport';
 
 export type Middleware<CustomContextT = {}> = compose.Middleware<ParameterizedContext<CustomContextT>>;
 
@@ -78,7 +79,7 @@ export class Dispatcher<CustomContextT = {}> {
     return this;
   }
 
-  public onUnaryMessage(pkt: Packet) {
+  public onUnaryMessage(pkt: Packet, transport: ClientTransport) {
 
     let methodName = pkt.Header.DstEntity?.Type + "/" + pkt.Header.Method
 
@@ -90,7 +91,6 @@ export class Dispatcher<CustomContextT = {}> {
 
     var {
       handle,
-      requestDeserialize
     } = handler;
 
     let bodydata = pkt.PacketBody()
@@ -100,18 +100,13 @@ export class Dispatcher<CustomContextT = {}> {
 
     let mh: compose.Middleware<any> = (context: any, next: compose.Next): any => {
       let rsp = handle(context, context.req)
-      ctx.body = rsp
+      context.responseBody = rsp
       return rsp
     }
 
-    const fn = compose.compose([...this.middleware, mh]);
-    let ctx: ParameterizedContext<CustomContextT> = createContext(pkt, /*transport*/)
+    const fn = compose.compose([...this.middleware, mh]); 
 
-    // console.log("bodydata",bodydata)
-    ctx.req = requestDeserialize(bodydata)
-    // console.log("req",JSON.stringify(ctx.req))
-
-    return this.handleUnaryRequest(fn, ctx);
+    return this.handleUnaryRequest(fn, createContext(pkt, handler, transport));
 
   }
 
@@ -136,15 +131,13 @@ function respondUnary(ctx: Context) {
   //   return;
   // }
 
-  console.log("rsp:", JSON.stringify(ctx.body))
+  console.log("11respondUnary:", JSON.stringify(ctx.responseBody))
 
-  const code = ctx.status
-    ?? (ctx.body ? 0 : 1) //RetCode.INVOKE_SUCCESS : RetCode.INVOKE_UNKNOWN_ERR);
+  // const code = ctx.status
+  //   ?? (ctx.responseBody ? 0 : 1) //RetCode.INVOKE_SUCCESS : RetCode.INVOKE_UNKNOWN_ERR);
 
-  ctx.respond({
-    // Header?: {ErrCode: code},
-    // ...ctx.body,
-  });
+
+  ctx.respond();
 }
 
 

@@ -172,7 +172,7 @@ export class Client<CustomOptions extends Options> {
           // const { response, local } = await transport.addUnary(message);
           console.log("req:", message)
           const { response, local } = await this.addUnary(message);
-          console.log("rsp:", response)
+          console.log("22rsp:", response)
           rpc.endTime = process.uptime();
           rpc.respond(response, local);
         } catch (error) {
@@ -265,7 +265,7 @@ export class Client<CustomOptions extends Options> {
 
     // request
     if (pkt.Header.RequestType == RequestType.RequestRequest) {
-      this.dispather.onUnaryMessage(pkt)
+      this.dispather.onUnaryMessage(pkt, this.transport)
       return
     }
 

@@ -3,9 +3,10 @@ import { BaseContext, DEBUGGER } from './base';
 import { RpcError } from '../error';
 
 // type only
-import type { UnaryResponseMessage, UnaryRequestMessage } from '../codec/msg';
+import type { UnaryResponseMessage, UnaryRequestMessage, UnaryResponsePacket } from '../codec/msg';
 import type { Options } from './base';
 import type { Endpoint } from '../endpoint';
+import { Packet } from '../codec/packet';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UnaryOptions extends Options {
@@ -19,7 +20,7 @@ export interface UnaryOptions extends Options {
  * unary 调用的上下文
  */
 export class UnaryContext<CustomOptions extends UnaryOptions> extends BaseContext<CustomOptions> {
-  public response?: UnaryResponseMessage;
+  public response?: UnaryResponsePacket;
   public type = 'unary' as const;
 
   public constructor(
@@ -41,7 +42,7 @@ export class UnaryContext<CustomOptions extends UnaryOptions> extends BaseContex
   /**
    * 处理 Unary 响应
    */
-  public respond(res: UnaryResponseMessage, local: Endpoint) {
+  public respond(res: UnaryResponsePacket, local: Endpoint) {
     DEBUGGER('[respond]', res, local);
     if (!this.pending) return;
     strictEqual<undefined>(this.response, undefined);

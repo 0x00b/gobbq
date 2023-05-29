@@ -6,9 +6,11 @@ import type {
   // StreamInitMessage,
   UnaryRequestMessage,
   UnaryResponseMessage,
+  UnaryResponsePacket,
 } from '../codec/msg';
 import type { Endpoint } from '../endpoint';
 import { CompressType, ContentType } from '../../../proto/bbq/bbq';
+import { Packet } from '../codec/packet';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 export const DEBUGGER = require('debug')(':client:ctx');
@@ -87,7 +89,7 @@ export abstract class BaseContext<CustomOptions extends Options> {
   private deferred?: Deferred<void, RpcError>;
   public abstract type: 'unary' | 'stream';
   public abstract request: /*StreamInitMessage |*/ UnaryRequestMessage;
-  public abstract response?: /*StreamInitMessage |*/ UnaryResponseMessage;
+  public abstract response?: /*StreamInitMessage |*/ UnaryResponsePacket;
   public abstract options: Pick<Options, 'timeout'> & Partial<CustomOptions>;
 
   /** 便于观察 */
