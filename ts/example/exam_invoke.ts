@@ -1,13 +1,14 @@
 
 
-import { SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
+import { Echo, SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
 import { EchoDefinition } from '../../example/exampb/exam.bbq';
 import * as bbq from '../../proto/bbq/bbq';
 import { Client } from '../src';
+import { makeClientConstructor } from '../src/bbq/bbq';
 import { Context } from '../src/dispatcher/context';
 
 
-class Echo {
+class EchoImpl {
   SayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
     console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
 
@@ -65,7 +66,7 @@ async function invoke() {
   } as const;
   let timeout = hdr.Timeout
 
-  const impl: any = new Echo();
+  const impl: any = new EchoImpl();
   let client = new Client(EchoDefinition, impl, { remote })
 
   const rpc = await client.unaryInvoke(hdr, data, { contentType, remote, timeout });
@@ -78,5 +79,39 @@ async function invoke() {
   console.log("response", rpc.response);
 }
 
-invoke();
+// invoke();
 
+
+function test() {
+
+  const remote = {
+    port: 8899,
+    host: 'localhost',
+    protocol: 'kcp',
+  } as const;
+
+  const impl: any = new EchoImpl();
+  let client = new Client(EchoDefinition, impl, { remote })
+
+  let c = makeClientConstructor(client, EchoDefinition) as unknown as Echo
+
+  let rsp = c.SayHello({ text: "request", CLientID: undefined })
+
+  console.log("say resp 11", rsp)
+
+  rsp.then((rsp) => {
+    if (rsp instanceof Error) {
+      console.log("error", rsp)
+      return
+    }
+
+    console.log("succ rsp:", rsp)
+  })
+
+  let rsp2 = c.SayHello({ text: "request", CLientID: undefined })
+
+  console.log("say resp22", rsp2)
+
+}
+
+test()

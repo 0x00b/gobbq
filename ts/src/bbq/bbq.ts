@@ -1,10 +1,6 @@
-import { SayHelloRequest, SayHelloResponse } from "../../../example/exampb/exam";
-import { Echo, EchoDefinition } from "../../../example/exampb/exam.bbq";
 import { EntityID, Header, RequestType, ServiceType } from "../../../proto/bbq/bbq";
 import { Client } from "../client";
 import { UnaryContext } from "../context";
-import { UnaryResponse } from "../context/unary";
-import { Context } from "../dispatcher/context";
 import { ServiceDefinition } from "../dispatcher/service";
 import { ERROR } from "../error";
 import { Deferred } from "../utils";
@@ -81,46 +77,3 @@ export function makeClientConstructor(
 }
 
 
-class EchoImpl {
-  SayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
-    console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
-
-    let rsp = SayHelloResponse.create()
-    rsp.text = "xxxx"
-    return rsp
-  }
-}
-
-function test() {
-
-  const remote = {
-    port: 8899,
-    host: 'localhost',
-    protocol: 'kcp',
-  } as const;
-
-  const impl: any = new EchoImpl();
-  let client = new Client(EchoDefinition, impl, { remote })
-
-  let c = makeClientConstructor(client, EchoDefinition) as unknown as Echo
-
-  let rsp = c.SayHello({ text: "request", CLientID: undefined })
-
-  console.log("say resp 11", rsp)
-
-  rsp.then((rsp) => {
-    if (rsp instanceof Error) {
-      console.log("error", rsp)
-      return
-    }
-
-    console.log("succ rsp:", rsp)
-  })
-
-  let rsp2 = c.SayHello({ text: "request", CLientID: undefined })
-
-  console.log("say resp22", rsp2)
-
-}
-
-test()
