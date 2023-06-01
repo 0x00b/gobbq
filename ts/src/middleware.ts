@@ -38,7 +38,11 @@ export interface Middleware<
  */
 export function compose<
   CustomOptions extends Options
->(middlewares: Middleware<CustomOptions>[]): Middleware<CustomOptions> {
+>(mws?: Middleware<CustomOptions>[]): Middleware<CustomOptions> {
+  let middlewares: Middleware<CustomOptions>[] = []
+  if (mws) {
+    middlewares = mws
+  }
   if (!Array.isArray(middlewares)) throw new TypeError('Middleware stack must be an array!');
 
   // eslint-disable-next-line no-restricted-syntax

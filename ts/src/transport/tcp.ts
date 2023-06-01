@@ -138,7 +138,6 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
 
   private onData(socket: net.Socket, handleData: (chunk: Buffer) => void, buffer: Buffer) {
     try {
-      // console.log("recv:", buffer.toString())
       handleData(buffer);
     } catch (error) {
       // 触发 'error' 和 'close'
@@ -187,6 +186,7 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
    * @param buffer 帧
    */
   private onFrame(buffer: Buffer) {
+    console.log("recv:", buffer)
     const pkt = decode(buffer);
 
     // if (isUnaryMessage(message)) {

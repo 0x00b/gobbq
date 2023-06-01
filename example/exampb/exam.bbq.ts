@@ -1,15 +1,16 @@
 import { SayHelloRequest, SayHelloResponse } from "./exam"
 
-import * as bbq from "../../proto/bbq/bbq"
 import { ServiceType } from "./bbq";
+import { Context } from "../../ts/src/dispatcher/context";
+import { UnaryResponse } from "../../ts/src/context/unary";
 
 export type EchoDefinition = typeof EchoDefinition;
 export const EchoDefinition = {
   typeName: "exampb.Echo",
-  serviceType: bbq.ServiceType.Service,//or Entity
+  serviceType: ServiceType.Service,//or Entity
   methods: {
-    sayHello: {
-      methodName: "sayHello",
+    SayHello: {
+      methodName: "SayHello",
       requestType: SayHelloRequest,
       responseType: SayHelloResponse,
       requestSerialize: serialize_exampb_SayHelloRequest,
@@ -36,11 +37,7 @@ function deserialize_exampb_SayHelloResponse(input: Uint8Array):SayHelloResponse
 } 
 
 export interface Echo {
-  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
-}
-
-function RegisterEchoClient(client:any, impl:Echo){
-  client.RegisterClientImpl(EchoDefinition, impl)
+  SayHello(request: SayHelloRequest): UnaryResponse<SayHelloResponse> ;
 }
 
 // export class EchoService {

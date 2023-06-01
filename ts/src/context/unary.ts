@@ -1,12 +1,17 @@
 import { strictEqual } from 'assert';
 import { BaseContext, DEBUGGER } from './base';
-import { RpcError } from '../error';
+import { ERROR, RpcError } from '../error';
 
 // type only
 import type { UnaryResponseMessage, UnaryRequestMessage, UnaryResponsePacket } from '../codec/msg';
 import type { Options } from './base';
 import type { Endpoint } from '../endpoint';
 import { Packet } from '../codec/packet';
+import { type } from 'os';
+
+
+export type UnaryResponse<ResponseType> = Promise<ERROR | ResponseType>
+
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UnaryOptions extends Options {

@@ -11,7 +11,6 @@ import { ClientTransport, createTransport, UnaryResult } from './transport';
 import { Deferred, noop } from './utils';
 import { ERROR, RpcError } from './error';
 
-import * as ds from './dispatcher/compose';
 import { Header, RequestType } from '../../proto/bbq/bbq';
 import { encode, UnaryRequestMessage } from './codec/msg';
 import { Endpoint, getEndpointName } from './endpoint';
@@ -47,13 +46,11 @@ export class Client<CustomOptions extends Options> {
 
   public constructor(
     def: ServiceDefinition, impl: any, 
-    clientMiddlewares: Middleware[],
-    dispatherMiddlewares: ds.Middleware<any>[],
     options: Partial<Options> = Object.create(null),
   ) {
 
     this.dispather = new Dispatcher(def, impl)
-    dispatherMiddlewares.forEach(m => {
+    options.dispatherMiddlewares?.forEach(m => {
       this.dispather.use(m)
     })
 
@@ -74,7 +71,7 @@ export class Client<CustomOptions extends Options> {
 
     this.transport = this.plugins.createTransport(this.options.remote, noop, this.onUnaryMessage.bind(this));
 
-    this.middleware = compose<Options & Partial<CustomOptions>>(clientMiddlewares);
+    this.middleware = compose<Options & Partial<CustomOptions>>(options.clientMiddlewares);
     this.middleware.initialize!(this.options);
 
   }
@@ -112,7 +109,7 @@ export class Client<CustomOptions extends Options> {
    */
   public async unaryInvoke<CustomUnaryOptions extends CustomOptions & UnaryOptions>(
     Header: Header,
-    data: Uint8Array,
+    data: Buffer,
     opt: Partial<CustomUnaryOptions> = {},
   ): Promise<UnaryContext<CustomUnaryOptions>> {
     console.log('[unaryInvoke]', Header.Method, opt);
@@ -126,7 +123,7 @@ export class Client<CustomOptions extends Options> {
 
     const message: UnaryRequestMessage = {
       Header: Header,
-      Body: Buffer.from(data),
+      Body: data,
     };
 
     const rpc = new UnaryContext<CustomUnaryOptions>(message, mergedOptions);
@@ -302,7 +299,7 @@ export class Client<CustomOptions extends Options> {
     // 未收到回包的 unary
     if (this.deferredUnary.size > 0) {
       this.deferredUnary.forEach((d) => {
-        d.reject(new RpcError(1, "clear"));
+        d.reject(new RpcError(ERROR.CLIENT_INVOKE_TIMEOUT_ERR, "clear"));
       });
       this.deferredUnary.clear();
     }

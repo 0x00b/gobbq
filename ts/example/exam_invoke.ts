@@ -8,7 +8,7 @@ import { Context } from '../src/dispatcher/context';
 
 
 class Echo {
-  sayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
+  SayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
     console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
 
     let rsp = SayHelloResponse.create()
@@ -38,7 +38,7 @@ async function invoke() {
 
   hdr.ServiceType = EchoDefinition.serviceType;
   hdr.DstEntity.Type = EchoDefinition.typeName
-  hdr.Method = EchoDefinition.methods.sayHello.methodName
+  hdr.Method = EchoDefinition.methods.SayHello.methodName
 
   hdr.RequestType = bbq.RequestType.RequestRequest;
 
@@ -61,12 +61,12 @@ async function invoke() {
   const remote = {
     port: 8899,
     host: 'localhost',
-    protocol: 'tcp',
+    protocol: 'kcp',
   } as const;
   let timeout = hdr.Timeout
 
-  const ctx: any = new Echo();
-  let client = new Client(EchoDefinition, ctx, [], [], { remote })
+  const impl: any = new Echo();
+  let client = new Client(EchoDefinition, impl, { remote })
 
   const rpc = await client.unaryInvoke(hdr, data, { contentType, remote, timeout });
 

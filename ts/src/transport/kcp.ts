@@ -153,6 +153,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
    * @param buffer 帧
    */
   private onFrame(buffer: Buffer) {
+    console.log("recv:", buffer)
     const pkt = decode(buffer);
 
     // if (isUnaryMessage(message)) {

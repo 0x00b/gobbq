@@ -27,6 +27,8 @@ export interface MethodDefinition<RequestType, ResponseType> {
   /**
   * Serialization function for request values
   */
+  requestType: RequestType,
+  responseType: ResponseType,
   requestSerialize: serialize<RequestType>;
   /**
    * Serialization function for response values

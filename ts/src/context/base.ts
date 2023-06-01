@@ -11,6 +11,8 @@ import type {
 import type { Endpoint } from '../endpoint';
 import { CompressType, ContentType } from '../../../proto/bbq/bbq';
 import { Packet } from '../codec/packet';
+import { Middleware } from '../middleware';
+import * as ds from '../dispatcher/compose';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 export const DEBUGGER = require('debug')(':client:ctx');
@@ -50,6 +52,9 @@ export interface Options {
    * 中间件链路耗时上报开关
    */
   needTraceCost: boolean;
+  
+  clientMiddlewares: Middleware[],
+  dispatherMiddlewares: ds.Middleware<any>[],
 }
 
 /**
