@@ -2,11 +2,13 @@ package nets_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 type TestPacket struct {
@@ -14,20 +16,22 @@ type TestPacket struct {
 
 func (tp *TestPacket) HandlePacket(pkt *codec.Packet) error {
 
-	fmt.Println(pkt.String())
-
 	pkt.Src.SendPackt(pkt)
+
+	fmt.Println(pkt.String())
 
 	return nil
 }
 
 func TestKcpServer(m *testing.T) {
 
+	xlog.Init("trace", true, true, os.Stdout)
+
 	svr := bs.NewServer()
 	svr.RegisterNetService(
 		nets.NewNetService(
 			nets.WithPacketHandler(&TestPacket{}),
-			nets.WithNetwork(nets.NetWorkName("kcp"), ":8899")),
+			nets.WithNetwork(nets.WebSocket, ":8899")),
 	)
 
 	svr.ListenAndServe()

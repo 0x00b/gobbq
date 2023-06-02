@@ -11,7 +11,7 @@ import { ClientTransport, createTransport, UnaryResult } from './transport';
 import { Deferred, noop } from './utils';
 import { ERROR, RpcError } from './error';
 
-import { Header, RequestType } from '../../proto/bbq/bbq';
+import { EntityID, Header, RequestType } from '../../proto/bbq/bbq';
 import { encode, UnaryRequestMessage } from './codec/msg';
 import { Endpoint, getEndpointName } from './endpoint';
 import { Packet } from './codec/packet';
@@ -30,6 +30,8 @@ export type InitializeOptions = Pick<Options, 'timeout'> & Partial<Pick<Options,
  */
 export class Client<CustomOptions extends Options> {
 
+  private EntityID?: EntityID
+
   private readonly options: InitializeOptions;
   /** endpoint name -> transport */
   private transport: ClientTransport;
@@ -45,7 +47,7 @@ export class Client<CustomOptions extends Options> {
   private deferredUnary = new Map<string, Deferred<UnaryResult, RpcError>>();
 
   public constructor(
-    def: ServiceDefinition, impl: any, 
+    def: ServiceDefinition, impl: any,
     options: Partial<Options> = Object.create(null),
   ) {
 
@@ -112,7 +114,7 @@ export class Client<CustomOptions extends Options> {
     data: Buffer,
     opt: Partial<CustomUnaryOptions> = {},
   ): Promise<UnaryContext<CustomUnaryOptions>> {
-    console.log('[unaryInvoke]', Header.Method, opt);
+    // console.log('[unaryInvoke]', Header.Method, opt);
 
     const mergedOptions = {
       ...this.options,
@@ -120,6 +122,9 @@ export class Client<CustomOptions extends Options> {
       callType: 0 as const,
       ...opt,
     };
+
+    Header.Timeout = mergedOptions.timeout
+    Header.SrcEntity = this.EntityID
 
     const message: UnaryRequestMessage = {
       Header: Header,
@@ -139,7 +144,7 @@ export class Client<CustomOptions extends Options> {
         if (rpc.done) return;
 
         const { remote, request } = rpc;
-        console.log('[unaryInvoke]', `remote:${JSON.stringify(remote)}`);
+        // console.log('[unaryInvoke]', `remote:${JSON.stringify(remote)}`);
 
         if (!remote) {
           rpc.end(new RpcError(ERROR.CLIENT_ROUTER_ERR, 'no remote'));
@@ -158,6 +163,7 @@ export class Client<CustomOptions extends Options> {
           connecting = true;
           await transport.connect();
         } catch (error) {
+          console.log(error)
           rpc.end(new RpcError(ERROR.CLIENT_CONNECT_ERR, "error"));
           return;
         }
@@ -167,9 +173,9 @@ export class Client<CustomOptions extends Options> {
         try {
           rpc.startTime = process.uptime();
           // const { response, local } = await transport.addUnary(message);
-          console.log("req:", message)
+          // console.log("req:", message)
           const { response, local } = await this.addUnary(message);
-          console.log("22rsp:", response)
+          // console.log("22rsp:", response)
           rpc.endTime = process.uptime();
           rpc.respond(response, local);
         } catch (error) {
@@ -192,7 +198,7 @@ export class Client<CustomOptions extends Options> {
       });
     });
 
-    console.log(mergedOptions.timeout)
+    // console.log(mergedOptions.timeout)
     const timeout = setTimeout(() => {
       /* istanbul ignore if */
       if (rpc.done) return;
@@ -270,7 +276,10 @@ export class Client<CustomOptions extends Options> {
     const { RequestId } = pkt.Header;
     const deferred = this.deferredUnary.get(RequestId);
     /* istanbul ignore if */
-    if (deferred === undefined) return;
+    if (deferred === undefined) {
+      console.log("no deferred:", RequestId)
+      return;
+    }
     this.deferredUnary.delete(RequestId);
     deferred.resolve({
       response: pkt,
@@ -313,7 +322,7 @@ export class Client<CustomOptions extends Options> {
    * @param req 请求 Message
    */
   public async addUnary(req: UnaryRequestMessage): Promise<UnaryResult> {
-    console.log('[add] unary', `requestId:${req.Header.RequestId}`);
+    // console.log('[sys] unary req', JSON.stringify(req));
 
     let buf: Buffer;
     try {
@@ -330,12 +339,12 @@ export class Client<CustomOptions extends Options> {
     setTimeout(() => {
       this.deferredUnary.delete(req.Header.RequestId);
       deferred.reject(new RpcError(ERROR.CLIENT_INVOKE_TIMEOUT_ERR, 'Timeout'));
-    }, req.Header.Timeout);
+    }, this.options.timeout);
 
     // 稍后发送
     setImmediate(() => {
       try {
-        console.log("send:", buf)
+        // console.log("send:", buf)
         this.transport.send(buf);
       } catch (error) {
         this.deferredUnary.delete(req.Header.RequestId);

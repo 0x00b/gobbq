@@ -5,6 +5,7 @@ import * as bbq from "../../../proto/bbq/bbq"
 import { Deferred, noop } from '../utils';
 import { ERROR, RpcError } from '../error';
 import { ClientTransport, UnaryResult } from './base';
+import { WebSocket } from 'ws';
 
 // type only
 import type {
@@ -60,7 +61,7 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
   public constructor(
     protected remotepoint: Endpoint,
     private readonly onDestroyed: () => void,
-    private readonly onUnaryMessage: (pkt:Packet) => void,
+    private readonly onUnaryMessage: (pkt: Packet) => void,
   ) {
     super();
   }
@@ -104,36 +105,40 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
 
     this.promise = new Promise((resolve, reject) => {
       const { port, host, protocol } = this.remotepoint;
-      var serverAddr = `${protocol}://${host}:${port}/ws`
-      const websocket = new WebSocket(serverAddr)
+      var serverAddr = `${protocol}://${host}:${port}`
+      var httporigin = `http://${host}:${port}/`
+      console.log(serverAddr)
+      const websocket = new WebSocket(serverAddr, { origin: httporigin })
       websocket.binaryType = 'arraybuffer'
 
-      websocket.onerror = function () {
+      websocket.onerror = function (e) {
+        console.log(e)
         reject(new RpcError(ERROR.CLIENT_CONNECT_ERR, "WebSocket连接发生错误"));
         return
       }
 
       let self = this
-      
+
       //连接成功建立的回调方法
-     let open = function () {
+      let open = function () {
         console.log("WebSocket连接成功")
         const handleData = createTruncator(self.onFrame.bind(self));
         //接收到消息的回调方法
         websocket.onmessage = function (event) {
-            var data = event.data
-            console.log("收到数据：", typeof (data), data.length)
-            // handleData(data)
-            self.onData(websocket, handleData, data)
+          var data = event.data
+          const buffer = new Uint8Array(data as any)
+          console.log("收到数据：",  data)
+          // handleData(data)
+          self.onData(websocket, handleData, Buffer.from(buffer))
         }
-  
+
         //连接关闭的回调方法
         websocket.onclose = function () {
-            console.log("WebSocket连接关闭")
-            self.onClose(true)
+          console.log("WebSocket连接关闭")
+          self.onClose(true)
         }
-   
-        resolve(); 
+        self.connected = true
+        resolve();
       }
       websocket.onopen = open
 
@@ -234,9 +239,9 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
     const pkt = decode(buffer);
 
     // if (isUnaryMessage(message)) {
-      DEBUGGER('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
-      this.onUnaryMessage(pkt as Packet);
-      return;
+    DEBUGGER('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
+    this.onUnaryMessage(pkt as Packet);
+    return;
     // }
 
     // if (isStreamMessage(message)) {
@@ -245,11 +250,11 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
     // }
   }
 
-  public  local(): Endpoint{
+  public local(): Endpoint {
     return this.localpoint
   }
 
-  public  remote(): Endpoint{
+  public remote(): Endpoint {
     return this.remotepoint
   }
 

@@ -5,6 +5,8 @@
  * 使用 {@link https://www.typescriptlang.org/docs/handbook/enums.html#const-enums | const enum} 实现常量，编译时内联
  */
 export const enum ERROR {
+  
+  CLIENT_INVALID_ERR = 1,
   /** 客户端调用超时 */
   CLIENT_INVOKE_TIMEOUT_ERR = 2,
 

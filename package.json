@@ -6,12 +6,16 @@
     "grpc-ts-protoc-gen": "^0.1.1",
     "grpc-ts-server": "^0.0.1",
     "kcpjs": "^1.0.10",
+    "node-kcp": "^1.0.13",
     "protoc-gen-grpc-ts": "^1.0.1",
     "ts-proto": "^1.140.0",
     "ts-protoc-gen": "^0.15.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "websocket": "^1.0.34",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
-    "@types/node": "^18.14.6"
+    "@types/node": "^18.16.16",
+    "@types/ws": "^8.5.4"
   }
 }

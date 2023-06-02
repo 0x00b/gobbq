@@ -1,20 +1,11 @@
 import * as net from 'net';
 import * as assert from 'assert';
-import * as bbq from "../../../proto/bbq/bbq"
 
-import { Deferred, noop } from '../utils';
 import { ERROR, RpcError } from '../error';
-import { ClientTransport, UnaryResult } from './base';
+import { ClientTransport } from './base';
 
-// type only
-import type {
-  // StreamMessage,
-  // StreamInitMessage,
-  UnaryRequestMessage,
-} from '../codec/msg';
 
 import {
-  encode,
   decode,
 
 } from '../codec/msg';
@@ -24,7 +15,6 @@ import {
 import type { Endpoint } from '../endpoint';
 import { createTruncator } from './truncator';
 import { Packet } from '../codec/packet';
-import { Dispatcher } from '../dispatcher/dispatcher';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 // const console.log = require('debug')(':client:tcp');
@@ -186,11 +176,11 @@ export class TCPTransport extends ClientTransport /*implements Transport*/ {
    * @param buffer 帧
    */
   private onFrame(buffer: Buffer) {
-    console.log("recv:", buffer)
+    // console.log("recv:", buffer)
     const pkt = decode(buffer);
 
     // if (isUnaryMessage(message)) {
-    console.log('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
+    // console.log('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
     this.onUnaryMessage(pkt as Packet);
     return;
     // }

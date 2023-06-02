@@ -1,33 +1,17 @@
 import * as kcp from 'kcpjs'
 import * as assert from 'assert';
-import * as bbq from "../../../proto/bbq/bbq"
 
-import { Deferred, noop } from '../utils';
-import { ERROR, RpcError } from '../error';
+import { Deferred } from '../utils';
+import { RpcError } from '../error';
 import { ClientTransport, UnaryResult } from './base';
 
-// type only
-import type {
-  // StreamMessage,
-  // StreamInitMessage,
-  UnaryRequestMessage,
-  UnaryResponseMessage,
-} from '../codec/msg';
-
 import {
-  encode,
   decode,
-
 } from '../codec/msg';
 
-// import type { Transport } from '@/-stream';
-// import type { StreamResult, UnaryResult } from './base';
 import type { Endpoint } from '../endpoint';
 import { createTruncator } from './truncator';
 import { Packet } from '../codec/packet';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DEBUGGER = require('debug')(':client:kcp');
 
 const block = undefined
 
@@ -42,8 +26,6 @@ const block = undefined
  * - 从 socket 中切分出帧时：Transport -> Source: push(buffer)
  */
 export class KCPTransport extends ClientTransport /*implements Transport*/ {
-  /** 未收到回包的 unary  */
-  private deferredUnary = new Map<string, Deferred<UnaryResult, RpcError>>();
 
   private socket?: kcp.UDPSession;
   private localpoint: Endpoint = {
@@ -67,7 +49,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
    * 主动销毁
    */
   public destroy(error?: RpcError) {
-    DEBUGGER('[destroy]', `destroyed:${this.destroyed}`);
+    console.log('[destroy]', `destroyed:${this.destroyed}`);
     /* istanbul ignore if */
     if (this.destroyed) return;
     this.destroyed = true;
@@ -85,7 +67,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
   }
 
   public connect() {
-    DEBUGGER('[connect]', `connected:${this.connected}`);
+    console.log('[connect]', `connected:${this.connected}`);
 
     // 正在连接或已连接
     if (this.promise !== undefined) {
@@ -141,9 +123,11 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
 
   private onData(socket: kcp.UDPSession, handleData: (chunk: Buffer) => void, buffer: Buffer) {
     try {
+      console.log("recv buffer", buffer)
       handleData(buffer);
     } catch (error) {
       // 触发 'error' 和 'close'
+      console.log("ondata err:", error)
       socket.close();
     }
   }
@@ -153,23 +137,23 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
    * @param buffer 帧
    */
   private onFrame(buffer: Buffer) {
-    console.log("recv:", buffer)
+    // console.log("recv:", buffer)
     const pkt = decode(buffer);
 
     // if (isUnaryMessage(message)) {
-    DEBUGGER('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
+    console.log('[receive] unary', `requestId:${pkt?.Header.RequestId}`);
     this.onUnaryMessage(pkt as Packet);
     return;
     // }
 
     // if (isStreamMessage(message)) {
-    //   DEBUGGER('[receive] stream', `streamId:${message.streamId} streamType:${message.streamType}`);
+    //   console.log('[receive] stream', `streamId:${message.streamId} streamType:${message.streamType}`);
     //   this.onStreamMessage(message as StreamMessage);
     // }
   }
 
   public send(buffer: Buffer) {
-    DEBUGGER('[send]', `connected:${this.connected}`, `promise:${this.promise}`);
+    console.log('[send]', `connected:${this.connected}`, `promise:${this.promise}`);
 
     if (!this.connected) {
       return false;
@@ -191,7 +175,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
    * 此时 `socket.destroyed === true`
    */
   private onClose(hadError: boolean) {
-    DEBUGGER('[close]', `connected:${this.connected}`, `hasError:${hadError}`, `destroyed:${this.socket?.close}`, `local:${this.local}`);
+    console.log('[close]', `connected:${this.connected}`, `hasError:${hadError}`, `destroyed:${this.socket?.close}`, `local:${this.local}`);
     this.connected = false;
     this.socket = undefined;
     this.promise = undefined;
@@ -208,7 +192,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
    * @param err Error
    */
   private onError(err: Error) {
-    DEBUGGER('[error]', err);
+    console.log('[error]', err);
     this.connected = false;
     // this.clear(err instanceof RpcError ? err : new RpcError(ERROR.CLIENT_CONNECT_ERR, err.message, err));
     // 清理 socket

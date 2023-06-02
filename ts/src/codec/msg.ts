@@ -58,7 +58,7 @@ export function decode(tempBuff: Buffer): Packet | null {
   let packetDataSize: number
   packetDataSize = tempBuff.readInt32LE()
 
-  console.log(`total len: ${packetDataSize}`)
+  // console.log(`total len: ${packetDataSize}`)
 
   if (packetDataSize > MaxBufferCap) {
     console.log(`err1 ${packetDataSize} > ${MaxBufferCap}`)

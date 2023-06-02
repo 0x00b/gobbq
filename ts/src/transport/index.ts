@@ -36,7 +36,7 @@ export function createTransport(endPoint: Endpoint, onDestroyed: () => void, onU
       return new KCPTransport(endPoint, onDestroyed, onUnaryMessage);
     case 'ws':
     case 'wss':
-    // return new WSTransport(endPoint, onDestroyed, onUnaryMessage);
+    return new WSTransport(endPoint, onDestroyed, onUnaryMessage);
     default: // 默认使用 tcp
     case 'tcp':
       return new TCPTransport(endPoint, onDestroyed, onUnaryMessage);

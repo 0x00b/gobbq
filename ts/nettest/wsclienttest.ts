@@ -50,3 +50,4 @@ function connect() {
     }
 }
 
+connect()

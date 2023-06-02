@@ -71,10 +71,8 @@ func (pc *PacketReadWriter) SendPackt(packet *Packet) error {
 	pc.rwMtx.Lock()
 	defer pc.rwMtx.Unlock()
 
-	// todo 合并 ，不要分两次 writeFull
-	writeFull(pc.rw, packetEndian.AppendUint32(nil, uint32(len(pdata))))
-
-	err := writeFull(pc.rw, pdata)
+	// todo 合并 ，不要分两次 writeFull, 优化不用append
+	err := writeFull(pc.rw, append(packetEndian.AppendUint32(nil, uint32(len(pdata))), pdata...))
 	if err != nil {
 		return err
 	}

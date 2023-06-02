@@ -1,103 +1,32 @@
 
 
-import { Echo, SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
-import { EchoDefinition } from '../../example/exampb/exam.bbq';
-import * as bbq from '../../proto/bbq/bbq';
+import { SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
+import { EchoDefinition, NewEchoService } from '../../example/exampb/exam.bbq';
 import { Client } from '../src';
-import { makeClientConstructor } from '../src/bbq/bbq';
 import { Context } from '../src/dispatcher/context';
 
 
 class EchoImpl {
   SayHello(ctx: Context, request: SayHelloRequest): SayHelloResponse {
+
     console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
 
-    let rsp = SayHelloResponse.create()
-    rsp.text = "xxxx"
-    return rsp
+    return {text:"xxxx"}
   }
 }
-
-
-
-// var ClientService = exports.ClientService = {
-//     sayHello: {
-//       Method: '/exampb.Client/SayHello',
-//       ServiceType: bbq.RequestType.RequestRequest,
-//       requestStream: false,
-//       responseStream: false,
-//       requestType: exam_pb.SayHelloRequest,
-//       responseType: exam_pb.SayHelloResponse,
-//     },
-//   };
-
-async function invoke() {
-  /* 接口名 func */
-
-  let hdr = bbq.Header.create()
-  hdr.DstEntity = bbq.EntityID.create()
-
-  hdr.ServiceType = EchoDefinition.serviceType;
-  hdr.DstEntity.Type = EchoDefinition.typeName
-  hdr.Method = EchoDefinition.methods.SayHello.methodName
-
-  hdr.RequestType = bbq.RequestType.RequestRequest;
-
-  hdr.RequestId = "1111"
-  hdr.Timeout = 1000
-
-  //    hdr.SrcEntity = c.ID;
-
-  let req = SayHelloRequest.create()
-  req.text = "request"
-  const data = Buffer.from(SayHelloRequest.encode(req).finish());
-
-  const contentType = bbq.ContentType.Proto;
-
-  /**
-   * 远程接入点；
-   * 作为示例，我们直接传入 mock server 的接入点；
-   * 实际使用中，一般由名字服务中间件提供接入点；
-   */
-  const remote = {
-    port: 8899,
-    host: 'localhost',
-    protocol: 'kcp',
-  } as const;
-  let timeout = hdr.Timeout
-
-  const impl: any = new EchoImpl();
-  let client = new Client(EchoDefinition, impl, { remote })
-
-  const rpc = await client.unaryInvoke(hdr, data, { contentType, remote, timeout });
-
-  // 调用错误
-  console.log("err", rpc.error);
-  //  请求消息
-  console.log("requst", rpc.request);
-  //  响应消息
-  console.log("response", rpc.response);
-}
-
-// invoke();
-
 
 function test() {
 
   const remote = {
     port: 8899,
     host: 'localhost',
-    protocol: 'kcp',
+    protocol: 'ws',
   } as const;
 
-  const impl: any = new EchoImpl();
-  let client = new Client(EchoDefinition, impl, { remote })
-
-  let c = makeClientConstructor(client, EchoDefinition) as unknown as Echo
+  let client = new Client(EchoDefinition, new EchoImpl(), { remote })
+  let c = NewEchoService(client)
 
   let rsp = c.SayHello({ text: "request", CLientID: undefined })
-
-  console.log("say resp 11", rsp)
 
   rsp.then((rsp) => {
     if (rsp instanceof Error) {
@@ -106,12 +35,20 @@ function test() {
     }
 
     console.log("succ rsp:", rsp)
+  
   })
 
   let rsp2 = c.SayHello({ text: "request", CLientID: undefined })
-
   console.log("say resp22", rsp2)
 
+  let rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  console.log("say resp22", rsp3)
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
 }
 
 test()

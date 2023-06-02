@@ -6,10 +6,6 @@ import {
 import * as compose from './compose';
 import { Packet } from '../codec/packet';
 import { MethodImpl, ServiceDefinition } from './service';
-import { EchoDefinition } from '../../../example/exampb/exam.bbq';
-import { SayHelloRequest, SayHelloResponse } from '../../../example/exampb/exam';
-import * as bbq from '../../../proto/bbq/bbq';
-import { decode, encode, UnaryRequestMessage } from '../codec/msg';
 import { ClientTransport } from '../transport';
 
 export type Middleware<CustomContextT = {}> = compose.Middleware<ParameterizedContext<CustomContextT>>;
@@ -37,19 +33,12 @@ export class Dispatcher<CustomContextT = {}> {
 
     const prototype = Object.getPrototypeOf(impl);
     let ma = Reflect.ownKeys(prototype)
-    console.log(ma);
 
     for (const [key, value] of Object.entries(def.methods)) {
-      console.log(`${key} = ${value}`);
-
       let find = false
-
-      console.log(JSON.stringify(impl));
       ma.forEach(implkey => {
-        console.log(implkey);
         const fn = impl[implkey];
         if (typeof fn === 'function') {
-
           if (implkey == key) {
             find = true
             return
@@ -114,7 +103,7 @@ export class Dispatcher<CustomContextT = {}> {
     fn: compose.ComposedMiddleware<ParameterizedContext<CustomContextT>>,
     ctx: ParameterizedContext<CustomContextT>,
   ) {
-    console.log('handleUnaryRequest %s', ctx.Method);
+    // console.log('handleUnaryRequest %s', ctx.Method);
     const handleResponse = () => respondUnary(ctx);
     const onerror = (err: Error) => ctx.onerror(err);
 
@@ -131,7 +120,7 @@ function respondUnary(ctx: Context) {
   //   return;
   // }
 
-  console.log("11respondUnary:", JSON.stringify(ctx.responseBody))
+  // console.log("11respondUnary:", JSON.stringify(ctx.responseBody))
 
   // const code = ctx.status
   //   ?? (ctx.responseBody ? 0 : 1) //RetCode.INVOKE_SUCCESS : RetCode.INVOKE_UNKNOWN_ERR);

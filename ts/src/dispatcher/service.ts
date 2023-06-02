@@ -24,11 +24,13 @@ export interface MethodDefinition<RequestType, ResponseType> {
    * The method's URL path
    */
   methodName: string;
+
+  requestType: RequestType,
+  responseType: ResponseType,
+
   /**
   * Serialization function for request values
   */
-  requestType: RequestType,
-  responseType: ResponseType,
   requestSerialize: serialize<RequestType>;
   /**
    * Serialization function for response values

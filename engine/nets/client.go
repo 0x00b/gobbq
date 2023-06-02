@@ -55,7 +55,7 @@ func connectKcp(ip, port string, ops ...Option) (net.Conn, error) {
 
 func connectWebsocket(ip, port string, ops ...Option) (net.Conn, error) {
 	origin := fmt.Sprintf("http://%s:%s/", ip, port)
-	url := fmt.Sprintf("ws://%s:%s/ws", ip, port)
+	url := fmt.Sprintf("ws://%s:%s", ip, port)
 	rc, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		panic(err)
