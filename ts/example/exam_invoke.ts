@@ -20,7 +20,7 @@ function test() {
   const remote = {
     port: 8899,
     host: 'localhost',
-    protocol: 'ws',
+    protocol: 'kcp',
   } as const;
 
   let client = new Client(EchoDefinition, new EchoImpl(), { remote })
@@ -38,17 +38,9 @@ function test() {
   
   })
 
-  let rsp2 = c.SayHello({ text: "request", CLientID: undefined })
-  console.log("say resp22", rsp2)
-
-  let rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  console.log("say resp22", rsp3)
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
-  rsp3 = c.SayHello({ text: "request", CLientID: undefined })
+  c.SayHello({ text: "request", CLientID: undefined })
+  c.SayHello({ text: "request", CLientID: undefined })
+  c.SayHello({ text: "request", CLientID: undefined })
 }
 
 test()

@@ -1,9 +1,7 @@
-import * as kcp from 'kcpjs'
 import * as assert from 'assert';
 
-import { Deferred } from '../utils';
 import { RpcError } from '../error';
-import { ClientTransport, UnaryResult } from './base';
+import { ClientTransport } from './base';
 
 import {
   decode,
@@ -12,6 +10,7 @@ import {
 import type { Endpoint } from '../endpoint';
 import { createTruncator } from './truncator';
 import { Packet } from '../codec/packet';
+import { KCP } from './node-kcp-ex/kcpclient';
 
 const block = undefined
 
@@ -27,7 +26,7 @@ const block = undefined
  */
 export class KCPTransport extends ClientTransport /*implements Transport*/ {
 
-  private socket?: kcp.UDPSession;
+  private socket?: KCP;
   private localpoint: Endpoint = {
     host: 'NOHOST',
     port: 0,
@@ -40,7 +39,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
   public constructor(
     protected remotepoint: Endpoint,
     private readonly onDestroyed: () => void,
-    private readonly onUnaryMessage: (pkt:Packet) => void,
+    private readonly onUnaryMessage: (pkt: Packet) => void,
   ) {
     super();
   }
@@ -85,27 +84,37 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
     this.promise = new Promise((resolve, reject) => {
       const { port, host } = this.remotepoint;
 
-      const socket = kcp.DialWithOptions({
-        conv: 255,
+      const handleData = createTruncator(this.onFrame.bind(this));
+
+      const socket = new KCP(255, {
         port: port,
-        host: host,
-        block,
-        dataShards: 10,
-        parityShards: 3,
+        address: host,
+        onrecv: this.onData.bind(this, handleData),
+        onerror: this.onError.bind(this),
       })
+
+      resolve()
+      this.connected = true;
 
       if (!socket) {
         reject("dial failed")
         return
       }
+      // socket.setACKNoDelay(true)
+      // socket.setStreamMode(true)
+      // socket.setNoDelay(1,10,2,1)
+      // socket.check
+      // socket
+      //   .on('error', this.onError.bind(this))
+      //   .on('close', this.onClose.bind(this))
+      //   // .on('end', this.onEnd.bind(this))
+      //   .on('recv', this.onData.bind(this, socket, handleData))
+      //   // .on("connection",()=>{
+      //     console.log("connnnn")
+      //     resolve()
+      //     this.connected = true;
+      // })
 
-      const handleData = createTruncator(this.onFrame.bind(this));
-      socket
-        .on('error', this.onError.bind(this))
-        .on('close', this.onClose.bind(this))
-        // .on('end', this.onEnd.bind(this))
-        .on('recv', this.onData.bind(this, socket, handleData));
-      this.connected = true;
       // if (socket.localAddress && socket.localPort ) {
       //   this.local = {
       //     host: socket.localAddress,
@@ -113,7 +122,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
       //     protocol: 'kcp',
       //   };
       // }
-      resolve();
+      // resolve();
 
       this.socket = socket;
     })
@@ -121,14 +130,14 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
     return this.promise;
   }
 
-  private onData(socket: kcp.UDPSession, handleData: (chunk: Buffer) => void, buffer: Buffer) {
+  private onData(handleData: (chunk: Buffer) => void, buffer: Buffer,/* len:any*/) {
     try {
       console.log("recv buffer", buffer)
       handleData(buffer);
     } catch (error) {
       // 触发 'error' 和 'close'
       console.log("ondata err:", error)
-      socket.close();
+      this.socket?.close();
     }
   }
 
@@ -167,7 +176,7 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
       });
     }
 
-    return this.socket.write(buffer);
+    return this.socket.send(buffer);
   }
 
   /**
@@ -202,11 +211,11 @@ export class KCPTransport extends ClientTransport /*implements Transport*/ {
   }
 
 
-  public  local(): Endpoint{
+  public local(): Endpoint {
     return this.localpoint
   }
 
-  public  remote(): Endpoint{
+  public remote(): Endpoint {
     return this.remotepoint
   }
 

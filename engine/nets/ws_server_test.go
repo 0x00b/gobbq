@@ -10,7 +10,7 @@ import (
 
 func TestWSServer(m *testing.T) {
 
-	listener, err := kcp.ListenWithOptions("127.0.0.1:8899", nil, 10, 3)
+	listener, err := kcp.ListenWithOptions("127.0.0.1:8899", nil, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -30,13 +30,12 @@ func TestWSServer(m *testing.T) {
 			for {
 
 				var b [1024]byte
-				_, err := conn.Read(b[:])
+				n, err := conn.Read(b[:])
 				if err != nil {
 					panic(err)
 				}
 				fmt.Println("recv", string(b[:]))
-				t := "send:" + string(b[:])
-				conn.Write([]byte(t))
+				conn.Write([]byte(b[:n]))
 
 				fmt.Println("send", string(b[:]))
 			}
@@ -44,3 +43,29 @@ func TestWSServer(m *testing.T) {
 		}()
 	}
 }
+
+// func TestUdpServer(m *testing.T) {
+
+// 	// listener, err := kcp.ListenWithOptions("127.0.0.1:8899", nil, 10, 3)
+
+// 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:8899")
+// 	listener, err := net.ListenUDP("udp", udpAddr)
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	for {
+
+// 		var b [1024]byte
+// 		n, err := listener.Read(b[:])
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		fmt.Println("recv", string(b[:]))
+// 		listener.Write([]byte(b[:n]))
+
+// 		fmt.Println("send", string(b[:]))
+// 	}
+
+// }

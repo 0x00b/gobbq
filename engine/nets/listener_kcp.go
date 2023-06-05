@@ -25,7 +25,7 @@ func (kl *KCPListener) Listen(network NetWorkName, address string) (net.Listener
 	}
 	var err error
 
-	kl.listener, err = kcp.ListenWithOptions(address, nil, 10, 3)
+	kl.listener, err = kcp.ListenWithOptions(address, nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}

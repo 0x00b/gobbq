@@ -31,7 +31,7 @@ func TestKcpServer(m *testing.T) {
 	svr.RegisterNetService(
 		nets.NewNetService(
 			nets.WithPacketHandler(&TestPacket{}),
-			nets.WithNetwork(nets.WebSocket, ":8899")),
+			nets.WithNetwork(nets.KCP, ":8899")),
 	)
 
 	svr.ListenAndServe()

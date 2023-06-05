@@ -1,24 +1,12 @@
-import * as net from 'net';
 import * as assert from 'assert';
-import * as bbq from "../../../proto/bbq/bbq"
 
 import { Deferred, noop } from '../utils';
 import { ERROR, RpcError } from '../error';
 import { ClientTransport, UnaryResult } from './base';
 import { WebSocket } from 'ws';
 
-// type only
-import type {
-  // StreamMessage,
-  // StreamInitMessage,
-  UnaryRequestMessage,
-  UnaryResponseMessage,
-} from '../codec/msg';
-
 import {
-  encode,
   decode,
-
 } from '../codec/msg';
 
 // import type { Transport } from '@/-stream';
@@ -127,7 +115,7 @@ export class WSTransport extends ClientTransport /*implements Transport*/ {
         websocket.onmessage = function (event) {
           var data = event.data
           const buffer = new Uint8Array(data as any)
-          console.log("收到数据：",  data)
+          // console.log("收到数据：",  data)
           // handleData(data)
           self.onData(websocket, handleData, Buffer.from(buffer))
         }
