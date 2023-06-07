@@ -27,6 +27,7 @@ var FuncMap = template.FuncMap{
 	"goType":             PBGoType,
 	"export":             GoExport,
 	"simplify":           PBSimplifyGoType,
+	"FileName":           FileName,
 
 	// comm func
 	"camelcase":      Camelcase,
@@ -183,6 +184,15 @@ func PBSimplifyGoType(fullTypeName string, goPackageName string) string {
 	}
 	//fmt.Println("pkg:", pkg, "!=", "gopkg:", goPackageName)
 	return fullTypeName
+}
+
+func FileName(fullFileName string) string {
+	idx := strings.LastIndex(fullFileName, ".")
+	if idx <= 0 {
+		return fullFileName
+	}
+
+	return fullFileName[0:idx]
 }
 
 // PBGoType convert `t` to go style (like a.b.c.hello, it'll be changed to a_b_c.Hello)

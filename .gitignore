@@ -39,3 +39,4 @@ tests/
 /examples/unity_demo/unity_demo
 /go.sum
 /node_modules
+/components/proxy/proxy

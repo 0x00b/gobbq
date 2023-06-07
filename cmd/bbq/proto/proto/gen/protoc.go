@@ -156,7 +156,7 @@ func generateGobbq(args []string, protoFiles []string) error {
 		// "--go_out=paths=source_relative:.",
 		// "--go-grpc_out=paths=source_relative:.",
 		// "--grpc-gateway_out=paths=source_relative:.",
-		"--gobbq_out=plugins=grpc,tpl_dir=/usr/local/.gobbq/grpc-go-tpl:.",
+		"--gobbq_out=plugins=grpc,tpl_dir=/usr/local/.gobbq/bbs-go-tpl:.",
 	}
 	input = append(input, inputExt...)
 	// protoBytes, err := ioutil.ReadFile(proto)

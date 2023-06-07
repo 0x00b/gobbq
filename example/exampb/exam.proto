@@ -3,6 +3,7 @@ option go_package = "github.com/0x00b/gobbq/example/exampb;exampb";
 package exampb;
 
 import "bbq.proto";
+import "google/protobuf/empty.proto";
  
 message SayHelloRequest{
 	string text = 1;
@@ -37,4 +38,12 @@ service Client {
 	option (bbq.service_type) = Entity;
 
 	rpc SayHello(SayHelloRequest) returns(SayHelloResponse) {}
+}
+
+
+// 客户端
+service NoResp {
+	option (bbq.service_type) = Entity;
+
+	rpc SayHello(SayHelloRequest) returns(google.protobuf.Empty) {}
 }

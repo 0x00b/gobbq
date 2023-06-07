@@ -1,7 +1,8 @@
 
 
 import { SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
-import { EchoDefinition, NewEchoService } from '../../example/exampb/exam.bbq';
+import { EchoServiceDefinition, NewEchoEtyEntity, NewEchoService } from '../../example/exampb/exam.bbq';
+import { EntityID } from '../../proto/bbq/bbq';
 import { Client } from '../src';
 import { Context } from '../src/dispatcher/context';
 
@@ -23,8 +24,9 @@ function test() {
     protocol: 'kcp',
   } as const;
 
-  let client = new Client(EchoDefinition, new EchoImpl(), { remote })
-  let c = NewEchoService(client)
+  let client = new Client(EchoServiceDefinition, new EchoImpl(), { remote })
+  let c = NewEchoService(client, )
+  // let c = NewEchoEtyEntity(client, EntityID.create({ID: "xxxx"}))
 
   let rsp = c.SayHello({ text: "request", CLientID: undefined })
 

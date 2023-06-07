@@ -36,8 +36,8 @@ func install(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	repo := base.NewRepo("https://github.com/0x00b/protoc-gen-gobbq.git", "")
-	if err := repo.CopyFilesTo(ctx, "/usr/local/.gobbq/grpc-go-tpl",
-		[]string{"grpc-go-tpl"}); err != nil {
+	if err := repo.CopyFilesTo(ctx, "/usr/local/.gobbq/bbs-go-tpl",
+		[]string{"bbs-go-tpl"}); err != nil {
 		panic(err)
 	}
 	tplRepo := base.NewRepo("https://git.code..com/gobbq/gobbq-template.git", "")

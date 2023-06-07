@@ -9,7 +9,7 @@
  *
  * @packageDocumentation
  */
-import { EchoDefinition } from '../../example/exampb/exam.bbq';
+
 import { Client } from './client';
 
 /**
