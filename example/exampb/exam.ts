@@ -1,6 +1,7 @@
 /* eslint-disable */
 import * as _m0 from "protobufjs/minimal";
 import { EntityID } from "./bbq";
+import { Empty } from "./google/protobuf/empty";
 
 export const protobufPackage = "exampb";
 
@@ -143,6 +144,11 @@ export interface EchoSvc2 {
 /** 客户端 */
 export interface Client {
   SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
+}
+
+/** 客户端 */
+export interface NoResp {
+  SayHello(request: SayHelloRequest): Promise<Empty>;
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;

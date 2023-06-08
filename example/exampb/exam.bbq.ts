@@ -12,7 +12,7 @@ import { SayHelloResponse } from "./exam"
 // EchoService
 export type EchoServiceDefinition = typeof EchoServiceDefinition;
 export const EchoServiceDefinition = {
-  typeName: "exampb.Echo",
+  typeName: "exampb.EchoService",
   serviceType: ServiceType.Service, 
   methods: {SayHello: {
       methodName: "SayHello",
@@ -46,7 +46,7 @@ export function NewEchoService(client: Client<any>): EchoService {
 // EchoEtyEntity
 export type EchoEtyEntityDefinition = typeof EchoEtyEntityDefinition;
 export const EchoEtyEntityDefinition = {
-  typeName: "exampb.EchoEty",
+  typeName: "exampb.EchoEtyEntity",
   serviceType: ServiceType.Entity, 
   methods: {SayHello: {
       methodName: "SayHello",
@@ -82,7 +82,7 @@ export function NewEchoEtyEntity(client: Client<any>, entityID: EntityID): EchoE
 // EchoSvc2Service
 export type EchoSvc2ServiceDefinition = typeof EchoSvc2ServiceDefinition;
 export const EchoSvc2ServiceDefinition = {
-  typeName: "exampb.EchoSvc2",
+  typeName: "exampb.EchoSvc2Service",
   serviceType: ServiceType.Service, 
   methods: {SayHello: {
       methodName: "SayHello",
@@ -116,7 +116,7 @@ export function NewEchoSvc2Service(client: Client<any>): EchoSvc2Service {
 // ClientEntity 客户端
 export type ClientEntityDefinition = typeof ClientEntityDefinition;
 export const ClientEntityDefinition = {
-  typeName: "exampb.Client",
+  typeName: "exampb.ClientEntity",
   serviceType: ServiceType.Entity, 
   methods: {SayHello: {
       methodName: "SayHello",
@@ -150,7 +150,7 @@ export function NewClientEntity(client: Client<any>, entityID: EntityID): Client
 // NoRespEntity 客户端
 export type NoRespEntityDefinition = typeof NoRespEntityDefinition;
 export const NoRespEntityDefinition = {
-  typeName: "exampb.NoResp",
+  typeName: "exampb.NoRespEntity",
   serviceType: ServiceType.Entity, 
   methods: {SayHello: {
       methodName: "SayHello",

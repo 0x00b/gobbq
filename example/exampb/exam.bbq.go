@@ -837,3 +837,154 @@ var ClientEntityDesc = entity.EntityDesc{
 
 	Metadata: "exam.proto",
 }
+
+func RegisterNoRespEntity(etyMgr *entity.EntityManager, impl NoRespEntity) {
+	etyMgr.RegisterEntityDesc(&NoRespEntityDesc, impl)
+}
+
+func NewNoRespEntityClient(eid *bbq.EntityID) *noRespEntity {
+	t := &noRespEntity{
+		EntityID: eid,
+	}
+	return t
+}
+
+func NewNoRespEntity(c entity.Context) *noRespEntity {
+	etyMgr := entity.GetEntityMgr(c)
+	return NewNoRespEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID("exampb.NoRespEntity"))
+}
+
+func NewNoRespEntityWithID(c entity.Context, id *bbq.EntityID) *noRespEntity {
+
+	etyMgr := entity.GetEntityMgr(c)
+	_, err := etyMgr.NewEntity(c, id)
+	if err != nil {
+		xlog.Errorln("new entity err")
+		return nil
+	}
+	t := &noRespEntity{
+		EntityID: id,
+	}
+
+	return t
+}
+
+type noRespEntity struct {
+	EntityID *bbq.EntityID
+}
+
+func (t *noRespEntity) SayHello(c entity.Context, req *SayHelloRequest) error {
+
+	pkt, release := codec.NewPacket()
+	defer release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = snowflake.GenUUID()
+	pkt.Header.Timeout = 10
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Entity
+	pkt.Header.SrcEntity = c.EntityID()
+	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.Method = "SayHello"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
+
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil {
+		return errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, nil)
+	if err != nil {
+		if !entity.NotMyMethod(err) {
+			return err
+		}
+
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return err
+		}
+
+		pkt.WriteBody(hdrBytes)
+
+		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+// NoRespEntity 客户端
+type NoRespEntity interface {
+	entity.IEntity
+
+	// SayHello
+	SayHello(c entity.Context, req *SayHelloRequest) error
+}
+
+func _NoRespEntity_SayHello_Handler(svc any, ctx entity.Context, in *SayHelloRequest, interceptor entity.ServerInterceptor) error {
+	if interceptor == nil {
+		return svc.(NoRespEntity).SayHello(ctx, in)
+	}
+
+	info := &entity.ServerInfo{
+		Server:     svc,
+		FullMethod: "/exampb.NoRespEntity/SayHello",
+	}
+
+	handler := func(ctx entity.Context, rsp any) (any, error) {
+
+		return nil, svc.(NoRespEntity).SayHello(ctx, in)
+
+	}
+
+	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
+	return err
+
+}
+
+func _NoRespEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return nil, _NoRespEntity_SayHello_Handler(svc, ctx, in.(*SayHelloRequest), interceptor)
+
+}
+
+func _NoRespEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+
+	hdr := pkt.Header
+
+	in := new(SayHelloRequest)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+		// err
+		return
+	}
+
+	_NoRespEntity_SayHello_Handler(svc, ctx, in, interceptor)
+
+}
+
+var NoRespEntityDesc = entity.EntityDesc{
+	TypeName:    "exampb.NoRespEntity",
+	HandlerType: (*NoRespEntity)(nil),
+	Methods: map[string]entity.MethodDesc{
+
+		"SayHello": {
+			MethodName:   "SayHello",
+			Handler:      _NoRespEntity_SayHello_Remote_Handler,
+			LocalHandler: _NoRespEntity_SayHello_Local_Handler,
+		},
+	},
+
+	Metadata: "exam.proto",
+}

@@ -21,7 +21,7 @@ import { {{$m.GoIdent.GoName}} } from "./{{FileName $.Name}}"
 // {{goComments $typeName $s.Comments}}
 export type {{$typeName}}Definition = typeof {{$typeName}}Definition;
 export const {{$typeName}}Definition = {
-  typeName: "{{$.GoPackageName}}.{{$sName}}",
+  typeName: "{{$.GoPackageName}}.{{$typeName}}",
   serviceType: ServiceType.{{- if $isSvc}}Service{{else}}Entity{{end -}}, 
   methods: {
 	{{- range $midx, $m := $s.Methods -}}

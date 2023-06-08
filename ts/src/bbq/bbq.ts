@@ -73,7 +73,7 @@ export function makeClientConstructor(
           let rsp = attrs.responseDeserialize(ctx.response?.PacketBody())
           // console.log("ctx resp:", sayResp)
           console.log("[sys] rsp:", JSON.stringify(ctx.response.Header), JSON.stringify(rsp))
-          resp.resolve(rsp)
+          resp.resolve({ error: undefined, response: rsp })
         });
       }
 

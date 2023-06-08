@@ -40,3 +40,6 @@ tests/
 /go.sum
 /node_modules
 /components/proxy/proxy
+/example/server/server
+/example/server2/proxy
+/example/server2/server2

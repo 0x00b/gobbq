@@ -15,6 +15,9 @@ import { EntityID, Header, RequestType } from '../../proto/bbq/bbq';
 import { encode, UnaryRequestMessage } from './codec/msg';
 import { Endpoint, getEndpointName } from './endpoint';
 import { Packet } from './codec/packet';
+import { randomUUID } from 'crypto';
+import { NewGateService } from '../../components/gate/gatepb/gate.bbq'
+import { RegisterClientRequest, RegisterClientResponse } from '../../components/gate/gatepb/gate';
 
 /**
  * 初始化时可以指定的选项
@@ -30,12 +33,12 @@ export type InitializeOptions = Pick<Options, 'timeout'> & Partial<Pick<Options,
  */
 export class Client<CustomOptions extends Options> {
 
-  private EntityID?: EntityID
+  public EntityID: EntityID
 
   private readonly options: InitializeOptions;
   /** endpoint name -> transport */
   private transport: ClientTransport;
-  private readonly middleware: Middleware<Options & Partial<CustomOptions>>;
+  private readonly middleware: Middleware<Options & Partial<Options>>;
   private destroyed = false;
 
   private readonly plugins: Pick<PluginList, 'createTransport'>;
@@ -46,10 +49,11 @@ export class Client<CustomOptions extends Options> {
   /** 未收到回包的 unary  */
   private deferredUnary = new Map<string, Deferred<UnaryResult, RpcError>>();
 
-  public constructor(
+  private constructor(
     def: ServiceDefinition, impl: any,
     options: Partial<Options> = Object.create(null),
   ) {
+    this.EntityID = EntityID.create({ ID: randomUUID(), Type: def.typeName })
 
     this.dispather = new Dispatcher(def, impl)
     options.dispatherMiddlewares?.forEach(m => {
@@ -75,7 +79,30 @@ export class Client<CustomOptions extends Options> {
 
     this.middleware = compose<Options & Partial<CustomOptions>>(options.clientMiddlewares);
     this.middleware.initialize!(this.options);
+  }
 
+  static async create(
+    def: ServiceDefinition, impl: any,
+    options: Partial<Options> = Object.create(null)
+  ): Promise<Client<any>> {
+
+    let client = new Client(def, impl, options)
+
+    let gate = NewGateService(client)
+    let { error, response } = await gate.RegisterClient({ EntityID: client.EntityID })
+
+    if (error !== undefined) {
+      throw error
+    }
+    if (!response.EntityID) {
+      throw "empty response"
+    }
+    console.log("gate:", response)
+
+    client.EntityID.ProxyID = response.EntityID.ProxyID
+    client.EntityID.InstID = response.EntityID.ID
+
+    return client
   }
 
   public toJSON() {

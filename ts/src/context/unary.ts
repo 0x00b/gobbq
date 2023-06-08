@@ -10,7 +10,7 @@ import { Packet } from '../codec/packet';
 import { type } from 'os';
 
 
-export type UnaryResponse<ResponseType> = Promise<ERROR | ResponseType>
+export type UnaryResponse<ResponseType> = Promise<{error: ERROR, response: ResponseType}>
 
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -57,7 +57,7 @@ export class UnaryContext<CustomOptions extends UnaryOptions> extends BaseContex
 
     const { ErrCode } = res.Header;
     // 框架错误
-    if (typeof ErrCode === 'number'  && ErrCode !== 0) {
+    if (typeof ErrCode === 'number' && ErrCode !== 0) {
       this.end(new RpcError(ErrCode, res.Header.ErrMsg ?? `framework error ${ErrCode}`));
       return;
     }

@@ -1,8 +1,7 @@
 
 
 import { SayHelloRequest, SayHelloResponse } from '../../example/exampb/exam';
-import { EchoServiceDefinition, NewEchoEtyEntity, NewEchoService } from '../../example/exampb/exam.bbq';
-import { EntityID } from '../../proto/bbq/bbq';
+import { ClientEntityDefinition, NewEchoSvc2Service } from '../../example/exampb/exam.bbq';
 import { Client } from '../src';
 import { Context } from '../src/dispatcher/context';
 
@@ -16,33 +15,33 @@ class EchoImpl {
   }
 }
 
-function test() {
+async function test() {
 
   const remote = {
-    port: 8899,
+    // port: 8899,
+    port: 59551,
     host: 'localhost',
     protocol: 'kcp',
   } as const;
 
-  let client = new Client(EchoServiceDefinition, new EchoImpl(), { remote })
-  let c = NewEchoService(client, )
+  let client = await Client.create(ClientEntityDefinition, new EchoImpl(), { remote })
+
+  let c = NewEchoSvc2Service(client)
   // let c = NewEchoEtyEntity(client, EntityID.create({ID: "xxxx"}))
 
-  let rsp = c.SayHello({ text: "request", CLientID: undefined })
+  let rsp = c.SayHello({ text: "request", CLientID: client.EntityID})
 
   rsp.then((rsp) => {
     if (rsp instanceof Error) {
       console.log("error", rsp)
       return
     }
-
     console.log("succ rsp:", rsp)
-  
   })
 
-  c.SayHello({ text: "request", CLientID: undefined })
-  c.SayHello({ text: "request", CLientID: undefined })
-  c.SayHello({ text: "request", CLientID: undefined })
+  // c.SayHello({ text: "request", CLientID: undefined })
+  // c.SayHello({ text: "request", CLientID: undefined })
+  // c.SayHello({ text: "request", CLientID: undefined })
 }
 
 test()
