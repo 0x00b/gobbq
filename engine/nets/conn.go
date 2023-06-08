@@ -79,6 +79,7 @@ func (st *conn) Serve() {
 		}
 		// xlog.Traceln("serve 2")
 
+		// st.idleTimeout = 10
 		if st.idleTimeout > 0 {
 			now := time.Now()
 			if now.Sub(st.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
@@ -90,7 +91,7 @@ func (st *conn) Serve() {
 				}
 			}
 		}
-		// NOTE
+		// todo
 		// kcp需要实现断连逻辑，否则无法释放gorountine， 因为read的write不会返回
 
 		xlog.Traceln("serve 3", utils.GoID())
@@ -109,8 +110,9 @@ func (st *conn) Serve() {
 			return
 		}
 
+		xlog.Traceln("serve 5")
 		err = st.handle(pkt, release)
-		// xlog.Traceln("serve 5")
+		xlog.Traceln("serve 6")
 		if err != nil {
 			xlog.Errorln("handle failed", err)
 		}

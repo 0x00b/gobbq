@@ -60,6 +60,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	}
 
 	client.EntityID().ProxyID = rsp.EntityID.ProxyID
+	client.EntityID().InstID = rsp.EntityID.ID
 
 	return client
 }

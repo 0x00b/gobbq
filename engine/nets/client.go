@@ -46,7 +46,8 @@ func connectTcp(ip, port string, ops ...Option) (net.Conn, error) {
 }
 
 func connectKcp(ip, port string, ops ...Option) (net.Conn, error) {
-	rc, err := kcp.DialWithOptions(fmt.Sprintf("%s:%s", ip, port), nil, 10, 3)
+	// NOTE: 注意后两个参数和服务器一致才能收发包
+	rc, err := kcp.DialWithOptions(fmt.Sprintf("%s:%s", ip, port), nil, 0, 0)
 	if err != nil {
 		panic(err)
 	}

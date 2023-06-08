@@ -13,7 +13,7 @@ import (
 
 func main() {
 
-	xlog.Init("info", true, true, &lumberjack.Logger{
+	xlog.Init("trace", true, true, &lumberjack.Logger{
 		Filename:  "./server.log",
 		MaxAge:    7,
 		LocalTime: true,

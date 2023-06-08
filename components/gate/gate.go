@@ -55,6 +55,7 @@ func (gt *Gate) init() {
 		InstID: gt.EntityID().ID,
 	})
 	if err != nil {
+		xlog.Errorln("error:", err)
 		panic(err)
 	}
 

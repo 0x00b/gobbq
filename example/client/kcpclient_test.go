@@ -12,7 +12,7 @@ import (
 
 func TestMain(t *testing.T) {
 
-	wsc, err := kcp.DialWithOptions("127.0.0.1:8899", nil, 10, 3)
+	wsc, err := kcp.DialWithOptions("127.0.0.1:8899", nil, 0, 0)
 	if err != nil {
 		panic(err)
 	}
