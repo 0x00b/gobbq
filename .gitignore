@@ -43,3 +43,7 @@ tests/
 /example/server/server
 /example/server2/proxy
 /example/server2/server2
+
+package.json
+package-lock.json
+*.ts

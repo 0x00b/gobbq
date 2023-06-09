@@ -2,10 +2,10 @@
 // DON'T EDIT IT!!
 //  请勿添加其他内容，包括函数，结构体，变量等等，否则重新生成时会丢失。
 
-import { UnaryResponse } from "../../ts/src/context/unary";
-import { Client } from "../../ts/src";
-import { makeClientConstructor } from "../../ts/src/bbq/bbq";
-import { EntityID,ServiceType } from "../../proto/bbq/bbq";
+import { UnaryResponse } from "gobbq-ts/src/context/unary";
+import { Client } from "gobbq-ts/src";
+import { makeClientConstructor } from "gobbq-ts/src/bbq/bbq";
+import { EntityID,ServiceType } from "gobbq-ts/proto/bbq";
 
 {{- range $sidx, $m := $.Messages }}
 import { {{$m.GoIdent.GoName}} } from "./{{FileName $.Name}}"
@@ -24,7 +24,7 @@ export const {{$typeName}}Definition = {
   typeName: "{{$.GoPackageName}}.{{$typeName}}",
   serviceType: ServiceType.{{- if $isSvc}}Service{{else}}Entity{{end -}}, 
   methods: {
-	{{- range $midx, $m := $s.Methods -}}
+	{{- range $midx, $m := $s.Methods }}
     {{$m.GoName}}: {
       methodName: "{{$m.GoName}}",
       requestType: {{$m.GoInput.GoIdent.GoName}},
