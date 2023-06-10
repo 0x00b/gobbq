@@ -292,7 +292,7 @@ func (e *baseEntity) dispatchLocalCall(pkt *codec.Packet, req any, respChan chan
 }
 
 func (e *baseEntity) initContext(c Context, pkt *codec.Packet) {
-	setPacket(c, pkt)
+	c.setPacket(pkt)
 	// SetEntityMgr(c, e.desc.EntityMgr)
 }
 

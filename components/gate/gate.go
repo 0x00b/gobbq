@@ -89,7 +89,7 @@ type GateService struct {
 // RegisterClient
 func (gt *Gate) RegisterClient(c entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
 
-	gt.RegisterEntity(req.EntityID, entity.GetPacket(c).Src)
+	gt.RegisterEntity(req.EntityID, c.Packet().Src)
 
 	// client := proxypb.NewProxySvcServiceClient()
 	// rsp, err := client.RegisterEntity(c, &proxypb.RegisterEntityRequest{EntityID: req.EntityID})

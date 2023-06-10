@@ -45,14 +45,14 @@ func (e *EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (
 	// 	xlog.Infoln("tick..2222.")
 	// })
 
-	xlog.Println("service2222 req", entity.GetPacket(c).Header.String(), req.String())
+	xlog.Println("service2222 req", c.Packet().Header.String(), req.String())
 
 	echoClient := exampb.NewEchoServiceClient()
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err
 	}
-	xlog.Println("echo svc response:", entity.GetPacket(c).Header.String(), rsp.String())
+	xlog.Println("echo svc response:", c.Packet().Header.String(), rsp.String())
 
 	return rsp, nil
 }

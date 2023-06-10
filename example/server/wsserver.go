@@ -37,14 +37,14 @@ type EchoService struct {
 
 func (*EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
-	xlog.Println("service", entity.GetPacket(c).Header.String(), req.String())
+	xlog.Println("service", c.Packet().Header.String(), req.String())
 
 	echoClient := exampb.NewEchoEtyEntity(c)
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err
 	}
-	xlog.Println("entity response:", entity.GetPacket(c).Header.String(), rsp.String())
+	xlog.Println("entity response:", c.Packet().Header.String(), rsp.String())
 
 	return rsp, nil
 }
@@ -66,14 +66,14 @@ func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*e
 	// 	xlog.Infoln("tick..2222.")
 	// })
 
-	xlog.Println("entity req", entity.GetPacket(c).Header.String(), req.String())
+	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
 	client := exampb.NewClientEntityClient(req.CLientID)
 	rsp, err := client.SayHello(c, req)
 	if err != nil {
 		return nil, err
 	}
-	xlog.Println("entity response:", entity.GetPacket(c).Header.String(), rsp.String())
+	xlog.Println("entity response:", c.Packet().Header.String(), rsp.String())
 
 	return rsp, nil
 }

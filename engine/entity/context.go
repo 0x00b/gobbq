@@ -25,6 +25,10 @@ type Context interface {
 
 	EntityID() *bbq.EntityID
 
+	Packet() *codec.Packet
+
+	SrcEntity() *bbq.EntityID
+
 	/************************************/
 	/******** METADATA MANAGEMENT********/
 	/************************************/
@@ -78,31 +82,19 @@ type Context interface {
 
 	// GetStringMapStringSlice returns the value associated with the key as a map to a slice of strings.
 	GetStringMapStringSlice(key string) (smss map[string][]string)
+
+	// inner
+	setPacket(pkt *codec.Packet)
 }
 
 // ============ for bbq inner start=================
 // 不想通过context暴露给其他开发者
 
 const (
-	_bbq_ctx_pkt_key_            = "_bbq_ctx_pkt_key_"
+	// _bbq_ctx_pkt_key_            = "_bbq_ctx_pkt_key_"
 	_bbq_ctx_remote_manager_key_ = "_bbq_ctx_remote_manager_key_"
-	_bbq_ctx_entity_manager_key_ = "_bbq_ctx_entity_manager_key_"
+	// _bbq_ctx_entity_manager_key_ = "_bbq_ctx_entity_manager_key_"
 )
-
-func GetPacket(c Context) *codec.Packet {
-	v, ok := c.Get(_bbq_ctx_pkt_key_)
-	if ok && v != nil {
-		return v.(*codec.Packet)
-	}
-	return nil
-}
-
-func setPacket(c Context, pkt *codec.Packet) {
-	if pkt == nil {
-		return
-	}
-	c.Set(_bbq_ctx_pkt_key_, pkt)
-}
 
 func RegisterCallback(c Context, requestID string, cb Callback) {
 	e := c.Entity()
@@ -209,10 +201,24 @@ type baseContext struct {
 	mu sync.RWMutex
 	// Keys is a key/value pair exclusively for the context of each request.
 	Keys map[string]any
+
+	pkt *codec.Packet
 }
 
 func (c *baseContext) Entity() IBaseEntity {
 	return c.entity
+}
+
+func (c *baseContext) Packet() *codec.Packet {
+	return c.pkt
+}
+
+func (c *baseContext) setPacket(pkt *codec.Packet) {
+	c.pkt = pkt
+}
+
+func (c *baseContext) SrcEntity() *bbq.EntityID {
+	return c.pkt.Header.SrcEntity
 }
 
 func (c *baseContext) Copy() (Context, releaseCtx) {

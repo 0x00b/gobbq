@@ -1,0 +1,18 @@
+syntax = "proto3";
+option go_package = "github.com/0x00b/gobbq/example/exampb;testpb";
+package testpb;
+
+import "bbq.proto";
+ 
+message StartFrameReq{
+}
+
+message StartFrameRsp{
+	bbq.EntityID FrameSvr = 1;
+}
+ 
+service Frame {
+	option (bbq.service_type) = Service;
+
+	rpc StartFrame(StartFrameReq) returns(StartFrameRsp) {}
+}
