@@ -2,6 +2,7 @@ package entity
 
 import (
 	"sync"
+	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -29,6 +30,9 @@ func (e *Service) onInit(c Context, cancel func(), id *bbq.EntityID) {
 	e.callback = make(map[string]Callback, 10000)
 	e.respChan = make(chan *codec.Packet, 10000)
 
+	e.timer.Init()
+	e.ticker = time.Tick(GAME_SERVICE_TICK_INTERVAL)
+
 	e.OnInit()
 }
 
@@ -43,32 +47,7 @@ func (e *Service) Run() {
 
 	}()
 
-	// response
-	go func() {
-		for {
-			select {
-			case <-e.context.Done():
-				xlog.Traceln("ctx done", e)
-				return
-
-			case pkt := <-e.respChan:
-				xlog.Tracef("handle: %s", pkt.String())
-
-				wg.Add(1)
-
-				// 异步
-				ctx, release := e.context.Copy()
-				go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
-					defer release()
-					defer wg.Done()
-
-					e.handleMethodRsp(ctx, pkt)
-				}(ctx, release, pkt)
-			}
-		}
-	}()
-
-	// request, async
+	// async request, responese
 	for {
 		select {
 		case <-e.context.Done():
@@ -107,6 +86,23 @@ func (e *Service) Run() {
 				}
 			}(ctx, release, lc)
 
+		case pkt := <-e.respChan:
+			xlog.Tracef("handle: %s", pkt.String())
+
+			wg.Add(1)
+
+			// 异步
+			ctx, release := e.context.Copy()
+			go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
+				defer release()
+				defer wg.Done()
+
+				e.handleMethodRsp(ctx, pkt)
+			}(ctx, release, pkt)
+
+		case <-e.ticker:
+			e.timer.Tick()
+			e.context.Entity().OnTick()
 		}
 	}
 }

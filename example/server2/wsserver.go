@@ -32,7 +32,18 @@ type EchoService2 struct {
 	entity.Service
 }
 
-func (*EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+func (e *EchoService2) OnTick() {
+	// xlog.Infoln("tick...")
+}
+
+func (e *EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+
+	// e.AddCallback(1*time.Second, func() {
+	// 	xlog.Infoln("tick.1111..")
+	// })
+	// e.AddTimer(2*time.Second, func() {
+	// 	xlog.Infoln("tick..2222.")
+	// })
 
 	xlog.Println("service2222 req", entity.GetPacket(c).Header.String(), req.String())
 

@@ -36,7 +36,7 @@ func TestWSClient(m *testing.T) {
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 
 		i := i

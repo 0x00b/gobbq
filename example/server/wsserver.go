@@ -53,7 +53,18 @@ type EchoEntity struct {
 	entity.Entity
 }
 
-func (*EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+func (e *EchoEntity) OnTick() {
+	// xlog.Infoln("tick...")
+}
+
+func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+
+	// e.AddCallback(1*time.Second, func() {
+	// 	xlog.Infoln("tick.1111..")
+	// })
+	// e.AddTimer(2*time.Second, func() {
+	// 	xlog.Infoln("tick..2222.")
+	// })
 
 	xlog.Println("entity req", entity.GetPacket(c).Header.String(), req.String())
 

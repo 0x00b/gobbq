@@ -3,8 +3,10 @@ package entity
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/timer"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -40,16 +42,23 @@ type IBaseEntity interface {
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
 
-	// OnTick()
+	SetDesc(desc *EntityDesc)
+
+	// AddCallback 直接用，不需要重写，除非有特殊需求
+	AddCallback(d time.Duration, callback timer.CallbackFunc)
+
+	// AddTimer 直接用，不需要重写，除非有特殊需求
+	AddTimer(d time.Duration, callback timer.CallbackFunc)
+
+	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
+	OnTick()
 
 	// Watch/unwatch entity
 
-	// for inner
+	// === for inner ===
 
 	registerCallback(requestID string, cb Callback)
 	popCallback(requestID string) (Callback, bool)
-
-	SetDesc(desc *EntityDesc)
 
 	onInit(c Context, cancel func(), id *bbq.EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
@@ -125,26 +134,10 @@ type baseEntity struct {
 	cbMtx sync.RWMutex
 	// requestid -> callback
 	callback map[string]Callback
-}
 
-func (e *baseEntity) OnInit() {}
+	timer timer.Timer
 
-func (*baseEntity) OnDestroy() {}
-
-func (e *baseEntity) Desc() *EntityDesc {
-	return e.desc
-}
-
-// Migration
-func (e *baseEntity) OnMigrateOut() {} // Called just before entity is migrating out
-func (e *baseEntity) OnMigrateIn()  {} // Called just after entity is migrating in
-
-func (e *baseEntity) Context() Context {
-	return e.context
-}
-
-func (e *baseEntity) EntityID() *bbq.EntityID {
-	return e.entityID
+	ticker <-chan time.Time
 }
 
 func (e *baseEntity) Run() {
@@ -192,6 +185,7 @@ func (e *baseEntity) Run() {
 			}
 			xlog.Tracef("handle done: %s", pkt.String())
 			wg.Done()
+
 		case lc := <-e.localCallChan:
 			wg.Add(1)
 			xlog.Tracef("handle local call: %s", lc.pkt.String())
@@ -201,7 +195,13 @@ func (e *baseEntity) Run() {
 			}
 			xlog.Tracef("handle local call done: %s", lc.pkt.String())
 			wg.Done()
+
+		case <-e.ticker:
+			e.timer.Tick()
 		}
+
+		// 实时性很高要求的可以通过tick实现
+		e.context.Entity().OnTick()
 	}
 }
 
@@ -245,6 +245,8 @@ func (e *baseEntity) onInit(c Context, cancel func(), id *bbq.EntityID) {
 	e.localCallChan = make(chan *localCall, 1000)
 	e.callback = make(map[string]Callback, 1)
 	e.respChan = make(chan *codec.Packet, 1)
+	e.timer.Init()
+	e.ticker = time.Tick(GAME_SERVICE_TICK_INTERVAL)
 
 	e.OnInit()
 }
@@ -361,8 +363,26 @@ func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet) error {
 	return nil
 }
 
-func (e *baseEntity) setParant(svc IBaseEntity) {
+// AddOnceTimer 直接用，不需要重写，除非有特殊需求
+func (e *baseEntity) AddCallback(d time.Duration, callback timer.CallbackFunc) {
+	e.timer.AddCallback(d, callback)
 }
 
-func (e *baseEntity) addChildren(ety IBaseEntity) {
+// AddRepeatTimer 直接用，不需要重写，除非有特殊需求
+func (e *baseEntity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
+	e.timer.AddTimer(d, callback)
 }
+
+// empty/default implement
+
+func (e *baseEntity) setParant(svc IBaseEntity)   {}
+func (e *baseEntity) addChildren(ety IBaseEntity) {}
+
+func (e *baseEntity) OnInit()                 {}
+func (e *baseEntity) OnDestroy()              {}
+func (e *baseEntity) Desc() *EntityDesc       { return e.desc }
+func (e *baseEntity) OnMigrateOut()           {} // Called just before entity is migrating out
+func (e *baseEntity) OnMigrateIn()            {} // Called just after entity is migrating in
+func (e *baseEntity) Context() Context        { return e.context }
+func (e *baseEntity) OnTick()                 {}
+func (e *baseEntity) EntityID() *bbq.EntityID { return e.entityID }

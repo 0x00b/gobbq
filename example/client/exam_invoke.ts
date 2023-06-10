@@ -9,7 +9,7 @@ class EchoImpl {
 
     console.log("sssssss sayHello(request: SayHelloRequest): SayHelloResponse:", request.text)
 
-    return {text:"xxxx"}
+    return { text: "xxxx" }
   }
 }
 
@@ -27,19 +27,18 @@ async function test() {
   let c = NewEchoSvc2Service(client)
   // let c = NewEchoEtyEntity(client, EntityID.create({ID: "xxxx"}))
 
-  let rsp = c.SayHello({ text: "request", CLientID: client.EntityID})
+  for (let index = 0; index < 10; index++) {
+    let rsp = c.SayHello({ text: "request"+index, CLientID: client.EntityID })
 
-  rsp.then((rsp) => {
-    if (rsp instanceof Error) {
-      console.log("error", rsp)
-      return
-    }
-    console.log("succ rsp:", rsp)
-  })
+    rsp.then((rsp) => {
+      if (rsp instanceof Error) {
+        console.log("error", rsp)
+        return
+      }
+      console.log("succ rsp:", rsp)
+    })
+  }
 
-  // c.SayHello({ text: "request", CLientID: undefined })
-  // c.SayHello({ text: "request", CLientID: undefined })
-  // c.SayHello({ text: "request", CLientID: undefined })
 }
 
 test()
