@@ -3,14 +3,15 @@ package main
 import (
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
 
 // RegisterProxy
 func (p *Proxy) RegisterProxy(c entity.Context, req *proxypb.RegisterProxyRequest) (*proxypb.RegisterProxyResponse, error) {
 
-	p.proxyMap[req.ProxyID] = c.Packet().Src
+	xlog.Traceln("register proxy:", entity.ProxyID(req.GetProxyID()))
+
+	p.proxyMap[entity.ProxyID(req.GetProxyID())] = c.Packet().Src
 	svcs := []string{}
 	for n := range p.Server.EntityMgr.Services {
 		svcs = append(svcs, string(n))
@@ -20,7 +21,7 @@ func (p *Proxy) RegisterProxy(c entity.Context, req *proxypb.RegisterProxyReques
 		svcs = append(svcs, string(n))
 	}
 
-	return &proxypb.RegisterProxyResponse{SvcNames: svcs}, nil
+	return &proxypb.RegisterProxyResponse{ServiceNames: svcs}, nil
 }
 
 // SyncService
@@ -37,24 +38,32 @@ func (p *Proxy) Ping(c entity.Context, req *proxypb.PingPong) (*proxypb.PingPong
 	return &proxypb.PingPong{}, nil
 }
 
+type ProxySvc struct {
+	entity.Service
+	proxy *Proxy
+}
+
 // RegisterInst
-func (p *Proxy) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
+func (p *ProxySvc) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
 	xlog.Traceln("register inst", req.String())
-	p.registerInst(req.GetInstID(), c.Packet().Src)
+	p.proxy.registerInst(entity.InstID(req.GetInstID()), c.Packet().Src)
 	xlog.Traceln("register inst done", req.String())
-	return &proxypb.RegisterInstResponse{ProxyID: p.EntityID().ID}, nil
+	return &proxypb.RegisterInstResponse{ProxyID: uint32(p.EntityID().ProxyID())}, nil
 }
 
 // RegisterEntity
-func (p *Proxy) RegisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
+func (p *ProxySvc) RegisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	xlog.Debugln("register service:", req.ServiceName)
-	p.registerService(req.ServiceName, c.Packet().Src)
+	p.proxy.registerService(req.ServiceName, c.Packet().Src)
+	xlog.Debugln("register service done...:", req.ServiceName)
 
-	for id, prw := range p.proxyMap {
+	for id, prw := range p.proxy.proxyMap {
 		_ = prw
 		entity.SetRemoteEntityManager(c, prw)
-		_, err := proxypb.NewProxyEtyEntityClient(&bbq.EntityID{ID: id, ProxyID: id}).SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
+		_, err := proxypb.
+			NewProxyEtyEntityClient(entity.FixedEntityID(id, entity.InstID(id), entity.ID(id))).
+			SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
 		if err != nil {
 			xlog.Errorln("sync svc", err)
 			return nil, err
@@ -65,7 +74,13 @@ func (p *Proxy) RegisterService(c entity.Context, req *proxypb.RegisterServiceRe
 }
 
 // RegisterEntity
-func (p *Proxy) UnregisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
+func (p *ProxySvc) UnregisterService(c entity.Context, req *proxypb.RegisterServiceRequest) (*proxypb.RegisterServiceResponse, error) {
 
 	return &proxypb.RegisterServiceResponse{}, nil
+}
+
+// Ping
+func (p *ProxySvc) Ping(c entity.Context, req *proxypb.PingPong) (*proxypb.PingPong, error) {
+
+	return &proxypb.PingPong{}, nil
 }

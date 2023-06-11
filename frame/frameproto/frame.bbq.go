@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// frameproto "github.com/0x00b/gobbq/frame/frameproto"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -24,7 +22,7 @@ func RegisterFrameSeverEntity(etyMgr *entity.EntityManager, impl FrameSeverEntit
 	etyMgr.RegisterEntityDesc(&FrameSeverEntityDesc, impl)
 }
 
-func NewFrameSeverEntityClient(eid *bbq.EntityID) *frameSeverEntity {
+func NewFrameSeverEntityClient(eid entity.EntityID) *frameSeverEntity {
 	t := &frameSeverEntity{
 		EntityID: eid,
 	}
@@ -33,13 +31,13 @@ func NewFrameSeverEntityClient(eid *bbq.EntityID) *frameSeverEntity {
 
 func NewFrameSeverEntity(c entity.Context) *frameSeverEntity {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewFrameSeverEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID("frameproto.FrameSeverEntity"))
+	return NewFrameSeverEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewFrameSeverEntityWithID(c entity.Context, id *bbq.EntityID) *frameSeverEntity {
+func NewFrameSeverEntityWithID(c entity.Context, id entity.EntityID) *frameSeverEntity {
 
 	etyMgr := entity.GetEntityMgr(c)
-	_, err := etyMgr.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id, FrameSeverEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -52,7 +50,7 @@ func NewFrameSeverEntityWithID(c entity.Context, id *bbq.EntityID) *frameSeverEn
 }
 
 type frameSeverEntity struct {
-	EntityID *bbq.EntityID
+	EntityID entity.EntityID
 }
 
 func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error {
@@ -65,8 +63,9 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Heartbeat"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -93,7 +92,7 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -113,8 +112,9 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Init"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -142,7 +142,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(InitRsp)
 			reqbuf := pkt.PacketBody()
@@ -154,7 +154,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -190,8 +190,9 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Join"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -219,7 +220,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(JoinRsp)
 			reqbuf := pkt.PacketBody()
@@ -231,7 +232,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -267,8 +268,9 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Progress"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -296,7 +298,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(ProgressRsp)
 			reqbuf := pkt.PacketBody()
@@ -308,7 +310,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -344,8 +346,9 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Ready"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -372,7 +375,7 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -392,8 +395,9 @@ func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Move"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -420,7 +424,7 @@ func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -440,8 +444,9 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Input"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -468,7 +473,7 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -488,8 +493,9 @@ func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameSeverEntityDesc.TypeName
 	pkt.Header.Method = "Result"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -516,7 +522,7 @@ func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -673,9 +679,9 @@ func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -754,9 +760,9 @@ func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -835,9 +841,9 @@ func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt 
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -1084,7 +1090,7 @@ func RegisterFrameClientEntity(etyMgr *entity.EntityManager, impl FrameClientEnt
 	etyMgr.RegisterEntityDesc(&FrameClientEntityDesc, impl)
 }
 
-func NewFrameClientEntityClient(eid *bbq.EntityID) *frameClientEntity {
+func NewFrameClientEntityClient(eid entity.EntityID) *frameClientEntity {
 	t := &frameClientEntity{
 		EntityID: eid,
 	}
@@ -1093,13 +1099,13 @@ func NewFrameClientEntityClient(eid *bbq.EntityID) *frameClientEntity {
 
 func NewFrameClientEntity(c entity.Context) *frameClientEntity {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewFrameClientEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID("frameproto.FrameClientEntity"))
+	return NewFrameClientEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewFrameClientEntityWithID(c entity.Context, id *bbq.EntityID) *frameClientEntity {
+func NewFrameClientEntityWithID(c entity.Context, id entity.EntityID) *frameClientEntity {
 
 	etyMgr := entity.GetEntityMgr(c)
-	_, err := etyMgr.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id, FrameClientEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -1112,7 +1118,7 @@ func NewFrameClientEntityWithID(c entity.Context, id *bbq.EntityID) *frameClient
 }
 
 type frameClientEntity struct {
-	EntityID *bbq.EntityID
+	EntityID entity.EntityID
 }
 
 func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
@@ -1125,8 +1131,9 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameClientEntityDesc.TypeName
 	pkt.Header.Method = "Start"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -1153,7 +1160,7 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1173,8 +1180,9 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameClientEntityDesc.TypeName
 	pkt.Header.Method = "Frame"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -1201,7 +1209,7 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1221,8 +1229,9 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameClientEntityDesc.TypeName
 	pkt.Header.Method = "Result"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -1249,7 +1258,7 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1269,8 +1278,9 @@ func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameClientEntityDesc.TypeName
 	pkt.Header.Method = "Close"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -1297,7 +1307,7 @@ func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}

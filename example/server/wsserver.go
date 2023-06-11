@@ -23,10 +23,14 @@ func main() {
 
 	var g = game.NewGame()
 
+	xlog.Info("RegisterEchoService")
+
 	// exampb.RegisterEchoService(&EchoService{})
 	exampb.RegisterEchoService(g.EntityMgr, &EchoService{})
+	xlog.Info("RegisterEchoEtyEntity")
 
 	exampb.RegisterEchoEtyEntity(g.EntityMgr, &EchoEntity{})
+	xlog.Info("start")
 
 	g.Serve()
 }
@@ -68,7 +72,7 @@ func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*e
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
-	client := exampb.NewClientEntityClient(req.CLientID)
+	client := exampb.NewClientEntityClient(entity.EntityID(req.GetCLientID()))
 	rsp, err := client.SayHello(c, req)
 	if err != nil {
 		return nil, err

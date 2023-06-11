@@ -9,7 +9,6 @@ import (
 	"github.com/0x00b/gobbq/frame"
 	"github.com/0x00b/gobbq/frame/frameproto"
 	"github.com/0x00b/gobbq/frame/test/testpb"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -18,14 +17,14 @@ import (
 type FrameService struct {
 	entity.Service
 
-	tempFrameSvr *bbq.EntityID
+	tempFrameSvr entity.EntityID
 }
 
 // StartFrame
 func (f *FrameService) StartFrame(c entity.Context, req *testpb.StartFrameReq) (*testpb.StartFrameRsp, error) {
 
-	if f.tempFrameSvr != nil {
-		return &testpb.StartFrameRsp{FrameSvr: f.tempFrameSvr}, nil
+	if f.tempFrameSvr.Invalid() {
+		return &testpb.StartFrameRsp{FrameSvr: uint64(f.tempFrameSvr)}, nil
 	}
 
 	echoClient := frameproto.NewFrameSeverEntity(c)
@@ -43,7 +42,7 @@ func (f *FrameService) StartFrame(c entity.Context, req *testpb.StartFrameReq) (
 
 	f.tempFrameSvr = echoClient.EntityID
 
-	return &testpb.StartFrameRsp{FrameSvr: echoClient.EntityID}, nil
+	return &testpb.StartFrameRsp{FrameSvr: uint64(echoClient.EntityID)}, nil
 }
 
 func main() {

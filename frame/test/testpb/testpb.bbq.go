@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// testpb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -42,8 +40,9 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "testpb.FrameService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = FrameServiceDesc.TypeName
 	pkt.Header.Method = "StartFrame"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -71,7 +70,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(StartFrameRsp)
 			reqbuf := pkt.PacketBody()
@@ -83,7 +82,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -190,9 +189,9 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *c
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 

@@ -9,15 +9,16 @@ message PingPong{
 }
  
 message RegisterProxyRequest{
-	string ProxyID = 1;
+	uint32 ProxyID = 1;
 }
 
 message RegisterProxyResponse{
-	repeated string SvcNames = 1;
+	repeated string ServiceNames = 1;
+	repeated string EntityNames = 2;
 }
 
 message SyncServiceRequest{
-	string ProxyID = 1;
+	uint32 ProxyID = 1;
 	string SvcName = 2;
 }
 
@@ -35,11 +36,11 @@ service ProxyEty {
 }
 
 message RegisterInstRequest{
-	string InstID = 1;
+	uint32 InstID = 1; //uint16
 }
 
 message RegisterInstResponse{
-	string ProxyID = 1;
+	uint32 ProxyID = 1;//uint16
 }
 
 message RegisterServiceRequest{

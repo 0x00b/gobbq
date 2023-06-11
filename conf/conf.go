@@ -34,7 +34,7 @@ type CommConf struct {
 
 type Inst struct {
 	CommConf
-	ID   string `yaml:"id"`  //   - id: 1
+	ID   uint64 `yaml:"id"`  //   - id: 1
 	Net  string `yaml:"net"` //     net: "tcp" # kcp, websocket
 	IP   string `yaml:"ip"`
 	Port string `yaml:"port"` //     port: 49551

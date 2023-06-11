@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/tool/utils"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -64,8 +63,8 @@ func (st *conn) Close(closeChan chan struct{}) error {
 	return nil
 }
 
-func (st *conn) SendPackt(pkt *codec.Packet) error {
-	return st.packetReadWriter.SendPackt(pkt)
+func (st *conn) SendPacket(pkt *codec.Packet) error {
+	return st.packetReadWriter.SendPacket(pkt)
 }
 
 func (st *conn) Serve() {
@@ -94,9 +93,9 @@ func (st *conn) Serve() {
 		// todo
 		// kcp需要实现断连逻辑，否则无法释放gorountine， 因为read的write不会返回
 
-		xlog.Traceln("serve 3", utils.GoID())
+		// xlog.Traceln("serve 3", utils.GoID())
 		pkt, release, err := st.packetReadWriter.ReadPacket()
-		xlog.Traceln("serve 4")
+		// xlog.Traceln("serve 4")
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
 				st.handleEOF(err)
@@ -110,9 +109,9 @@ func (st *conn) Serve() {
 			return
 		}
 
-		xlog.Traceln("serve 5")
+		// xlog.Traceln("serve 5")
 		err = st.handle(pkt, release)
-		xlog.Traceln("serve 6")
+		// xlog.Traceln("serve 6")
 		if err != nil {
 			xlog.Errorln("handle failed", err)
 		}

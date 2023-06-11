@@ -5,17 +5,10 @@ import (
 
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
-	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-type ProxySvc struct {
-	*Proxy
-
-	entity.Service
-}
 
 func main() {
 
@@ -30,7 +23,7 @@ func main() {
 	p := NewProxy()
 
 	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
-	proxypb.RegisterProxySvcService(p.EntityMgr, &ProxySvc{Proxy: p})
+	proxypb.RegisterProxySvcService(p.EntityMgr, &ProxySvc{proxy: p})
 
 	p.RegisterNetService(nets.NewNetService(
 		nets.WithPacketHandler(p),

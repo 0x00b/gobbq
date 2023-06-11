@@ -8,7 +8,7 @@ import "google/protobuf/empty.proto";
 message SayHelloRequest{
 	string text = 1;
 
-	bbq.EntityID CLientID = 2;
+	uint64 CLientID = 2;
 }
 
 message SayHelloResponse{

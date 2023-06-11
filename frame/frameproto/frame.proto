@@ -47,7 +47,7 @@ message InputReq{
 }
 
 message FrameData {
-	bbq.EntityID CLientID = 1;
+	uint64 CLientID = 1;
 	Position Pos = 2;
 	repeated InputData Data = 3;
 }
@@ -68,7 +68,6 @@ message InitRsp{
 }
 
 message JoinReq{
-	bbq.EntityID CLientID = 1;
 }
 
 message JoinRsp{

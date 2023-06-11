@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -42,8 +40,9 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = GateServiceDesc.TypeName
 	pkt.Header.Method = "RegisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -71,7 +70,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
@@ -83,7 +82,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -119,8 +118,9 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = GateServiceDesc.TypeName
 	pkt.Header.Method = "UnregisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -147,7 +147,7 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -167,8 +167,9 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "gatepb.GateService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = GateServiceDesc.TypeName
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -196,7 +197,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -208,7 +209,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -321,9 +322,9 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -447,9 +448,9 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Pa
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 

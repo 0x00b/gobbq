@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -24,7 +22,7 @@ func RegisterProxyEtyEntity(etyMgr *entity.EntityManager, impl ProxyEtyEntity) {
 	etyMgr.RegisterEntityDesc(&ProxyEtyEntityDesc, impl)
 }
 
-func NewProxyEtyEntityClient(eid *bbq.EntityID) *proxyEtyEntity {
+func NewProxyEtyEntityClient(eid entity.EntityID) *proxyEtyEntity {
 	t := &proxyEtyEntity{
 		EntityID: eid,
 	}
@@ -33,13 +31,13 @@ func NewProxyEtyEntityClient(eid *bbq.EntityID) *proxyEtyEntity {
 
 func NewProxyEtyEntity(c entity.Context) *proxyEtyEntity {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewProxyEtyEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID("proxypb.ProxyEtyEntity"))
+	return NewProxyEtyEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewProxyEtyEntityWithID(c entity.Context, id *bbq.EntityID) *proxyEtyEntity {
+func NewProxyEtyEntityWithID(c entity.Context, id entity.EntityID) *proxyEtyEntity {
 
 	etyMgr := entity.GetEntityMgr(c)
-	_, err := etyMgr.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id, ProxyEtyEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -52,7 +50,7 @@ func NewProxyEtyEntityWithID(c entity.Context, id *bbq.EntityID) *proxyEtyEntity
 }
 
 type proxyEtyEntity struct {
-	EntityID *bbq.EntityID
+	EntityID entity.EntityID
 }
 
 func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
@@ -65,8 +63,9 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
 	pkt.Header.Method = "RegisterProxy"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -94,7 +93,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterProxyResponse)
 			reqbuf := pkt.PacketBody()
@@ -106,7 +105,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -142,8 +141,9 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
 	pkt.Header.Method = "SyncService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -171,7 +171,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(SyncServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -183,7 +183,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -219,8 +219,9 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = t.EntityID
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -248,7 +249,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -260,7 +261,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -373,9 +374,9 @@ func _ProxyEtyEntity_RegisterProxy_Remote_Handler(svc any, ctx entity.Context, p
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -454,9 +455,9 @@ func _ProxyEtyEntity_SyncService_Remote_Handler(svc any, ctx entity.Context, pkt
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -535,9 +536,9 @@ func _ProxyEtyEntity_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -592,8 +593,9 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxySvcService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = ProxySvcServiceDesc.TypeName
 	pkt.Header.Method = "RegisterInst"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -621,7 +623,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterInstResponse)
 			reqbuf := pkt.PacketBody()
@@ -633,7 +635,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -669,8 +671,9 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxySvcService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = ProxySvcServiceDesc.TypeName
 	pkt.Header.Method = "RegisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -698,7 +701,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -710,7 +713,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -746,8 +749,9 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxySvcService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = ProxySvcServiceDesc.TypeName
 	pkt.Header.Method = "UnregisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -775,7 +779,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
@@ -787,7 +791,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -823,8 +827,9 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
 	pkt.Header.ServiceType = bbq.ServiceType_Service
-	pkt.Header.SrcEntity = c.EntityID()
-	pkt.Header.DstEntity = &bbq.EntityID{Type: "proxypb.ProxySvcService"}
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = 0
+	pkt.Header.Type = ProxySvcServiceDesc.TypeName
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
@@ -852,7 +857,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPackt
+		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
@@ -864,7 +869,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -980,9 +985,9 @@ func _ProxySvcService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, p
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -1061,9 +1066,9 @@ func _ProxySvcService_RegisterService_Remote_Handler(svc any, ctx entity.Context
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -1142,9 +1147,9 @@ func _ProxySvcService_UnregisterService_Remote_Handler(svc any, ctx entity.Conte
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 
@@ -1223,9 +1228,9 @@ func _ProxySvcService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *code
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 

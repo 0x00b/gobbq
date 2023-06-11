@@ -16,7 +16,7 @@ func TestTcpClient(m *testing.T) {
 	// defer release()
 
 	// pkt.WriteBody([]byte("dsfsdfs"))
-	// ws.SendPackt(pkt)
+	// ws.SendPacket(pkt)
 
 	// if pkt, release, err = ws.ReadPacket(); err != nil {
 	// 	log.Fatal(err)

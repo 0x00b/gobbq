@@ -16,7 +16,7 @@ type TestPacket struct {
 
 func (tp *TestPacket) HandlePacket(pkt *codec.Packet) error {
 
-	pkt.Src.SendPackt(pkt)
+	pkt.Src.SendPacket(pkt)
 
 	fmt.Println(pkt.String())
 

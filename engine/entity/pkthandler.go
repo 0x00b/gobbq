@@ -40,7 +40,7 @@ func (st *EntityManager) HandlePacket(pkt *codec.Packet) error {
 func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
 
 	hdr := pkt.Header
-	service := hdr.DstEntity.Type
+	service := hdr.Type
 
 	svc, ok := st.Services[service]
 	if !ok {
@@ -55,8 +55,8 @@ func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
 
 func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
-	eid := pkt.Header.GetDstEntity()
-	if eid == nil && eid.ID == "" {
+	eid := DstEntity(pkt)
+	if eid.Invalid() {
 		xlog.Traceln("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
 		return ErrEmptyEntityID
 	}
@@ -65,9 +65,9 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
 	st.mu.RLock()
 	defer st.mu.RUnlock()
-	entity, ok := st.Entities[eid.ID]
+	entity, ok := st.Entities[eid.ID()]
 	if !ok {
-		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID)
+		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
 		return ErrEntityNotFound
 	}
 
@@ -93,7 +93,7 @@ func (st *EntityManager) LocalCall(pkt *codec.Packet, in any, respChan chan any)
 
 func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respChan chan any) error {
 
-	service := pkt.Header.DstEntity.Type
+	service := pkt.Header.Type
 
 	ss, ok := st.Services[service]
 	if !ok {
@@ -110,16 +110,16 @@ func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respCh
 
 	// xlog.Traceln("handleLocalCallEntity 1", pkt.Header.String())
 
-	ety := pkt.Header.GetDstEntity()
-	if ety == nil {
+	eid := DstEntity(pkt)
+	if eid.Invalid() {
 		return ErrEmptyEntityID
 	}
 
 	st.mu.RLock()
 	defer st.mu.RUnlock()
-	entity, ok := st.Entities[(ety.ID)]
+	entity, ok := st.Entities[eid.ID()]
 	if !ok {
-		xlog.Traceln("entity not found in local", unsafe.Pointer(st), ety.ID)
+		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
 		return ErrEntityNotFound
 	}
 	// xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())

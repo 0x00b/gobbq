@@ -5,23 +5,39 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
 
 type IService interface {
 	IBaseEntity
 
+	ServiceDesc() *EntityDesc
+	SetServiceDesc(desc *EntityDesc)
+
 	serviceType()
 }
 
 type Service struct {
 	baseEntity
+
+	desc *EntityDesc
+}
+
+func (s *Service) ServiceDesc() *EntityDesc {
+	return s.desc
+}
+
+func (s *Service) SetServiceDesc(desc *EntityDesc) {
+	s.desc = desc
+}
+
+func (s *Service) getEntityMgr() *EntityManager {
+	return s.desc.EntityMgr
 }
 
 func (e *Service) serviceType() {}
 
-func (e *Service) onInit(c Context, cancel func(), id *bbq.EntityID) {
+func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 	e.context = c
 	e.cancel = cancel
 	e.entityID = id
@@ -36,7 +52,7 @@ func (e *Service) onInit(c Context, cancel func(), id *bbq.EntityID) {
 	e.OnInit()
 }
 
-func (e *Service) Run() {
+func (e *Service) Run(doneWg *sync.WaitGroup) {
 	xlog.Traceln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
@@ -46,6 +62,10 @@ func (e *Service) Run() {
 		// todo unregister service, and svcentity
 
 	}()
+
+	if doneWg != nil {
+		doneWg.Done()
+	}
 
 	// async request, responese
 	for {
@@ -65,7 +85,7 @@ func (e *Service) Run() {
 				defer release()
 				defer wg.Done()
 
-				err := e.handleCallMethod(ctx, pkt)
+				err := e.handleCallMethod(ctx, pkt, e.ServiceDesc())
 				if err != nil {
 					xlog.Errorln(err)
 				}
@@ -80,7 +100,7 @@ func (e *Service) Run() {
 				defer release()
 				defer wg.Done()
 
-				err := e.handleLocalCallMethod(ctx, lc)
+				err := e.handleLocalCallMethod(ctx, lc, e.ServiceDesc())
 				if err != nil {
 					xlog.Errorln(err)
 				}

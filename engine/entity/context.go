@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/proto/bbq"
 )
 
 type Context interface {
@@ -23,11 +22,11 @@ type Context interface {
 
 	Entity() IBaseEntity
 
-	EntityID() *bbq.EntityID
+	EntityID() EntityID
 
 	Packet() *codec.Packet
 
-	SrcEntity() *bbq.EntityID
+	SrcEntity() EntityID
 
 	/************************************/
 	/******** METADATA MANAGEMENT********/
@@ -133,7 +132,7 @@ func GetEntityMgr(c Context) *EntityManager {
 	// if ok && v != nil {
 	// 	return v.(*EntityManager)
 	// }
-	return c.Entity().Desc().EntityMgr
+	return c.Entity().getEntityMgr()
 }
 
 // func SetEntityMgr(c Context, em *EntityManager) {
@@ -217,8 +216,8 @@ func (c *baseContext) setPacket(pkt *codec.Packet) {
 	c.pkt = pkt
 }
 
-func (c *baseContext) SrcEntity() *bbq.EntityID {
-	return c.pkt.Header.SrcEntity
+func (c *baseContext) SrcEntity() EntityID {
+	return EntityID(c.pkt.Header.GetSrcEntity())
 }
 
 func (c *baseContext) Copy() (Context, releaseCtx) {
@@ -247,7 +246,7 @@ func (c *baseContext) reset() {
 	c.err = nil
 }
 
-func (c *baseContext) EntityID() *bbq.EntityID {
+func (c *baseContext) EntityID() EntityID {
 	return c.entity.EntityID()
 }
 

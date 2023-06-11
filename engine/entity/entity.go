@@ -11,56 +11,60 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
-type EntityIDGenerator interface {
-	NewEntityID(typeName string) *bbq.EntityID
-}
-
 var _ IEntity = &Entity{}
 
 type Entity struct {
 	baseEntity
+	desc *EntityDesc
 }
 
 func (e *Entity) entityType() {}
 
+func (e *Entity) EntityDesc() *EntityDesc {
+	return e.desc
+}
+
+func (e *Entity) SetEntityDesc(desc *EntityDesc) {
+	e.desc = desc
+}
+
+func (e *Entity) getEntityMgr() *EntityManager {
+	return e.desc.EntityMgr
+}
+
 type IBaseEntity interface {
 
 	// EntityID
-	EntityID() *bbq.EntityID
+	EntityID() EntityID
 
 	// Entity Lifetime
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
 	OnDestroy() // Called when entity is destroying (just before destroy)
 
-	Desc() *EntityDesc
-
 	Context() Context
 
-	Run()
+	Run(wg *sync.WaitGroup)
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
 
-	SetDesc(desc *EntityDesc)
-
 	// AddCallback 直接用，不需要重写，除非有特殊需求
 	AddCallback(d time.Duration, callback timer.CallbackFunc)
-
 	// AddTimer 直接用，不需要重写，除非有特殊需求
 	AddTimer(d time.Duration, callback timer.CallbackFunc)
-
 	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
 	OnTick()
 
 	// Watch/unwatch entity
 
 	// === for inner ===
+	getEntityMgr() *EntityManager
 
 	registerCallback(requestID string, cb Callback)
 	popCallback(requestID string) (Callback, bool)
 
-	onInit(c Context, cancel func(), id *bbq.EntityID)
+	onInit(c Context, cancel func(), id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
@@ -72,6 +76,9 @@ type IBaseEntity interface {
 
 type IEntity interface {
 	IBaseEntity
+
+	EntityDesc() *EntityDesc
+	SetEntityDesc(desc *EntityDesc)
 
 	entityType()
 }
@@ -111,7 +118,7 @@ type localCall struct {
 
 type baseEntity struct {
 	// id
-	entityID *bbq.EntityID
+	entityID EntityID
 
 	// 	// status
 	// （1）0，待运行：异常重启后恢复，未恢复完前的状态
@@ -123,8 +130,6 @@ type baseEntity struct {
 	// context
 	context Context
 	cancel  func()
-
-	desc *EntityDesc
 
 	callChan      chan *codec.Packet
 	localCallChan chan *localCall
@@ -140,7 +145,7 @@ type baseEntity struct {
 	ticker <-chan time.Time
 }
 
-func (e *baseEntity) Run() {
+func (e *Entity) Run(doneWg *sync.WaitGroup) {
 	xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
@@ -153,8 +158,16 @@ func (e *baseEntity) Run() {
 
 	}()
 
+	if doneWg != nil {
+		doneWg.Add(1)
+	}
+
 	// response
 	go func() {
+		if doneWg != nil {
+			doneWg.Done()
+		}
+
 		for {
 			select {
 			case <-e.context.Done():
@@ -169,6 +182,10 @@ func (e *baseEntity) Run() {
 		}
 	}()
 
+	if doneWg != nil {
+		doneWg.Done()
+	}
+
 	// request, sync
 	for {
 		select {
@@ -179,7 +196,7 @@ func (e *baseEntity) Run() {
 		case pkt := <-e.callChan:
 			wg.Add(1)
 			xlog.Tracef("handle: %s", pkt.String())
-			err := e.handleCallMethod(e.context, pkt)
+			err := e.handleCallMethod(e.context, pkt, e.EntityDesc())
 			if err != nil {
 				xlog.Errorln(err)
 			}
@@ -189,7 +206,7 @@ func (e *baseEntity) Run() {
 		case lc := <-e.localCallChan:
 			wg.Add(1)
 			xlog.Tracef("handle local call: %s", lc.pkt.String())
-			err := e.handleLocalCallMethod(e.context, lc)
+			err := e.handleLocalCallMethod(e.context, lc, e.EntityDesc())
 			if err != nil {
 				xlog.Errorln(err)
 			}
@@ -237,7 +254,7 @@ func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
 	return cb, true
 }
 
-func (e *baseEntity) onInit(c Context, cancel func(), id *bbq.EntityID) {
+func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
 	e.context = c
 	e.cancel = cancel
 	e.entityID = id
@@ -257,10 +274,6 @@ func (e *baseEntity) onDestroy() {
 	e.OnDestroy()
 
 	releaseContext(e.context)
-}
-
-func (e *baseEntity) SetDesc(desc *EntityDesc) {
-	e.desc = desc
 }
 
 func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
@@ -315,14 +328,13 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
 	return nil
 }
 
-func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
+func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) error {
 	defer lc.pkt.Release()
 
 	e.initContext(c, lc.pkt)
 
 	hdr := lc.pkt.Header
 
-	sd := e.desc
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
 		return ErrMethodNotFound
@@ -345,12 +357,10 @@ func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall) error {
 	return err
 }
 
-func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet) error {
+func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet, sd *EntityDesc) error {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
-
-	sd := e.desc
 
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
@@ -378,11 +388,10 @@ func (e *baseEntity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
 func (e *baseEntity) setParant(svc IBaseEntity)   {}
 func (e *baseEntity) addChildren(ety IBaseEntity) {}
 
-func (e *baseEntity) OnInit()                 {}
-func (e *baseEntity) OnDestroy()              {}
-func (e *baseEntity) Desc() *EntityDesc       { return e.desc }
-func (e *baseEntity) OnMigrateOut()           {} // Called just before entity is migrating out
-func (e *baseEntity) OnMigrateIn()            {} // Called just after entity is migrating in
-func (e *baseEntity) Context() Context        { return e.context }
-func (e *baseEntity) OnTick()                 {}
-func (e *baseEntity) EntityID() *bbq.EntityID { return e.entityID }
+func (e *baseEntity) OnInit()            {}
+func (e *baseEntity) OnDestroy()         {}
+func (e *baseEntity) OnMigrateOut()      {} // Called just before entity is migrating out
+func (e *baseEntity) OnMigrateIn()       {} // Called just after entity is migrating in
+func (e *baseEntity) Context() Context   { return e.context }
+func (e *baseEntity) OnTick()            {}
+func (e *baseEntity) EntityID() EntityID { return e.entityID }

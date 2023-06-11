@@ -37,7 +37,7 @@ type writer struct {
 // The error returned will be nil if the specified level is valid.
 func SetLevel(level int) error {
 	if level < gzip.DefaultCompression || level > gzip.BestCompression {
-		return fmt.Errorf("grpc: invalid gzip compression level: %d", level)
+		return fmt.Errorf("gobbq: invalid gzip compression level: %d", level)
 	}
 	c := GetCompressor(bbq.CompressType_Gzip).(*compressor)
 	c.poolCompressor.New = func() any {

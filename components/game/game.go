@@ -1,6 +1,7 @@
 package game
 
 import (
+	"sync"
 	"time"
 
 	"github.com/0x00b/gobbq/components/proxy/ex"
@@ -8,7 +9,6 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -16,9 +16,9 @@ import (
 type Game struct {
 	entity.Entity
 
-	ProxyID string
-
 	EntityMgr *entity.EntityManager
+
+	entityID entity.EntityID
 }
 
 func NewGame() *Game {
@@ -31,20 +31,30 @@ func NewGame() *Game {
 	gm.EntityMgr.ProxyRegister = gm
 	gm.EntityMgr.EntityIDGenerator = gm
 
-	eid := snowflake.GenUUID()
+	eid := uint16(snowflake.GenIDU32())
 
 	desc := entity.EntityDesc{}
 	desc.EntityImpl = gm
 	desc.EntityMgr = gm.EntityMgr
-	gm.SetDesc(&desc)
+	gm.SetEntityDesc(&desc)
 
-	gm.EntityMgr.RegisterEntity(nil, &bbq.EntityID{ID: eid, ProxyID: eid}, gm)
+	gm.entityID = entity.FixedEntityID(0, entity.InstID(eid), entity.ID(eid))
 
-	go gm.Run()
+	gm.EntityMgr.RegisterEntity(nil, gm.entityID, gm)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go gm.Run(&wg)
+	wg.Wait()
 
 	gm.init()
 
 	return gm
+}
+
+// EntityID 重写
+func (g *Game) EntityID() entity.EntityID {
+	return g.entityID
 }
 
 func (g *Game) init() {
@@ -56,16 +66,17 @@ func (g *Game) init() {
 	client := proxypb.NewProxySvcServiceClient()
 
 	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{
-		InstID: g.EntityID().ID,
+		InstID: uint32(g.EntityID().InstID()),
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	g.ProxyID = rsp.ProxyID
+	proxyID := entity.ProxyID(rsp.GetProxyID())
+	g.entityID = entity.FixedEntityID(proxyID, g.Entity.EntityID().InstID(), g.Entity.EntityID().ID())
 }
 
-// func (g *Game) RegisterEntityToProxy(eid *bbq.EntityID) error {
+// func (g *Game) RegisterEntityToProxy(eid entity.EntityID) error {
 
 // 	client := proxypb.NewProxySvcServiceClient()
 
@@ -92,8 +103,8 @@ func (g *Game) RegisterServiceToProxy(svcName string) error {
 	return nil
 }
 
-func (g *Game) NewEntityID(typeName string) *bbq.EntityID {
-	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: typeName, ProxyID: g.ProxyID, InstID: g.EntityID().ID}
+func (g *Game) NewEntityID() entity.EntityID {
+	return entity.NewEntityID(g.EntityID().ProxyID(), g.EntityID().InstID())
 }
 
 func (g *Game) Serve() {

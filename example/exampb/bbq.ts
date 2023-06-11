@@ -1,4 +1,5 @@
 /* eslint-disable */
+import * as Long from "long";
 import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "bbq";
@@ -131,17 +132,6 @@ export function serviceTypeToJSON(object: ServiceType): string {
   }
 }
 
-export interface EntityID {
-  /** 记录Entity所在的proxy */
-  ProxyID: string;
-  /** proxy上记录有哪些InstID */
-  InstID: string;
-  /** 具体的Entity在Inst上 */
-  ID: string;
-  /** 具体的entity的类型 */
-  Type: string;
-}
-
 /** 请求协议头 */
 export interface Header {
   /** 协议版本 */
@@ -155,13 +145,11 @@ export interface Header {
   /** sverice or entity */
   ServiceType: ServiceType;
   /** 调用的原EntityID */
-  SrcEntity:
-    | EntityID
-    | undefined;
+  SrcEntity: number;
   /** 调用的目的EntityID */
-  DstEntity:
-    | EntityID
-    | undefined;
+  DstEntity: number;
+  /** 规范格式: 类名，服务名 */
+  Type: string;
   /** 规范格式: 接口名 */
   Method: string;
   /**
@@ -190,86 +178,6 @@ export interface Header_TransInfoEntry {
   value: Uint8Array;
 }
 
-function createBaseEntityID(): EntityID {
-  return { ProxyID: "", InstID: "", ID: "", Type: "" };
-}
-
-export const EntityID = {
-  encode(message: EntityID, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.ProxyID !== "") {
-      writer.uint32(10).string(message.ProxyID);
-    }
-    if (message.InstID !== "") {
-      writer.uint32(18).string(message.InstID);
-    }
-    if (message.ID !== "") {
-      writer.uint32(26).string(message.ID);
-    }
-    if (message.Type !== "") {
-      writer.uint32(34).string(message.Type);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): EntityID {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEntityID();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.ProxyID = reader.string();
-          break;
-        case 2:
-          message.InstID = reader.string();
-          break;
-        case 3:
-          message.ID = reader.string();
-          break;
-        case 4:
-          message.Type = reader.string();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  fromJSON(object: any): EntityID {
-    return {
-      ProxyID: isSet(object.ProxyID) ? String(object.ProxyID) : "",
-      InstID: isSet(object.InstID) ? String(object.InstID) : "",
-      ID: isSet(object.ID) ? String(object.ID) : "",
-      Type: isSet(object.Type) ? String(object.Type) : "",
-    };
-  },
-
-  toJSON(message: EntityID): unknown {
-    const obj: any = {};
-    message.ProxyID !== undefined && (obj.ProxyID = message.ProxyID);
-    message.InstID !== undefined && (obj.InstID = message.InstID);
-    message.ID !== undefined && (obj.ID = message.ID);
-    message.Type !== undefined && (obj.Type = message.Type);
-    return obj;
-  },
-
-  create(base?: DeepPartial<EntityID>): EntityID {
-    return EntityID.fromPartial(base ?? {});
-  },
-
-  fromPartial(object: DeepPartial<EntityID>): EntityID {
-    const message = createBaseEntityID();
-    message.ProxyID = object.ProxyID ?? "";
-    message.InstID = object.InstID ?? "";
-    message.ID = object.ID ?? "";
-    message.Type = object.Type ?? "";
-    return message;
-  },
-};
-
 function createBaseHeader(): Header {
   return {
     Version: 0,
@@ -277,8 +185,9 @@ function createBaseHeader(): Header {
     Timeout: 0,
     RequestType: 0,
     ServiceType: 0,
-    SrcEntity: undefined,
-    DstEntity: undefined,
+    SrcEntity: 0,
+    DstEntity: 0,
+    Type: "",
     Method: "",
     ContentType: 0,
     CompressType: 0,
@@ -306,32 +215,35 @@ export const Header = {
     if (message.ServiceType !== 0) {
       writer.uint32(40).int32(message.ServiceType);
     }
-    if (message.SrcEntity !== undefined) {
-      EntityID.encode(message.SrcEntity, writer.uint32(50).fork()).ldelim();
+    if (message.SrcEntity !== 0) {
+      writer.uint32(48).uint64(message.SrcEntity);
     }
-    if (message.DstEntity !== undefined) {
-      EntityID.encode(message.DstEntity, writer.uint32(58).fork()).ldelim();
+    if (message.DstEntity !== 0) {
+      writer.uint32(56).uint64(message.DstEntity);
+    }
+    if (message.Type !== "") {
+      writer.uint32(66).string(message.Type);
     }
     if (message.Method !== "") {
-      writer.uint32(66).string(message.Method);
+      writer.uint32(74).string(message.Method);
     }
     if (message.ContentType !== 0) {
-      writer.uint32(72).int32(message.ContentType);
+      writer.uint32(80).int32(message.ContentType);
     }
     if (message.CompressType !== 0) {
-      writer.uint32(80).int32(message.CompressType);
+      writer.uint32(88).int32(message.CompressType);
     }
     if (message.CheckFlags !== 0) {
-      writer.uint32(88).uint32(message.CheckFlags);
+      writer.uint32(96).uint32(message.CheckFlags);
     }
     Object.entries(message.TransInfo).forEach(([key, value]) => {
-      Header_TransInfoEntry.encode({ key: key as any, value }, writer.uint32(98).fork()).ldelim();
+      Header_TransInfoEntry.encode({ key: key as any, value }, writer.uint32(106).fork()).ldelim();
     });
     if (message.ErrCode !== 0) {
-      writer.uint32(104).int32(message.ErrCode);
+      writer.uint32(112).int32(message.ErrCode);
     }
     if (message.ErrMsg !== "") {
-      writer.uint32(114).string(message.ErrMsg);
+      writer.uint32(122).string(message.ErrMsg);
     }
     return writer;
   },
@@ -359,33 +271,36 @@ export const Header = {
           message.ServiceType = reader.int32() as any;
           break;
         case 6:
-          message.SrcEntity = EntityID.decode(reader, reader.uint32());
+          message.SrcEntity = longToNumber(reader.uint64() as Long);
           break;
         case 7:
-          message.DstEntity = EntityID.decode(reader, reader.uint32());
+          message.DstEntity = longToNumber(reader.uint64() as Long);
           break;
         case 8:
-          message.Method = reader.string();
+          message.Type = reader.string();
           break;
         case 9:
-          message.ContentType = reader.int32() as any;
+          message.Method = reader.string();
           break;
         case 10:
-          message.CompressType = reader.int32() as any;
+          message.ContentType = reader.int32() as any;
           break;
         case 11:
-          message.CheckFlags = reader.uint32();
+          message.CompressType = reader.int32() as any;
           break;
         case 12:
-          const entry12 = Header_TransInfoEntry.decode(reader, reader.uint32());
-          if (entry12.value !== undefined) {
-            message.TransInfo[entry12.key] = entry12.value;
-          }
+          message.CheckFlags = reader.uint32();
           break;
         case 13:
-          message.ErrCode = reader.int32();
+          const entry13 = Header_TransInfoEntry.decode(reader, reader.uint32());
+          if (entry13.value !== undefined) {
+            message.TransInfo[entry13.key] = entry13.value;
+          }
           break;
         case 14:
+          message.ErrCode = reader.int32();
+          break;
+        case 15:
           message.ErrMsg = reader.string();
           break;
         default:
@@ -403,8 +318,9 @@ export const Header = {
       Timeout: isSet(object.Timeout) ? Number(object.Timeout) : 0,
       RequestType: isSet(object.RequestType) ? requestTypeFromJSON(object.RequestType) : 0,
       ServiceType: isSet(object.ServiceType) ? serviceTypeFromJSON(object.ServiceType) : 0,
-      SrcEntity: isSet(object.SrcEntity) ? EntityID.fromJSON(object.SrcEntity) : undefined,
-      DstEntity: isSet(object.DstEntity) ? EntityID.fromJSON(object.DstEntity) : undefined,
+      SrcEntity: isSet(object.SrcEntity) ? Number(object.SrcEntity) : 0,
+      DstEntity: isSet(object.DstEntity) ? Number(object.DstEntity) : 0,
+      Type: isSet(object.Type) ? String(object.Type) : "",
       Method: isSet(object.Method) ? String(object.Method) : "",
       ContentType: isSet(object.ContentType) ? contentTypeFromJSON(object.ContentType) : 0,
       CompressType: isSet(object.CompressType) ? compressTypeFromJSON(object.CompressType) : 0,
@@ -427,10 +343,9 @@ export const Header = {
     message.Timeout !== undefined && (obj.Timeout = Math.round(message.Timeout));
     message.RequestType !== undefined && (obj.RequestType = requestTypeToJSON(message.RequestType));
     message.ServiceType !== undefined && (obj.ServiceType = serviceTypeToJSON(message.ServiceType));
-    message.SrcEntity !== undefined &&
-      (obj.SrcEntity = message.SrcEntity ? EntityID.toJSON(message.SrcEntity) : undefined);
-    message.DstEntity !== undefined &&
-      (obj.DstEntity = message.DstEntity ? EntityID.toJSON(message.DstEntity) : undefined);
+    message.SrcEntity !== undefined && (obj.SrcEntity = Math.round(message.SrcEntity));
+    message.DstEntity !== undefined && (obj.DstEntity = Math.round(message.DstEntity));
+    message.Type !== undefined && (obj.Type = message.Type);
     message.Method !== undefined && (obj.Method = message.Method);
     message.ContentType !== undefined && (obj.ContentType = contentTypeToJSON(message.ContentType));
     message.CompressType !== undefined && (obj.CompressType = compressTypeToJSON(message.CompressType));
@@ -457,12 +372,9 @@ export const Header = {
     message.Timeout = object.Timeout ?? 0;
     message.RequestType = object.RequestType ?? 0;
     message.ServiceType = object.ServiceType ?? 0;
-    message.SrcEntity = (object.SrcEntity !== undefined && object.SrcEntity !== null)
-      ? EntityID.fromPartial(object.SrcEntity)
-      : undefined;
-    message.DstEntity = (object.DstEntity !== undefined && object.DstEntity !== null)
-      ? EntityID.fromPartial(object.DstEntity)
-      : undefined;
+    message.SrcEntity = object.SrcEntity ?? 0;
+    message.DstEntity = object.DstEntity ?? 0;
+    message.Type = object.Type ?? "";
     message.Method = object.Method ?? "";
     message.ContentType = object.ContentType ?? 0;
     message.CompressType = object.CompressType ?? 0;
@@ -596,6 +508,20 @@ export type DeepPartial<T> = T extends Builtin ? T
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
+
+function longToNumber(long: Long): number {
+  if (long.gt(Number.MAX_SAFE_INTEGER)) {
+    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  return long.toNumber();
+}
+
+// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
+// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
+if (_m0.util.Long !== Long) {
+  _m0.util.Long = Long as any;
+  _m0.configure();
+}
 
 function isObject(value: any): boolean {
   return typeof value === "object" && value !== null;

@@ -5,7 +5,6 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
@@ -15,6 +14,8 @@ type Client struct {
 	Gate *nets.Client
 
 	EntityMgr *entity.EntityManager
+
+	entityID entity.EntityID
 }
 
 func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.ServerInterceptor) *Client {
@@ -34,9 +35,10 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 
 	client.EntityMgr.RegisterEntityDesc(sd, ss)
 
-	eid := &bbq.EntityID{ID: snowflake.GenUUID(), Type: sd.TypeName}
+	eid := snowflake.GenIDU32()
+	client.entityID = entity.FixedEntityID(0, 0, entity.ID(eid))
 
-	client.IEntity, err = client.EntityMgr.NewEntity(nil, eid)
+	client.IEntity, err = client.EntityMgr.NewEntity(nil, client.entityID, sd.TypeName)
 	if err != nil {
 		panic(err)
 	}
@@ -53,14 +55,22 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 
 	// time.Sleep(1 * time.Second)
 
-	rsp, err := gateSvc.RegisterClient(client.Context(), &gatepb.RegisterClientRequest{EntityID: client.EntityID()})
+	rsp, err := gateSvc.RegisterClient(client.Context(), &gatepb.RegisterClientRequest{
+		// EntityID: uint64(client.IEntity.EntityID().ID()),
+	})
 
 	if err != nil {
 		panic(err)
 	}
 
-	client.EntityID().ProxyID = rsp.EntityID.ProxyID
-	client.EntityID().InstID = rsp.EntityID.ID
+	newID := entity.EntityID(rsp.GetEntityID())
+	client.EntityMgr.ReplaceEntityID(client.Context(), client.entityID, newID)
+	client.entityID = newID
 
 	return client
+}
+
+// EntityID 重写EntityID
+func (c *Client) EntityID() entity.EntityID {
+	return c.entityID
 }

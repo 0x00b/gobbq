@@ -54,7 +54,7 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterEntityDesc(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(eid *bbq.EntityID) *{{lowerCamelcase $typeName}} {
+func New{{$typeName}}Client(eid entity.EntityID) *{{lowerCamelcase $typeName}} {
 	t := &{{lowerCamelcase $typeName}}{
 		EntityID:eid,
 	}
@@ -63,13 +63,13 @@ func New{{$typeName}}Client(eid *bbq.EntityID) *{{lowerCamelcase $typeName}} {
 
 func New{{$typeName}}(c entity.Context) *{{lowerCamelcase $typeName}}  {
 	etyMgr := entity.GetEntityMgr(c)
-	return New{{$typeName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID("{{$.GoPackageName}}.{{$typeName}}"))
+	return New{{$typeName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID) *{{lowerCamelcase $typeName}}  {
+func New{{$typeName}}WithID(c entity.Context, id entity.EntityID) *{{lowerCamelcase $typeName}}  {
 
 	etyMgr := entity.GetEntityMgr(c)
-	_, err := etyMgr.NewEntity(c, id)
+	_, err := etyMgr.NewEntity(c, id, {{$typeName}}Desc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
 		return nil
@@ -82,7 +82,7 @@ func New{{$typeName}}WithID(c entity.Context, id *bbq.EntityID) *{{lowerCamelcas
 }
 
 type {{lowerCamelcase $typeName}} struct{
-	EntityID *bbq.EntityID
+	EntityID entity.EntityID
 }
 {{end -}}
 
@@ -102,8 +102,9 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.Timeout=      10
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
-	pkt.Header.SrcEntity =  c.EntityID()
-	pkt.Header.DstEntity = {{if $isSvc}}&bbq.EntityID{Type: "{{$.GoPackageName}}.{{$typeName}}"}{{else}}t.EntityID{{end}}
+	pkt.Header.SrcEntity =   uint64(c.EntityID())
+	pkt.Header.DstEntity =   {{if $isSvc}}0{{else}}uint64(t.EntityID){{end}}
+	pkt.Header.Type = 		 {{$typeName}}Desc.TypeName
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None
@@ -133,7 +134,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 		pkt.WriteBody(hdrBytes)
 
 		{{if $m.HasResponse}}
-			// register callback first, than SendPackt
+			// register callback first, than SendPacket
 			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
@@ -146,7 +147,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 			})
 		{{end}}
 		
-		err = entity.GetRemoteEntityManager(c).SendPackt(pkt)
+		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
 		if err != nil{
 			return {{if $m.HasResponse}}nil,{{end}} err
 		}
@@ -257,6 +258,7 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 	npkt.Header.ServiceType=  hdr.ServiceType
 	npkt.Header.SrcEntity=    hdr.DstEntity
 	npkt.Header.DstEntity=    hdr.SrcEntity
+	npkt.Header.Type=         hdr.Type
 	npkt.Header.Method=       hdr.Method
 	npkt.Header.ContentType=  hdr.ContentType
 	npkt.Header.CompressType= hdr.CompressType
@@ -277,9 +279,9 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 
 		npkt.WriteBody(rb)
 	}
-	err = pkt.Src.SendPackt(npkt)
+	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPackt", err)
+		xlog.Errorln("SendPacket", err)
 		return
 	}
 {{else}}

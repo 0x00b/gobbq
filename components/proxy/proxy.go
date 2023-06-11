@@ -10,7 +10,6 @@ import (
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -34,13 +33,16 @@ func NewProxy() *Proxy {
 	desc := proxypb.ProxyEtyEntityDesc
 	desc.EntityImpl = p
 	desc.EntityMgr = p.EntityMgr
-	p.SetDesc(&desc)
+	p.SetEntityDesc(&desc)
 
-	eid := &bbq.EntityID{ID: conf.C.Proxy.Inst[0].ID, Type: proxypb.ProxyEtyEntityDesc.TypeName}
+	eid := uint16(conf.C.Proxy.Inst[0].ID)
 
-	p.EntityMgr.RegisterEntity(nil, eid, p)
+	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), entity.InstID(eid), entity.ID(eid)), p)
 
-	go p.Run()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go p.Run(&wg)
+	wg.Wait()
 
 	p.ConnOtherProxy(nets.WithPacketHandler(p))
 
@@ -64,13 +66,13 @@ type Proxy struct {
 	proxySvcMap ProxySvcMap
 }
 
-type ProxyMap map[string]*codec.PacketReadWriter
+type ProxyMap map[entity.ProxyID]*codec.PacketReadWriter
 type ProxySvcMap map[string]*codec.PacketReadWriter
-type instMap map[string]*codec.PacketReadWriter
+type instMap map[entity.InstID]*codec.PacketReadWriter
 type serviceMap map[string]*codec.PacketReadWriter
 
 // // RegisterEntity register serive
-func (p *Proxy) registerInst(instID string, prw *codec.PacketReadWriter) {
+func (p *Proxy) registerInst(instID entity.InstID, prw *codec.PacketReadWriter) {
 	p.instMtx.Lock()
 	defer p.instMtx.Unlock()
 	if _, ok := p.instMaps[instID]; ok {
@@ -102,7 +104,7 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 	p.proxySvcMap[svcName] = prw
 }
 
-func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
+func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 
 	// xlog.Debugln("proxy 11")
 	// proxy to inst
@@ -110,10 +112,10 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 		xlog.Debugln("local proxy to id:", eid)
 		p.instMtx.RLock()
 		defer p.instMtx.RUnlock()
-		prw, ok := p.instMaps[eid.GetInstID()]
+		prw, ok := p.instMaps[eid.InstID()]
 		if ok {
 			xlog.Debugln("proxy to id:", eid)
-			prw.SendPackt(pkt)
+			prw.SendPacket(pkt)
 			// xlog.Debugln("proxy 22")
 			return true
 		}
@@ -127,10 +129,10 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 
 	// proxy to other proxy
 	sendProxy := func() bool {
-		proxyID := pkt.Header.DstEntity.ProxyID
+		proxyID := entity.DstEntity(pkt).ProxyID()
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
-			prw.SendPackt(pkt)
+			prw.SendPacket(pkt)
 			// xlog.Debugln("proxy 44")
 			return true
 		}
@@ -148,11 +150,11 @@ func (p *Proxy) ProxyToEntity(eid *bbq.EntityID, pkt *codec.Packet) {
 func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 
 	if hdr.RequestType == bbq.RequestType_RequestRespone {
-		p.ProxyToEntity(pkt.Header.DstEntity, pkt)
+		p.ProxyToEntity(entity.DstEntity(pkt), pkt)
 		return
 	}
 
-	svcType := hdr.DstEntity.Type
+	svcType := hdr.Type
 	// proxy to local
 	sendLocal := func() bool {
 		p.svcMtx.RLock()
@@ -161,7 +163,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 		prw, ok := p.svcMaps[svcType]
 		if ok {
 			xlog.Debugln("proxy to svc", prw)
-			prw.SendPackt(pkt)
+			prw.SendPacket(pkt)
 			return true
 		}
 		return false
@@ -173,10 +175,10 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
 
 	// proxy to other proxy
 	sendProxy := func() bool {
-		typ := pkt.Header.DstEntity.Type
+		typ := pkt.Header.Type
 		prw, ok := p.proxySvcMap[typ]
 		if ok {
-			prw.SendPackt(pkt)
+			prw.SendPacket(pkt)
 			return true
 		}
 		return false
@@ -210,23 +212,26 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 
 		entity.SetRemoteEntityManager(c, prxy)
 
-		rsp, err := proxypb.NewProxyEtyEntityClient(&bbq.EntityID{ID: cfg.ID, ProxyID: cfg.ID}).
+		xlog.Println("RegisterProxy ing...")
+
+		rsp, err := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(cfg.ID), entity.InstID(cfg.ID), entity.ID(cfg.ID))).
 			RegisterProxy(c, &proxypb.RegisterProxyRequest{
-				ProxyID: string(p.EntityID().ID),
+				ProxyID: uint32(p.EntityID().ID()),
 			})
 		if err != nil {
 			panic(err)
 		}
+		xlog.Println("RegisterProxy done...")
 
-		p.proxyMap[cfg.ID] = prxy.GetPacketReadWriter()
-		for _, v := range rsp.SvcNames {
+		p.proxyMap[entity.ProxyID(cfg.ID)] = prxy.GetPacketReadWriter()
+		for _, v := range rsp.ServiceNames {
 			p.RegisterProxyService(v, prxy.GetPacketReadWriter())
 		}
 	}
 }
 
-func (p *Proxy) NewEntityID(tn string) *bbq.EntityID {
-	return &bbq.EntityID{ID: snowflake.GenUUID(), Type: tn, ProxyID: p.EntityID().ID, InstID: p.EntityID().ID}
+func (p *Proxy) NewEntityID() entity.EntityID {
+	return entity.NewEntityID(p.EntityID().ProxyID(), p.EntityID().InstID())
 }
 
 func (p *Proxy) Serve() error {

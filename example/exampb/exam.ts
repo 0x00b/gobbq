@@ -1,13 +1,13 @@
 /* eslint-disable */
+import * as Long from "long";
 import * as _m0 from "protobufjs/minimal";
-import { EntityID } from "./bbq";
 import { Empty } from "./google/protobuf/empty";
 
 export const protobufPackage = "exampb";
 
 export interface SayHelloRequest {
   text: string;
-  CLientID: EntityID | undefined;
+  CLientID: number;
 }
 
 export interface SayHelloResponse {
@@ -15,7 +15,7 @@ export interface SayHelloResponse {
 }
 
 function createBaseSayHelloRequest(): SayHelloRequest {
-  return { text: "", CLientID: undefined };
+  return { text: "", CLientID: 0 };
 }
 
 export const SayHelloRequest = {
@@ -23,8 +23,8 @@ export const SayHelloRequest = {
     if (message.text !== "") {
       writer.uint32(10).string(message.text);
     }
-    if (message.CLientID !== undefined) {
-      EntityID.encode(message.CLientID, writer.uint32(18).fork()).ldelim();
+    if (message.CLientID !== 0) {
+      writer.uint32(16).uint64(message.CLientID);
     }
     return writer;
   },
@@ -40,7 +40,7 @@ export const SayHelloRequest = {
           message.text = reader.string();
           break;
         case 2:
-          message.CLientID = EntityID.decode(reader, reader.uint32());
+          message.CLientID = longToNumber(reader.uint64() as Long);
           break;
         default:
           reader.skipType(tag & 7);
@@ -53,14 +53,14 @@ export const SayHelloRequest = {
   fromJSON(object: any): SayHelloRequest {
     return {
       text: isSet(object.text) ? String(object.text) : "",
-      CLientID: isSet(object.CLientID) ? EntityID.fromJSON(object.CLientID) : undefined,
+      CLientID: isSet(object.CLientID) ? Number(object.CLientID) : 0,
     };
   },
 
   toJSON(message: SayHelloRequest): unknown {
     const obj: any = {};
     message.text !== undefined && (obj.text = message.text);
-    message.CLientID !== undefined && (obj.CLientID = message.CLientID ? EntityID.toJSON(message.CLientID) : undefined);
+    message.CLientID !== undefined && (obj.CLientID = Math.round(message.CLientID));
     return obj;
   },
 
@@ -71,9 +71,7 @@ export const SayHelloRequest = {
   fromPartial(object: DeepPartial<SayHelloRequest>): SayHelloRequest {
     const message = createBaseSayHelloRequest();
     message.text = object.text ?? "";
-    message.CLientID = (object.CLientID !== undefined && object.CLientID !== null)
-      ? EntityID.fromPartial(object.CLientID)
-      : undefined;
+    message.CLientID = object.CLientID ?? 0;
     return message;
   },
 };
@@ -151,6 +149,25 @@ export interface NoResp {
   SayHello(request: SayHelloRequest): Promise<Empty>;
 }
 
+declare var self: any | undefined;
+declare var window: any | undefined;
+declare var global: any | undefined;
+var tsProtoGlobalThis: any = (() => {
+  if (typeof globalThis !== "undefined") {
+    return globalThis;
+  }
+  if (typeof self !== "undefined") {
+    return self;
+  }
+  if (typeof window !== "undefined") {
+    return window;
+  }
+  if (typeof global !== "undefined") {
+    return global;
+  }
+  throw "Unable to locate global object";
+})();
+
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
@@ -158,6 +175,20 @@ export type DeepPartial<T> = T extends Builtin ? T
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
+
+function longToNumber(long: Long): number {
+  if (long.gt(Number.MAX_SAFE_INTEGER)) {
+    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  return long.toNumber();
+}
+
+// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
+// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
+if (_m0.util.Long !== Long) {
+  _m0.util.Long = Long as any;
+  _m0.configure();
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

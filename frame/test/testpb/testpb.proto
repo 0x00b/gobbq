@@ -8,7 +8,7 @@ message StartFrameReq{
 }
 
 message StartFrameRsp{
-	bbq.EntityID FrameSvr = 1;
+	uint64 FrameSvr = 1;
 }
  
 service Frame {

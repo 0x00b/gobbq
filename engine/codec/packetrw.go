@@ -62,8 +62,8 @@ func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWri
 	return pc
 }
 
-// SendPackt write packet data to pc.rw, need to initialize the packet by yourself
-func (pc *PacketReadWriter) SendPackt(packet *Packet) error {
+// SendPacket write packet data to pc.rw, need to initialize the packet by yourself
+func (pc *PacketReadWriter) SendPacket(packet *Packet) error {
 	pdata := packet.Data()
 
 	xlog.Traceln("send raw:", packet.String())
@@ -95,9 +95,9 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 
 	var tempBuff [4]byte
 
-	xlog.Traceln("recv raw 1 ")
+	// xlog.Traceln("recv raw 1 ")
 	_, err = io.ReadFull(pc.rw, tempBuff[:])
-	xlog.Traceln("recv raw 2 ")
+	// xlog.Traceln("recv raw 2 ")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,14 +115,14 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	// xlog.Traceln("recv raw 3 ")
 	//extendPacketBody 返回的时候已经把header buff排除了
 	packetData := packet.extendPacketData(packetDataSize)
-	xlog.Traceln("recv raw 4 ")
+	// xlog.Traceln("recv raw 4 ")
 	_, err = io.ReadFull(pc.rw, packetData)
 	if err != nil {
 		release()
 		return nil, nil, err
 	}
 
-	xlog.Traceln("recv raw 5 ")
+	// xlog.Traceln("recv raw 5 ")
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
 

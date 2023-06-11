@@ -35,12 +35,19 @@ func GenUUID() string {
 	b[7] = byte(pid >> 8)
 	b[8] = byte(pid)
 	// Increment, 3 bytes, big endian
-	i := atomic.AddUint32(&objectIdCounter, 1)
+	i := atomic.AddUint32(&uuIdCounter, 1)
 	b[9] = byte(i >> 16)
 	b[10] = byte(i >> 8)
 	b[11] = byte(i)
 
-	return _UUIDEncoding.EncodeToString(b)
+	return _UUIDEncoding.EncodeToString(b)[:UUID_LENGTH]
+}
+
+func GenIDU32() uint32 {
+
+	i := atomic.AddUint32(&u32IdCounter, 1)
+
+	return i
 }
 
 func GenFixedUUID(b []byte) string {
@@ -58,7 +65,8 @@ func GenFixedUUID(b []byte) string {
 
 // objectIdCounter is atomically incremented when generating a new ObjectId
 // using NewObjectId() function. It's used as a counter part of an id.
-var objectIdCounter uint32
+var uuIdCounter uint32
+var u32IdCounter uint32
 
 // machineId stores machine id generated once and used in subsequent calls
 // to NewObjectId function.

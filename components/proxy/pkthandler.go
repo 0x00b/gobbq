@@ -14,7 +14,7 @@ var _ nets.PacketHandler = &Proxy{}
 
 func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
 
-	xlog.Debugln("proxy 1")
+	// xlog.Debugln("proxy 1")
 
 	hdr := pkt.Header
 
@@ -27,20 +27,21 @@ func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
 		return nil
 	}
 
-	xlog.Debugln("proxy 2")
+	// xlog.Debugln("proxy 2")
 
 	if entity.NotMyMethod(err) {
 		// request
 		// send to game
 		// or send to gate
 		if hdr.ServiceType == bbq.ServiceType_Entity {
-			if hdr.DstEntity == nil {
+			dst := entity.DstEntity(pkt)
+			if dst.Invalid() {
 				xlog.Errorln("bad req header:", hdr.String())
 				return errors.New("bad call, call entity but no dst entity")
 			}
-			xlog.Debugln("proxy 3")
-			p.ProxyToEntity(hdr.DstEntity, pkt)
-			xlog.Debugln("proxy 4")
+			// xlog.Debugln("proxy 3")
+			p.ProxyToEntity(dst, pkt)
+			// xlog.Debugln("proxy 4")
 		} else {
 			// call service
 			p.ProxyToService(hdr, pkt)

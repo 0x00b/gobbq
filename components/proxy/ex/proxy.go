@@ -23,6 +23,6 @@ func ConnProxy(ops ...nets.Option) {
 
 func SendProxy(pkt *codec.Packet) error {
 
-	return ProxyClient.SendPackt(pkt)
+	return ProxyClient.SendPacket(pkt)
 
 }

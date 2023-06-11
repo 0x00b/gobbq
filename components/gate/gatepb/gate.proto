@@ -10,11 +10,11 @@ message PingPong{
 }
 
 message RegisterClientRequest{
-	bbq.EntityID EntityID = 1;
+	uint64 EntityID = 1;
 }
 
 message RegisterClientResponse{
-	bbq.EntityID EntityID = 1;
+	uint64 EntityID = 1;
 }
 
 service Gate {

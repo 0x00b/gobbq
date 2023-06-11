@@ -5,7 +5,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/frame/frameproto"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -15,7 +14,7 @@ type FrameSeverEntity struct {
 
 	entityNum int
 	curNum    int
-	entities  []*bbq.EntityID
+	entities  []entity.EntityID
 
 	frameData []*frameproto.FrameData
 }
@@ -58,7 +57,7 @@ func (f *FrameSeverEntity) Join(c entity.Context, req *frameproto.JoinReq) (*fra
 
 	xlog.Info("recv join", req.String())
 
-	f.entities = append(f.entities, req.CLientID)
+	f.entities = append(f.entities, c.SrcEntity())
 	f.curNum++
 
 	xlog.Info("recv join", f.curNum, f.entityNum)
@@ -96,7 +95,7 @@ func (f *FrameSeverEntity) Move(c entity.Context, req *frameproto.MoveReq) error
 	client := c.SrcEntity()
 
 	f.frameData = append(f.frameData, &frameproto.FrameData{
-		CLientID: client,
+		CLientID: uint64(client),
 		Pos:      req.GetPos(),
 		Data:     []*frameproto.InputData{},
 	})
@@ -109,7 +108,7 @@ func (f *FrameSeverEntity) Input(c entity.Context, req *frameproto.InputReq) err
 	client := c.SrcEntity()
 
 	f.frameData = append(f.frameData, &frameproto.FrameData{
-		CLientID: client,
+		CLientID: uint64(client),
 		// Pos:      req.Pos,
 		Data: []*frameproto.InputData{req.GetData()},
 	})
