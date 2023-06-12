@@ -12,43 +12,56 @@ import (
 
 var _ nets.PacketHandler = &Proxy{}
 
+func (p *Proxy) isMyPacket(pkt *codec.Packet) bool {
+
+	hdr := pkt.Header
+	dstEty := entity.DstEntity(pkt)
+	if hdr.GetServiceType() == bbq.ServiceType_Entity ||
+		hdr.RequestType == bbq.RequestType_RequestRespone {
+
+		if dstEty.ProxyID() == p.EntityID().ProxyID() &&
+			dstEty.InstID() == p.EntityID().InstID() {
+			return true
+		}
+		return false
+	}
+
+	return p.EntityMgr.IsMyService(hdr.GetType())
+}
+
 func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
 
 	// xlog.Debugln("proxy 1")
 
 	hdr := pkt.Header
+	dstEty := entity.DstEntity(pkt)
 
-	// todo
-	// if p.EntityID().ID == pkt.Header.DstEntity.InstID
+	if hdr.GetServiceType() == bbq.ServiceType_Entity && dstEty.Invalid() {
+		xlog.Errorln("bad req header:", hdr.String())
+		return errors.New("bad call, call entity but no dst entity")
+	}
 
-	err := p.Server.EntityMgr.HandlePacket(pkt)
-	if err == nil {
-		// handle succ
-		return nil
+	if p.isMyPacket(pkt) {
+		err := p.Server.EntityMgr.HandlePacket(pkt)
+		if err != nil {
+			xlog.Errorln("bad req handle:", hdr.String(), err)
+		}
+		return err
 	}
 
 	// xlog.Debugln("proxy 2")
 
-	if entity.NotMyMethod(err) {
-		// request
-		// send to game
-		// or send to gate
-		if hdr.ServiceType == bbq.ServiceType_Entity {
-			dst := entity.DstEntity(pkt)
-			if dst.Invalid() {
-				xlog.Errorln("bad req header:", hdr.String())
-				return errors.New("bad call, call entity but no dst entity")
-			}
-			// xlog.Debugln("proxy 3")
-			p.ProxyToEntity(dst, pkt)
-			// xlog.Debugln("proxy 4")
-		} else {
-			// call service
-			p.ProxyToService(hdr, pkt)
-		}
-
-		return nil
+	// request
+	// send to game
+	// or send to gate
+	if hdr.ServiceType == bbq.ServiceType_Entity {
+		// xlog.Debugln("proxy 3")
+		p.ProxyToEntity(dstEty, pkt)
+		// xlog.Debugln("proxy 4")
+	} else {
+		// call service
+		p.ProxyToService(hdr, pkt)
 	}
 
-	return err
+	return nil
 }

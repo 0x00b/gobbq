@@ -47,12 +47,12 @@ func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 	e.respChan = make(chan *codec.Packet, 10000)
 
 	e.timer.Init()
-	e.ticker = time.Tick(GAME_SERVICE_TICK_INTERVAL)
+	e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
 
 	e.OnInit()
 }
 
-func (e *Service) Run(doneWg *sync.WaitGroup) {
+func (e *Service) Run(ch chan bool) {
 	xlog.Traceln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
@@ -63,13 +63,11 @@ func (e *Service) Run(doneWg *sync.WaitGroup) {
 
 	}()
 
-	if doneWg != nil {
-		doneWg.Done()
-	}
-
 	// async request, responese
 	for {
 		select {
+		case ch <- true:
+
 		case <-e.context.Done():
 			xlog.Traceln("ctx done", e)
 			return
@@ -120,7 +118,7 @@ func (e *Service) Run(doneWg *sync.WaitGroup) {
 				e.handleMethodRsp(ctx, pkt)
 			}(ctx, release, pkt)
 
-		case <-e.ticker:
+		case <-e.ticker.C:
 			e.timer.Tick()
 			e.context.Entity().OnTick()
 		}

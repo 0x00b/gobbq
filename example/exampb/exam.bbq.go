@@ -8,12 +8,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// exampb "github.com/0x00b/gobbq/example/exampb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -82,7 +84,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -169,6 +171,7 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *code
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -299,7 +302,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -386,6 +389,7 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *co
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -493,7 +497,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -580,6 +584,7 @@ func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -710,7 +715,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -797,6 +802,7 @@ func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -914,7 +920,7 @@ func (t *noRespEntity) SayHello(c entity.Context, req *SayHelloRequest) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}

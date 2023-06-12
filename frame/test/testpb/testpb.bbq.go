@@ -8,12 +8,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// testpb "github.com/0x00b/gobbq/example/exampb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -82,7 +84,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -169,6 +171,7 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *c
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType

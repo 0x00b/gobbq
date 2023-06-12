@@ -8,12 +8,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// frameproto "github.com/0x00b/gobbq/frame/frameproto"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -92,7 +94,7 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -154,7 +156,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +234,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +312,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -375,7 +377,7 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -424,7 +426,7 @@ func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -473,7 +475,7 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -522,7 +524,7 @@ func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -659,6 +661,7 @@ func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -740,6 +743,7 @@ func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -821,6 +825,7 @@ func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt 
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -1160,7 +1165,7 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1209,7 +1214,7 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1258,7 +1263,7 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}
@@ -1307,7 +1312,7 @@ func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 
 		pkt.WriteBody(hdrBytes)
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return err
 		}

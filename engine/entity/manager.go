@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -16,14 +15,14 @@ var _ nets.PacketHandler = &EntityManager{}
 
 // EntityManager manage entity lifecycle
 type EntityManager struct {
-	RemoteEntityManager
+	Proxy
 
 	mu    sync.RWMutex // guards following
 	serve bool
 
-	Services    map[string]IService    // service name -> service info
-	entityDescs map[string]*EntityDesc // entity name -> entity info
-	Entities    map[ID]IBaseEntity     // entity id -> entity impl
+	Services    map[string]IService      // service name -> service info
+	entityDescs map[string]*EntityDesc   // entity name -> entity info
+	Entities    map[EntityID]IBaseEntity // entity id -> entity impl
 
 	ProxyRegister RegisterProxy
 
@@ -35,11 +34,11 @@ func NewEntityManager() *EntityManager {
 	return &EntityManager{
 		Services:    make(map[string]IService),
 		entityDescs: make(map[string]*EntityDesc),
-		Entities:    make(map[ID]IBaseEntity),
+		Entities:    make(map[EntityID]IBaseEntity),
 	}
 }
 
-type RemoteEntityManager interface {
+type Proxy interface {
 	// for remote call, just send request packet, dont handle response
 	SendPacket(pkt *codec.Packet) error
 }
@@ -72,18 +71,19 @@ func (s *EntityManager) RegisterEntity(c Context, id EntityID, entity IBaseEntit
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.Entities[id.ID()] = entity
+	s.Entities[id] = entity
 
 	return nil
 }
 
-func (s *EntityManager) ReplaceEntityID(c Context, old, new EntityID) error {
+func (s *EntityManager) ReplaceEntityID(old, new EntityID) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entity := s.Entities[old.ID()]
-	s.Entities[new.ID()] = entity
-	delete(s.Entities, old.ID())
+	entity := s.Entities[old]
+	s.Entities[new] = entity
+	delete(s.Entities, old)
+	entity.setEntityID(new)
 
 	return nil
 }
@@ -120,10 +120,9 @@ func (s *EntityManager) NewEntity(c Context, id EntityID, typ string) (IEntity, 
 	s.RegisterEntity(c, id, entity)
 
 	// start message loop
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go entity.Run(&wg)
-	wg.Wait()
+	ch := make(chan bool)
+	go entity.Run(ch)
+	<-ch
 
 	// send to poxy
 	// if s.ProxyRegister != nil {
@@ -207,36 +206,59 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	sd.interceptors = intercepter
 	ss.SetServiceDesc(sd)
 
+	xlog.Tracef("gobbq: registerService 111 eid:%d", ss.EntityID())
+
 	s.registerServiceEntity(sd, ss)
 
-	xlog.Tracef("gobbq: registerService eid:%s", ss.EntityID())
+	xlog.Tracef("gobbq: registerService 222 eid:%d", ss.EntityID())
 
 	// start msg loop
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go ss.Run(&wg)
-	wg.Wait()
+	ch := make(chan bool)
+	go ss.Run(ch)
+	<-ch
+
+	xlog.Tracef("gobbq: registerService 333 eid:%d", ss.EntityID())
+
 	if s.ProxyRegister != nil {
 		s.ProxyRegister.RegisterServiceToProxy(sd.TypeName)
 		// s.ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
+	xlog.Tracef("gobbq: registerService xxxxxx eid:%d", ss.EntityID())
+
 }
 
 func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) error {
 
-	eid := entity.EntityID()
-	if eid.Invalid() {
-		if s.EntityIDGenerator == nil {
-			return errors.New("no entity id generator")
-		}
-		eid = s.EntityIDGenerator.NewEntityID()
-	}
+	xlog.Tracef("gobbq: registerService 444 eid")
 
-	s.InitEntity(nil, eid, entity)
+	// eid := entity.EntityID()
+	// if eid.Invalid() {
+	// 	if s.EntityIDGenerator == nil {
+	// 		return errors.New("no entity id generator")
+	// 	}
+	eid := s.EntityIDGenerator.NewEntityID()
+	// }
+
+	xlog.Tracef("gobbq: registerService 555 eid")
+	s.RegisterEntity(nil, eid, entity)
+	xlog.Tracef("gobbq: registerService 666 eid")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Services[sd.TypeName] = entity
 
+	xlog.Tracef("gobbq: registerService 777 eid")
+
 	return nil
+}
+
+func (s *EntityManager) IsMyEntity(eid EntityID) bool {
+
+	_, ok := s.Entities[eid]
+	return ok
+}
+
+func (s *EntityManager) IsMyService(typ string) bool {
+	_, ok := s.Services[typ]
+	return ok
 }

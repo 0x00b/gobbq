@@ -36,11 +36,11 @@ service ProxyEty {
 }
 
 message RegisterInstRequest{
-	uint32 InstID = 1; //uint16
 }
 
 message RegisterInstResponse{
 	uint32 ProxyID = 1;//uint16
+	uint32 InstID = 2; //uint16
 }
 
 message RegisterServiceRequest{

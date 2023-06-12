@@ -11,7 +11,6 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -32,31 +31,28 @@ func NewGate() *Gate {
 	desc.EntityMgr = gt.EntityMgr
 	gt.SetServiceDesc(&desc)
 
-	eid := uint16(snowflake.GenIDU32())
-	gt.entityID = entity.FixedEntityID(0, entity.InstID(eid), entity.ID(eid))
+	eid := uint16(entity.GenIDU32())
+	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
 
-	gt.EntityMgr.RegisterEntity(nil, gt.entityID, gt)
+	gt.EntityMgr.RegisterEntity(nil, temp, gt)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go gt.Run(&wg)
-	wg.Wait()
+	ch := make(chan bool)
+	go gt.Run(ch)
+	<-ch
 
-	gt.init()
+	gt.init(temp)
 
 	return gt
 }
 
-func (gt *Gate) init() {
+func (gt *Gate) init(old entity.EntityID) {
 	ex.ConnProxy(nets.WithPacketHandler(gt))
 
-	gt.EntityMgr.RemoteEntityManager = ex.ProxyClient
+	gt.EntityMgr.Proxy = ex.ProxyClient
 
 	client := proxypb.NewProxySvcServiceClient()
 
-	rsp, err := client.RegisterInst(gt.Context(), &proxypb.RegisterInstRequest{
-		InstID: uint32(gt.EntityID().InstID()),
-	})
+	rsp, err := client.RegisterInst(gt.Context(), &proxypb.RegisterInstRequest{})
 	if err != nil {
 		xlog.Errorln("error:", err)
 		panic(err)
@@ -64,7 +60,9 @@ func (gt *Gate) init() {
 
 	// 更新entityID
 	proxyID := entity.ProxyID(rsp.GetProxyID())
-	gt.entityID = entity.FixedEntityID(proxyID, gt.Service.EntityID().InstID(), gt.Service.EntityID().ID())
+	instID := entity.InstID(rsp.GetInstID())
+	newid := entity.FixedEntityID(proxyID, instID, gt.Service.EntityID().ID())
+	gt.EntityMgr.ReplaceEntityID(old, newid)
 }
 
 type Gate struct {
@@ -72,8 +70,6 @@ type Gate struct {
 
 	cltMtx sync.Mutex
 	cltMap clientMap
-
-	entityID entity.EntityID
 
 	*bs.Server
 }
@@ -150,10 +146,6 @@ func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 
 func (gt *Gate) NewEntityID() entity.EntityID {
 	return entity.NewEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID())
-}
-
-func (gt *Gate) EntityID() entity.EntityID {
-	return gt.entityID
 }
 
 func (gt *Gate) Serve() error {

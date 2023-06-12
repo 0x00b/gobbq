@@ -22,19 +22,14 @@ func NotMyMethod(err error) bool {
 }
 
 func (st *EntityManager) HandlePacket(pkt *codec.Packet) error {
-	if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
-		switch pkt.Header.ServiceType {
-		case bbq.ServiceType_Entity:
-			return st.handleCallEntity(pkt)
-		case bbq.ServiceType_Service:
-			return st.handleCallService(pkt)
-		default:
-		}
-		return nil
+
+	if pkt.Header.ServiceType == bbq.ServiceType_Entity ||
+		// 因为虽然service本地也有,但是如果entityid不是本地,说明是其他地方的同名service调用过来的,需要回到原地
+		pkt.Header.RequestType == bbq.RequestType_RequestRespone {
+		return st.handleCallEntity(pkt)
 	}
-	// response
-	xlog.Traceln("recv response:", pkt.Header.RequestId)
-	return st.handleCallEntity(pkt)
+
+	return st.handleCallService(pkt)
 }
 
 func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
@@ -65,9 +60,9 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
 	st.mu.RLock()
 	defer st.mu.RUnlock()
-	entity, ok := st.Entities[eid.ID()]
+	entity, ok := st.Entities[eid]
 	if !ok {
-		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
+		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid)
 		return ErrEntityNotFound
 	}
 
@@ -81,14 +76,16 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 // =========
 
 func (st *EntityManager) LocalCall(pkt *codec.Packet, in any, respChan chan any) error {
-	switch pkt.Header.ServiceType {
-	case bbq.ServiceType_Entity:
+
+	hdr := pkt.Header
+	if hdr.ServiceType == bbq.ServiceType_Entity ||
+		// 因为虽然service本地也有,但是如果entityid不是本地,说明是其他地方的同名service调用过来的,需要回到原地
+		hdr.RequestType == bbq.RequestType_RequestRespone {
 		return st.handleLocalCallEntity(pkt, in, respChan)
-	case bbq.ServiceType_Service:
-		return st.handleLocalCallService(pkt, in, respChan)
-	default:
 	}
-	return ErrUnknownCallType
+
+	return st.handleLocalCallService(pkt, in, respChan)
+
 }
 
 func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respChan chan any) error {
@@ -117,7 +114,7 @@ func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respCh
 
 	st.mu.RLock()
 	defer st.mu.RUnlock()
-	entity, ok := st.Entities[eid.ID()]
+	entity, ok := st.Entities[eid]
 	if !ok {
 		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
 		return ErrEntityNotFound

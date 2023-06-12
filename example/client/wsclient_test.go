@@ -36,7 +36,7 @@ func TestWSClient(m *testing.T) {
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 
 		i := i
@@ -45,7 +45,8 @@ func TestWSClient(m *testing.T) {
 			// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 			es := exampb.NewEchoSvc2ServiceClient()
-			rsp, err := es.SayHello(client.Context(), &exampb.SayHelloRequest{
+			cc, _ := client.Context().Copy()
+			rsp, err := es.SayHello(cc, &exampb.SayHelloRequest{
 				Text: fmt.Sprintf("%d", i),
 				// Text:     "hello request",
 				CLientID: uint64(client.EntityID()),

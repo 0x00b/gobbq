@@ -39,10 +39,9 @@ func NewProxy() *Proxy {
 
 	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), entity.InstID(eid), entity.ID(eid)), p)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go p.Run(&wg)
-	wg.Wait()
+	ch := make(chan bool)
+	go p.Run(ch)
+	<-ch
 
 	p.ConnOtherProxy(nets.WithPacketHandler(p))
 
@@ -110,6 +109,10 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 	// proxy to inst
 	sendInst := func() bool {
 		xlog.Debugln("local proxy to id:", eid)
+		if eid.ProxyID() != p.EntityID().ProxyID() {
+			xlog.Debugln("not my inst", eid)
+			return false
+		}
 		p.instMtx.RLock()
 		defer p.instMtx.RUnlock()
 		prw, ok := p.instMaps[eid.InstID()]

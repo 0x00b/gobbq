@@ -8,12 +8,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -105,7 +107,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +185,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -261,7 +263,7 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -354,6 +356,7 @@ func _ProxyEtyEntity_RegisterProxy_Remote_Handler(svc any, ctx entity.Context, p
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -435,6 +438,7 @@ func _ProxyEtyEntity_SyncService_Remote_Handler(svc any, ctx entity.Context, pkt
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -516,6 +520,7 @@ func _ProxyEtyEntity_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -635,7 +640,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -713,7 +718,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -791,7 +796,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -869,7 +874,7 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 			chanRsp <- rsp
 		})
 
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -965,6 +970,7 @@ func _ProxySvcService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, p
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -1046,6 +1052,7 @@ func _ProxySvcService_RegisterService_Remote_Handler(svc any, ctx entity.Context
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -1127,6 +1134,7 @@ func _ProxySvcService_UnregisterService_Remote_Handler(svc any, ctx entity.Conte
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
@@ -1208,6 +1216,7 @@ func _ProxySvcService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *code
 	npkt.Header.ServiceType = hdr.ServiceType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType

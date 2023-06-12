@@ -46,9 +46,16 @@ type ProxySvc struct {
 // RegisterInst
 func (p *ProxySvc) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
 	xlog.Traceln("register inst", req.String())
-	p.proxy.registerInst(entity.InstID(req.GetInstID()), c.Packet().Src)
+
+	instID := entity.GenIDU32()
+	p.proxy.registerInst(entity.InstID(instID), c.Packet().Src)
+
 	xlog.Traceln("register inst done", req.String())
-	return &proxypb.RegisterInstResponse{ProxyID: uint32(p.EntityID().ProxyID())}, nil
+
+	return &proxypb.RegisterInstResponse{
+		ProxyID: uint32(p.EntityID().ProxyID()),
+		InstID:  instID,
+	}, nil
 }
 
 // RegisterEntity

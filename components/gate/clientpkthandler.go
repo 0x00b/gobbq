@@ -3,35 +3,34 @@ package main
 import (
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/xlog"
 )
 
 var _ nets.PacketHandler = &ClientPacketHandler{}
 
 type ClientPacketHandler struct {
-	nets.PacketHandler
+	gate *Gate
 }
 
-func NewClientPacketHandler(etyMgr *entity.EntityManager) *ClientPacketHandler {
+func NewClientPacketHandler(gate *Gate) *ClientPacketHandler {
 	st := &ClientPacketHandler{
-		PacketHandler: etyMgr,
+		gate: gate,
 	}
 	return st
 }
 
 func (st *ClientPacketHandler) HandlePacket(pkt *codec.Packet) error {
 
-	err := st.PacketHandler.HandlePacket(pkt)
-	if err == nil {
-		// handle succ
-		return nil
+	if st.gate.isMyPacket(pkt) {
+		err := st.gate.EntityMgr.HandlePacket(pkt)
+		if err != nil {
+			xlog.Errorln("bad req handle:", pkt.Header.String(), err)
+		}
+		return err
 	}
 
-	if entity.NotMyMethod(err) {
-		// send to proxy
-		return ex.SendProxy(pkt)
-	}
+	// send to proxy
+	return ex.SendProxy(pkt)
 
-	return err
 }

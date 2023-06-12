@@ -43,7 +43,7 @@ type IBaseEntity interface {
 
 	Context() Context
 
-	Run(wg *sync.WaitGroup)
+	Run(ch chan bool)
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -56,7 +56,9 @@ type IBaseEntity interface {
 	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
 	OnTick()
 
+	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
 	// Watch/unwatch entity
+	// Receive
 
 	// === for inner ===
 	getEntityMgr() *EntityManager
@@ -65,6 +67,7 @@ type IBaseEntity interface {
 	popCallback(requestID string) (Callback, bool)
 
 	onInit(c Context, cancel func(), id EntityID)
+	setEntityID(id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
 	dispatchPkt(pkt *codec.Packet)
@@ -142,10 +145,10 @@ type baseEntity struct {
 
 	timer timer.Timer
 
-	ticker <-chan time.Time
+	ticker *time.Ticker
 }
 
-func (e *Entity) Run(doneWg *sync.WaitGroup) {
+func (e *Entity) Run(ch chan bool) {
 	xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
@@ -157,19 +160,13 @@ func (e *Entity) Run(doneWg *sync.WaitGroup) {
 		// todo unregister entity
 
 	}()
-
-	if doneWg != nil {
-		doneWg.Add(1)
-	}
-
+	tempch := make(chan bool)
 	// response
 	go func() {
-		if doneWg != nil {
-			doneWg.Done()
-		}
-
 		for {
 			select {
+			case tempch <- true:
+
 			case <-e.context.Done():
 				xlog.Debugln("ctx done", e)
 				return
@@ -182,13 +179,14 @@ func (e *Entity) Run(doneWg *sync.WaitGroup) {
 		}
 	}()
 
-	if doneWg != nil {
-		doneWg.Done()
-	}
+	// 上面的for执行了，在继续下面的for
+	<-tempch
 
 	// request, sync
 	for {
 		select {
+		case ch <- true:
+
 		case <-e.context.Done():
 			xlog.Debugln("ctx done", e)
 			return
@@ -213,7 +211,7 @@ func (e *Entity) Run(doneWg *sync.WaitGroup) {
 			xlog.Tracef("handle local call done: %s", lc.pkt.String())
 			wg.Done()
 
-		case <-e.ticker:
+		case <-e.ticker.C:
 			e.timer.Tick()
 		}
 
@@ -254,16 +252,21 @@ func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
 	return cb, true
 }
 
+func (e *baseEntity) setEntityID(id EntityID) {
+	e.entityID = id
+}
+
 func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
+	e.setEntityID(id)
+
 	e.context = c
 	e.cancel = cancel
-	e.entityID = id
 	e.callChan = make(chan *codec.Packet, 1000)
 	e.localCallChan = make(chan *localCall, 1000)
 	e.callback = make(map[string]Callback, 1)
 	e.respChan = make(chan *codec.Packet, 1)
 	e.timer.Init()
-	e.ticker = time.Tick(GAME_SERVICE_TICK_INTERVAL)
+	e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
 
 	e.OnInit()
 }

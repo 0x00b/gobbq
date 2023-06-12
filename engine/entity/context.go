@@ -110,17 +110,17 @@ func PopCallback(c Context, requestID string) (Callback, bool) {
 	return nil, false
 }
 
-func GetRemoteEntityManager(c Context) RemoteEntityManager {
+func GetProxy(c Context) Proxy {
 	v, ok := c.Get(_bbq_ctx_remote_manager_key_)
 	if ok && v != nil {
-		return v.(RemoteEntityManager)
+		return v.(Proxy)
 	}
 
 	etyMgr := GetEntityMgr(c)
-	return etyMgr.RemoteEntityManager
+	return etyMgr.Proxy
 }
 
-func SetRemoteEntityManager(c Context, rem RemoteEntityManager) {
+func SetRemoteEntityManager(c Context, rem Proxy) {
 	if rem == nil {
 		return
 	}

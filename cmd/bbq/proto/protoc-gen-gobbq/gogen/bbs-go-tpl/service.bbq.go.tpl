@@ -147,7 +147,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 			})
 		{{end}}
 		
-		err = entity.GetRemoteEntityManager(c).SendPacket(pkt)
+		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil{
 			return {{if $m.HasResponse}}nil,{{end}} err
 		}

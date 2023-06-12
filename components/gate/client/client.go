@@ -5,7 +5,6 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
 type Client struct {
@@ -14,8 +13,6 @@ type Client struct {
 	Gate *nets.Client
 
 	EntityMgr *entity.EntityManager
-
-	entityID entity.EntityID
 }
 
 func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.ServerInterceptor) *Client {
@@ -31,14 +28,14 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 		panic(err)
 	}
 
-	client.EntityMgr.RemoteEntityManager = gate
+	client.EntityMgr.Proxy = gate
 
 	client.EntityMgr.RegisterEntityDesc(sd, ss)
 
-	eid := snowflake.GenIDU32()
-	client.entityID = entity.FixedEntityID(0, 0, entity.ID(eid))
+	// 临时的
+	eid := entity.FixedEntityID(0, 0, entity.ID(entity.GenIDU32()))
 
-	client.IEntity, err = client.EntityMgr.NewEntity(nil, client.entityID, sd.TypeName)
+	client.IEntity, err = client.EntityMgr.NewEntity(nil, eid, sd.TypeName)
 	if err != nil {
 		panic(err)
 	}
@@ -64,13 +61,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	}
 
 	newID := entity.EntityID(rsp.GetEntityID())
-	client.EntityMgr.ReplaceEntityID(client.Context(), client.entityID, newID)
-	client.entityID = newID
+	client.EntityMgr.ReplaceEntityID(eid, newID)
 
 	return client
-}
-
-// EntityID 重写EntityID
-func (c *Client) EntityID() entity.EntityID {
-	return c.entityID
 }

@@ -13,7 +13,7 @@ import (
 
 func main() {
 
-	xlog.Init("trace", true, true, &lumberjack.Logger{
+	xlog.Init("info", true, true, &lumberjack.Logger{
 		Filename:  "./server.log",
 		MaxAge:    7,
 		LocalTime: true,
@@ -24,11 +24,9 @@ func main() {
 	var g = game.NewGame()
 
 	xlog.Info("RegisterEchoService")
-
-	// exampb.RegisterEchoService(&EchoService{})
 	exampb.RegisterEchoService(g.EntityMgr, &EchoService{})
-	xlog.Info("RegisterEchoEtyEntity")
 
+	xlog.Info("RegisterEchoEtyEntity")
 	exampb.RegisterEchoEtyEntity(g.EntityMgr, &EchoEntity{})
 	xlog.Info("start")
 

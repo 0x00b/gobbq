@@ -1,7 +1,6 @@
 package game
 
 import (
-	"sync"
 	"time"
 
 	"github.com/0x00b/gobbq/components/proxy/ex"
@@ -9,7 +8,6 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -17,8 +15,6 @@ type Game struct {
 	entity.Entity
 
 	EntityMgr *entity.EntityManager
-
-	entityID entity.EntityID
 }
 
 func NewGame() *Game {
@@ -31,49 +27,43 @@ func NewGame() *Game {
 	gm.EntityMgr.ProxyRegister = gm
 	gm.EntityMgr.EntityIDGenerator = gm
 
-	eid := uint16(snowflake.GenIDU32())
+	eid := uint16(entity.GenIDU32())
 
 	desc := entity.EntityDesc{}
 	desc.EntityImpl = gm
 	desc.EntityMgr = gm.EntityMgr
 	gm.SetEntityDesc(&desc)
 
-	gm.entityID = entity.FixedEntityID(0, entity.InstID(eid), entity.ID(eid))
+	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
 
-	gm.EntityMgr.RegisterEntity(nil, gm.entityID, gm)
+	gm.EntityMgr.RegisterEntity(nil, temp, gm)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go gm.Run(&wg)
-	wg.Wait()
+	ch := make(chan bool)
+	go gm.Run(ch)
+	<-ch
 
-	gm.init()
+	gm.init(temp)
 
 	return gm
 }
 
-// EntityID 重写
-func (g *Game) EntityID() entity.EntityID {
-	return g.entityID
-}
-
-func (g *Game) init() {
+func (g *Game) init(old entity.EntityID) {
 
 	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr))
 
-	g.EntityMgr.RemoteEntityManager = ex.ProxyClient
+	g.EntityMgr.Proxy = ex.ProxyClient
 
 	client := proxypb.NewProxySvcServiceClient()
 
-	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{
-		InstID: uint32(g.EntityID().InstID()),
-	})
+	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{})
 	if err != nil {
 		panic(err)
 	}
 
 	proxyID := entity.ProxyID(rsp.GetProxyID())
-	g.entityID = entity.FixedEntityID(proxyID, g.Entity.EntityID().InstID(), g.Entity.EntityID().ID())
+	instID := entity.InstID(rsp.GetInstID())
+	new := entity.FixedEntityID(proxyID, instID, g.Entity.EntityID().ID())
+	g.EntityMgr.ReplaceEntityID(old, new)
 }
 
 // func (g *Game) RegisterEntityToProxy(eid entity.EntityID) error {

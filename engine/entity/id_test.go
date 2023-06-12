@@ -13,4 +13,7 @@ func TestXxx(t *testing.T) {
 
 	fmt.Println(id.ProxyID(), id.InstID(), id.ID())
 
+	id = 31243726709850116
+	fmt.Println(id.ProxyID(), id.InstID(), id.ID())
+
 }

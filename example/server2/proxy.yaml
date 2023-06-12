@@ -18,11 +18,11 @@ proxy:
     encrypt_connection: false
     heartbeat_check_interval: 0
   inst:
-    - id: 2
+    - id: 222
       net: "tcp" # kcp, websocket
       ip: "127.0.0.1"
       port: 49541
-    - id: 1
+    - id: 111
       net: "tcp" # kcp, websocket
       ip: "127.0.0.1"
       port: 49551

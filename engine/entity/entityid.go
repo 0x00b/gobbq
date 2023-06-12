@@ -3,9 +3,10 @@ package entity
 import (
 	"math"
 	"strconv"
+	"sync/atomic"
+	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-	"github.com/0x00b/gobbq/tool/snowflake"
 )
 
 // EntityID proxyid + instid + id => (16bit + 16bit + 32bit)
@@ -20,7 +21,7 @@ type EntityIDGenerator interface {
 }
 
 func NewEntityID(pid ProxyID, iid InstID) EntityID {
-	return FixedEntityID(pid, iid, ID(snowflake.GenIDU32()))
+	return FixedEntityID(pid, iid, ID(GenIDU32()))
 }
 
 func FixedEntityID(pid ProxyID, iid InstID, id ID) EntityID {
@@ -54,4 +55,14 @@ func (eid EntityID) InstID() InstID {
 
 func (eid EntityID) ID() ID {
 	return ID(eid & math.MaxUint32)
+}
+
+var u32IdCounter uint32
+
+func GenIDU32() uint32 {
+
+	i := atomic.AddUint32(&u32IdCounter, 1)
+	n := uint32((time.Now().Unix()&math.MaxUint16)<<16) | uint32(i&math.MaxUint16)
+
+	return uint32(n)
 }
