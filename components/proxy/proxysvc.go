@@ -47,14 +47,14 @@ type ProxySvc struct {
 func (p *ProxySvc) RegisterInst(c entity.Context, req *proxypb.RegisterInstRequest) (*proxypb.RegisterInstResponse, error) {
 	xlog.Traceln("register inst", req.String())
 
-	instID := entity.GenIDU32()
-	p.proxy.registerInst(entity.InstID(instID), c.Packet().Src)
+	instID := p.proxy.NewInstID()
+	p.proxy.registerInst(instID, c.Packet().Src)
 
 	xlog.Traceln("register inst done", req.String())
 
 	return &proxypb.RegisterInstResponse{
 		ProxyID: uint32(p.EntityID().ProxyID()),
-		InstID:  instID,
+		InstID:  uint32(instID),
 	}, nil
 }
 
@@ -67,9 +67,9 @@ func (p *ProxySvc) RegisterService(c entity.Context, req *proxypb.RegisterServic
 
 	for id, prw := range p.proxy.proxyMap {
 		_ = prw
-		entity.SetRemoteEntityManager(c, prw)
+		entity.SetProxy(c, prw)
 		_, err := proxypb.
-			NewProxyEtyEntityClient(entity.FixedEntityID(id, entity.InstID(id), entity.ID(id))).
+			NewProxyEtyEntityClient(entity.FixedEntityID(id, 0, 0)).
 			SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
 		if err != nil {
 			xlog.Errorln("sync svc", err)

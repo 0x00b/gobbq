@@ -252,6 +252,7 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 	return nil
 }
 
+// 需要优化, gate的id再拆分,不要直接用这个来判断是不是自己的entity
 func (s *EntityManager) IsMyEntity(eid EntityID) bool {
 
 	_, ok := s.Entities[eid]

@@ -120,7 +120,7 @@ func GetProxy(c Context) Proxy {
 	return etyMgr.Proxy
 }
 
-func SetRemoteEntityManager(c Context, rem Proxy) {
+func SetProxy(c Context, rem Proxy) {
 	if rem == nil {
 		return
 	}

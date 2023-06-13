@@ -9,7 +9,7 @@ import (
 
 func TestXxx(t *testing.T) {
 
-	id := entity.FixedEntityID(11, 22, 33)
+	id := entity.FixedEntityID(1111111111, 2222222222, 3333333333)
 
 	fmt.Println(id.ProxyID(), id.InstID(), id.ID())
 

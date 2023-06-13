@@ -22,7 +22,6 @@ func main() {
 
 	p := NewProxy()
 
-	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
 	proxypb.RegisterProxySvcService(p.EntityMgr, &ProxySvc{proxy: p})
 
 	p.RegisterNetService(nets.NewNetService(

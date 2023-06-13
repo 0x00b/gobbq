@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"sync/atomic"
 
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
@@ -37,7 +38,8 @@ func NewProxy() *Proxy {
 
 	eid := uint16(conf.C.Proxy.Inst[0].ID)
 
-	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), entity.InstID(eid), entity.ID(eid)), p)
+	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
+	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), 0, 0), p)
 
 	ch := make(chan bool)
 	go p.Run(ch)
@@ -63,12 +65,25 @@ type Proxy struct {
 
 	proxySvcMtx sync.RWMutex
 	proxySvcMap ProxySvcMap
+
+	instIdCounter uint32
 }
 
 type ProxyMap map[entity.ProxyID]*codec.PacketReadWriter
 type ProxySvcMap map[string]*codec.PacketReadWriter
 type instMap map[entity.InstID]*codec.PacketReadWriter
 type serviceMap map[string]*codec.PacketReadWriter
+
+func (p *Proxy) NewInstID() entity.InstID {
+	id := atomic.AddUint32(&p.instIdCounter, 1)
+
+	if id == 0 {
+		// report
+		panic("cycle new inst id")
+	}
+
+	return entity.InstID(id)
+}
 
 // // RegisterEntity register serive
 func (p *Proxy) registerInst(instID entity.InstID, prw *codec.PacketReadWriter) {
@@ -213,13 +228,13 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 		c, release := p.Context().Copy()
 		defer release()
 
-		entity.SetRemoteEntityManager(c, prxy)
+		entity.SetProxy(c, prxy)
 
 		xlog.Println("RegisterProxy ing...")
 
-		rsp, err := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(cfg.ID), entity.InstID(cfg.ID), entity.ID(cfg.ID))).
+		rsp, err := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(cfg.ID), 0, 0)).
 			RegisterProxy(c, &proxypb.RegisterProxyRequest{
-				ProxyID: uint32(p.EntityID().ID()),
+				ProxyID: uint32(p.EntityID().ProxyID()),
 			})
 		if err != nil {
 			panic(err)

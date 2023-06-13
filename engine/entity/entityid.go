@@ -9,12 +9,21 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 )
 
-// EntityID proxyid + instid + id => (16bit + 16bit + 32bit)
+// EntityID proxyid + instid + id => (22bit + 10bit + 32bit)
 type EntityID uint64
 
 type ID uint32
-type InstID uint16
-type ProxyID uint16
+type InstID uint32
+type ProxyID uint32
+
+const (
+	proxyIDBitNum = 22
+	instIDBitNum  = 10
+	idBitNum      = 32
+	proxyIDMask   = 1<<proxyIDBitNum - 1
+	instIDMask    = 1<<instIDBitNum - 1
+	idBitMask     = 1<<idBitNum - 1
+)
 
 type EntityIDGenerator interface {
 	NewEntityID() EntityID
@@ -25,7 +34,7 @@ func NewEntityID(pid ProxyID, iid InstID) EntityID {
 }
 
 func FixedEntityID(pid ProxyID, iid InstID, id ID) EntityID {
-	eid := uint64(pid&math.MaxUint16)<<48 | uint64(iid&math.MaxUint16)<<32 | uint64(id&math.MaxUint32)
+	eid := uint64(pid)<<(64-proxyIDBitNum) | uint64(iid&instIDMask)<<idBitNum | uint64(id&idBitMask)
 	return EntityID(eid)
 }
 
@@ -46,15 +55,15 @@ func (eid EntityID) String() string {
 }
 
 func (eid EntityID) ProxyID() ProxyID {
-	return ProxyID(eid >> 48)
+	return ProxyID((eid >> (64 - proxyIDBitNum)) & proxyIDMask)
 }
 
 func (eid EntityID) InstID() InstID {
-	return InstID((eid << 16) >> 48)
+	return InstID((eid >> idBitNum) & instIDMask)
 }
 
 func (eid EntityID) ID() ID {
-	return ID(eid & math.MaxUint32)
+	return ID(eid & idBitMask)
 }
 
 var u32IdCounter uint32
