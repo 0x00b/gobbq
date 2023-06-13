@@ -8,6 +8,7 @@ import (
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/timer"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -146,12 +147,20 @@ type baseEntity struct {
 	timer timer.Timer
 
 	ticker *time.Ticker
+
+	runOnce     sync.Once
+	initOnce    sync.Once
+	destroyOnce sync.Once
 }
 
 func (e *Entity) Run() {
-	ch := make(chan bool)
-	go e.run(ch)
-	<-ch
+	e.runOnce.Do(func() {
+		ch := make(chan bool)
+		secure.GO(func() {
+			e.run(ch)
+		})
+		<-ch
+	})
 }
 
 func (e *Entity) run(ch chan bool) {
@@ -168,7 +177,7 @@ func (e *Entity) run(ch chan bool) {
 	}()
 	tempch := make(chan bool)
 	// response
-	go func() {
+	secure.GO(func() {
 		for {
 			select {
 			case tempch <- true:
@@ -183,7 +192,7 @@ func (e *Entity) run(ch chan bool) {
 				wg.Done()
 			}
 		}
-	}()
+	})
 
 	// 上面的for执行了，在继续下面的for
 	<-tempch
@@ -263,26 +272,35 @@ func (e *baseEntity) setEntityID(id EntityID) {
 }
 
 func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
-	e.setEntityID(id)
+	e.initOnce.Do(func() {
+		e.setEntityID(id)
 
-	e.context = c
-	e.cancel = cancel
-	e.callChan = make(chan *codec.Packet, 1000)
-	e.localCallChan = make(chan *localCall, 1000)
-	e.callback = make(map[string]Callback, 1)
-	e.respChan = make(chan *codec.Packet, 1)
-	e.timer.Init()
-	e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
+		e.context = c
+		e.cancel = cancel
+		e.callChan = make(chan *codec.Packet, 1000)
+		e.localCallChan = make(chan *localCall, 1000)
+		e.callback = make(map[string]Callback, 1)
+		e.respChan = make(chan *codec.Packet, 1)
+		e.timer.Init()
+		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
 
-	e.OnInit()
+		e.OnInit()
+	})
 }
 
 func (e *baseEntity) onDestroy() {
-	e.cancel()
+	e.destroyOnce.Do(func() {
 
-	e.OnDestroy()
+		close(e.callChan)
+		close(e.respChan)
+		close(e.localCallChan)
 
-	releaseContext(e.context)
+		e.ticker.Stop()
+		e.OnDestroy()
+
+		e.cancel()
+		releaseContext(e.context)
+	})
 }
 
 func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {

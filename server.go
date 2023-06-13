@@ -9,6 +9,7 @@ import (
 
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/tool/secure"
 )
 
 // NewSever return gobbq server
@@ -96,7 +97,7 @@ func (s *Server) tryClose() {
 
 		wg.Add(1)
 		// close entity manager
-		go func() {
+		secure.GO(func() {
 			defer wg.Done()
 
 			c := make(chan struct{}, 1)
@@ -106,22 +107,25 @@ func (s *Server) tryClose() {
 			case <-c:
 			case <-ctx.Done():
 			}
-		}()
+		})
 
 		// close conn
 		for _, service := range s.netsvc {
 			wg.Add(1)
-			go func(srv nets.NetService) {
+			srv := service
+			secure.GO(func() {
 				defer wg.Done()
 
 				c := make(chan struct{}, 1)
-				go srv.Close(c)
+				secure.GO(func() {
+					srv.Close(c)
+				})
 
 				select {
 				case <-c:
 				case <-ctx.Done():
 				}
-			}(service)
+			})
 		}
 		wg.Wait()
 	}

@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -26,7 +27,7 @@ func TestTcpServer(m *testing.T) {
 		}
 
 		xlog.Infof("Connection from: %s", conn.RemoteAddr())
-		go func() {
+		secure.GO(func() {
 			for {
 
 				var b [1024]byte
@@ -39,6 +40,6 @@ func TestTcpServer(m *testing.T) {
 				conn.Write([]byte(b[:len]))
 			}
 
-		}()
+		})
 	}
 }

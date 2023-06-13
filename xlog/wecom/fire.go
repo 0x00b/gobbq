@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,9 +24,9 @@ type msgContent struct {
 }
 
 func (hook *LogrusHook) Fire(entry *logrus.Entry) error {
-	go func() {
+	secure.GO(func() {
 		_ = hook.fire(entry)
-	}()
+	})
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/example/exampb"
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -40,7 +41,7 @@ func TestWSClient(m *testing.T) {
 		wg.Add(1)
 
 		i := i
-		go func() {
+		secure.GO(func() {
 
 			// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
@@ -56,7 +57,7 @@ func TestWSClient(m *testing.T) {
 			}
 			xlog.Infoln("rsp:", rsp)
 			wg.Done()
-		}()
+		})
 	}
 
 	wg.Wait()

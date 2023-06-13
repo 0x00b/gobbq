@@ -7,6 +7,8 @@ import (
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/0x00b/gobbq/tool/secure"
 )
 
 const (
@@ -120,7 +122,9 @@ func (t *Timer) Tick() {
 
 // Start the self-ticking routine, which ticks per tickInterval
 func (t *Timer) StartTicks(tickInterval time.Duration) {
-	go t.selfTickRoutine(tickInterval)
+	secure.GO(func() {
+		t.selfTickRoutine(tickInterval)
+	})
 }
 
 func (t *Timer) selfTickRoutine(tickInterval time.Duration) {

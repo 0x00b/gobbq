@@ -58,9 +58,7 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
 	// xlog.Traceln("start find entity")
 
-	st.mu.RLock()
-	defer st.mu.RUnlock()
-	entity, ok := st.Entities[eid]
+	entity, ok := st.GetMyEntity(eid)
 	if !ok {
 		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid)
 		return ErrEntityNotFound
@@ -112,9 +110,7 @@ func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respCh
 		return ErrEmptyEntityID
 	}
 
-	st.mu.RLock()
-	defer st.mu.RUnlock()
-	entity, ok := st.Entities[eid]
+	entity, ok := st.GetMyEntity(eid)
 	if !ok {
 		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
 		return ErrEntityNotFound

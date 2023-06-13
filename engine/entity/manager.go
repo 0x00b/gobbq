@@ -17,7 +17,8 @@ var _ nets.PacketHandler = &EntityManager{}
 type EntityManager struct {
 	Proxy
 
-	mu    sync.RWMutex // guards following
+	entityMtx sync.RWMutex // guards following
+
 	serve bool
 
 	Services    map[string]IService      // service name -> service info
@@ -69,8 +70,8 @@ func (s *EntityManager) RegisterEntity(c Context, id EntityID, entity IBaseEntit
 
 	s.InitEntity(c, id, entity)
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.entityMtx.Lock()
+	defer s.entityMtx.Unlock()
 	s.Entities[id] = entity
 
 	return nil
@@ -78,8 +79,8 @@ func (s *EntityManager) RegisterEntity(c Context, id EntityID, entity IBaseEntit
 
 func (s *EntityManager) ReplaceEntityID(old, new EntityID) error {
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.entityMtx.Lock()
+	defer s.entityMtx.Unlock()
 	entity := s.Entities[old]
 	s.Entities[new] = entity
 	delete(s.Entities, old)
@@ -160,8 +161,6 @@ func (s *EntityManager) Close(ch chan struct{}) error {
 
 func (s *EntityManager) registerEntityDesc(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	xlog.Tracef("registerEntity(%q)", sd.TypeName)
 	if s.serve {
 		xlog.Tracef("gobbq: registerEntityDesc after EntityManager.Serve for %q", sd.TypeName)
@@ -239,8 +238,6 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 	s.RegisterEntity(nil, eid, entity)
 	xlog.Tracef("gobbq: registerService 666 eid")
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.Services[sd.TypeName] = entity
 
 	xlog.Tracef("gobbq: registerService 777 eid")
@@ -249,10 +246,12 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 }
 
 // 需要优化, gate的id再拆分,不要直接用这个来判断是不是自己的entity
-func (s *EntityManager) IsMyEntity(eid EntityID) bool {
+func (s *EntityManager) GetMyEntity(eid EntityID) (IBaseEntity, bool) {
+	s.entityMtx.RLock()
+	defer s.entityMtx.RUnlock()
 
-	_, ok := s.Entities[eid]
-	return ok
+	e, ok := s.Entities[eid]
+	return e, ok
 }
 
 func (s *EntityManager) IsMyService(typ string) bool {

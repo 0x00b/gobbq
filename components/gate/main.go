@@ -9,16 +9,17 @@ import (
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
 
-	go func() {
+	secure.GO(func() {
 		fmt.Println("pprof start...")
 		fmt.Println(http.ListenAndServe(":9876", nil))
-	}()
+	})
 
 	xlog.Init("trace", true, true, &lumberjack.Logger{
 		Filename:  "./gate.log",

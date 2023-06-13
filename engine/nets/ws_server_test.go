@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 	"github.com/xtaci/kcp-go"
 )
@@ -26,7 +27,7 @@ func TestWSServer(m *testing.T) {
 		}
 
 		xlog.Infof("Connection from: %s", conn.RemoteAddr())
-		go func() {
+		secure.GO(func() {
 			for {
 
 				var b [1024]byte
@@ -40,7 +41,7 @@ func TestWSServer(m *testing.T) {
 				fmt.Println("send", string(b[:]))
 			}
 
-		}()
+		})
 	}
 }
 

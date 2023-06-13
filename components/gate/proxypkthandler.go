@@ -18,7 +18,8 @@ func (gt *Gate) isMyPacket(pkt *codec.Packet) bool {
 	dstEty := entity.DstEntity(pkt)
 	if hdr.GetServiceType() == bbq.ServiceType_Entity ||
 		hdr.RequestType == bbq.RequestType_RequestRespone {
-		return gt.EntityMgr.IsMyEntity(dstEty)
+		_, ok := gt.EntityMgr.GetMyEntity(dstEty)
+		return ok
 	}
 
 	return gt.EntityMgr.IsMyService(hdr.GetType())

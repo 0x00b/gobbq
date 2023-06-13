@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -201,7 +202,7 @@ func (s *service) handleConn(rawConn net.Conn, opts *Options) {
 
 	s.storeConn(cn)
 
-	go cn.Serve()
+	secure.GO(cn.Serve)
 
 }
 
@@ -229,17 +230,21 @@ func (s *service) closeAll() {
 	for cn := range s.conns {
 
 		wg.Add(1)
-		go func(cn *conn) {
+
+		cn := cn
+		secure.GO(func() {
 			defer wg.Done()
 
 			c := make(chan struct{}, 1)
-			go cn.Close(c)
+			secure.GO(func() {
+				cn.Close(c)
+			})
 
 			select {
 			case <-c:
 			case <-ctx.Done():
 			}
-		}(cn)
+		})
 	}
 
 	wg.Wait()

@@ -3,6 +3,7 @@ package codec
 import (
 	"fmt"
 	"io"
+	"net"
 	"runtime"
 	"sync"
 
@@ -31,7 +32,7 @@ type PacketReadWriter struct {
 	Config Config
 
 	rwMtx *sync.Mutex
-	rw    io.ReadWriter
+	rw    net.Conn
 
 	// write will inc 1
 	writeMsgCnt uint32
@@ -40,11 +41,11 @@ type PacketReadWriter struct {
 }
 
 // NewPacketReadWriter creates a packet connection based on network connection
-func NewPacketReadWriter(rw io.ReadWriter) *PacketReadWriter {
+func NewPacketReadWriter(rw net.Conn) *PacketReadWriter {
 	return NewPacketReadWriterWithConfig(rw, DefaultConfig())
 }
 
-func NewPacketReadWriterWithConfig(rw io.ReadWriter, cfg *Config) *PacketReadWriter {
+func NewPacketReadWriterWithConfig(rw net.Conn, cfg *Config) *PacketReadWriter {
 	if rw == nil {
 		panic(fmt.Errorf("conn is nil"))
 	}
@@ -157,7 +158,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	return packet, release, nil
 }
 
-func writeFull(conn io.Writer, data []byte) error {
+func writeFull(conn net.Conn, data []byte) error {
 	left := len(data)
 	for left > 0 {
 		n, err := conn.Write(data)

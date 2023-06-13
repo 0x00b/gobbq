@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -38,24 +39,30 @@ func (s *Service) getEntityMgr() *EntityManager {
 func (e *Service) serviceType() {}
 
 func (e *Service) onInit(c Context, cancel func(), id EntityID) {
-	e.context = c
-	e.cancel = cancel
-	e.entityID = id
-	e.callChan = make(chan *codec.Packet, 10000)
-	e.localCallChan = make(chan *localCall, 10000)
-	e.callback = make(map[string]Callback, 10000)
-	e.respChan = make(chan *codec.Packet, 10000)
+	e.initOnce.Do(func() {
+		e.context = c
+		e.cancel = cancel
+		e.entityID = id
+		e.callChan = make(chan *codec.Packet, 10000)
+		e.localCallChan = make(chan *localCall, 10000)
+		e.callback = make(map[string]Callback, 10000)
+		e.respChan = make(chan *codec.Packet, 10000)
 
-	e.timer.Init()
-	e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
+		e.timer.Init()
+		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
 
-	e.OnInit()
+		e.OnInit()
+	})
 }
 
 func (e *Service) Run() {
-	ch := make(chan bool)
-	go e.run(ch)
-	<-ch
+	e.runOnce.Do(func() {
+		ch := make(chan bool)
+		secure.GO(func() {
+			e.run(ch)
+		})
+		<-ch
+	})
 }
 
 func (e *Service) run(ch chan bool) {
@@ -85,30 +92,32 @@ func (e *Service) run(ch chan bool) {
 
 			// 异步
 			ctx, release := e.context.Copy()
-			go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
+			npkt := pkt
+			secure.GO(func() {
 				defer release()
 				defer wg.Done()
 
-				err := e.handleCallMethod(ctx, pkt, e.ServiceDesc())
+				err := e.handleCallMethod(ctx, npkt, e.ServiceDesc())
 				if err != nil {
 					xlog.Errorln(err)
 				}
-			}(ctx, release, pkt)
+			})
 
 		case lc := <-e.localCallChan:
 			wg.Add(1)
 
 			// 异步
 			ctx, release := e.context.Copy()
-			go func(ctx Context, release releaseCtx, lc *localCall) {
+			tlc := lc
+			secure.GO(func() {
 				defer release()
 				defer wg.Done()
 
-				err := e.handleLocalCallMethod(ctx, lc, e.ServiceDesc())
+				err := e.handleLocalCallMethod(ctx, tlc, e.ServiceDesc())
 				if err != nil {
 					xlog.Errorln(err)
 				}
-			}(ctx, release, lc)
+			})
 
 		case pkt := <-e.respChan:
 			xlog.Tracef("handle: %s", pkt.String())
@@ -117,12 +126,12 @@ func (e *Service) run(ch chan bool) {
 
 			// 异步
 			ctx, release := e.context.Copy()
-			go func(ctx Context, release releaseCtx, pkt *codec.Packet) {
+			npkt := pkt
+			secure.GO(func() {
 				defer release()
 				defer wg.Done()
-
-				e.handleMethodRsp(ctx, pkt)
-			}(ctx, release, pkt)
+				e.handleMethodRsp(ctx, npkt)
+			})
 
 		case <-e.ticker.C:
 			e.timer.Tick()

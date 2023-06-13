@@ -7,6 +7,7 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/xtaci/kcp-go"
 )
 
@@ -45,7 +46,7 @@ func TestMain(t *testing.T) {
 	fmt.Println("data:", len(pkt.PacketBody()), pkt.PacketBody())
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func() {
+	secure.GO(func() {
 		i := 0
 		for {
 			var b [1024]byte
@@ -53,7 +54,7 @@ func TestMain(t *testing.T) {
 			fmt.Println("recv", i, string(b[:n]))
 			i++
 		}
-	}()
+	})
 
 	for i := 0; i < 1000; i++ {
 		fmt.Println("send", i, string(pkt.Data()))

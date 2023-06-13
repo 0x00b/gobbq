@@ -51,7 +51,7 @@ func TestKcpServer(m *testing.T) {
 	// 	}
 
 	// 	xlog.Infof("Connection from: %s", conn.RemoteAddr())
-	// 	go func() {
+	// 	secure.GO( func() {
 	// 		for {
 
 	// 			var b [1024]byte
@@ -70,6 +70,6 @@ func TestKcpServer(m *testing.T) {
 	// 			fmt.Println("send", string(b[:]))
 	// 		}
 
-	// 	}()
+	// 	})
 	// }
 }

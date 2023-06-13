@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
@@ -41,33 +42,37 @@ type conn struct {
 
 	PacketHandler   PacketHandler
 	connErrHandlers []ConnErrHandler
+
+	closeOnce sync.Once
 }
 
 func (st *conn) Name() string {
 	return "server"
 }
 
-func (st *conn) Close(closeChan chan struct{}) error {
+func (st *conn) close() (e error) {
+	st.closeOnce.Do(func() {
+		if st.cancel != nil {
+			st.cancel()
+		}
 
-	if st.cancel != nil {
-		st.cancel()
-	}
-
-	err := st.rwc.Close()
-	if err != nil {
-		return err
-	}
-
-	closeChan <- struct{}{}
-
-	return nil
+		e = st.rwc.Close()
+		if e != nil {
+			xlog.Errorln(e)
+		}
+	})
+	return e
 }
 
-func (st *conn) SendPacket(pkt *codec.Packet) error {
-	return st.packetReadWriter.SendPacket(pkt)
+func (st *conn) Close(closeChan chan struct{}) (e error) {
+	e = st.close()
+	closeChan <- struct{}{}
+	return e
 }
 
 func (st *conn) Serve() {
+	defer st.close()
+
 	for {
 		// xlog.Traceln("serve 1")
 		// 检查上游是否关闭
