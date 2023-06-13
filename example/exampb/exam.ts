@@ -1,13 +1,13 @@
 /* eslint-disable */
-import * as Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 import { Empty } from "./google/protobuf/empty";
 
 export const protobufPackage = "exampb";
 
 export interface SayHelloRequest {
   text: string;
-  CLientID: number;
+  CLientID: Long;
 }
 
 export interface SayHelloResponse {
@@ -15,7 +15,7 @@ export interface SayHelloResponse {
 }
 
 function createBaseSayHelloRequest(): SayHelloRequest {
-  return { text: "", CLientID: 0 };
+  return { text: "", CLientID: Long.UZERO };
 }
 
 export const SayHelloRequest = {
@@ -23,7 +23,7 @@ export const SayHelloRequest = {
     if (message.text !== "") {
       writer.uint32(10).string(message.text);
     }
-    if (message.CLientID !== 0) {
+    if (!message.CLientID.isZero()) {
       writer.uint32(16).uint64(message.CLientID);
     }
     return writer;
@@ -40,7 +40,7 @@ export const SayHelloRequest = {
           message.text = reader.string();
           break;
         case 2:
-          message.CLientID = longToNumber(reader.uint64() as Long);
+          message.CLientID = reader.uint64() as Long;
           break;
         default:
           reader.skipType(tag & 7);
@@ -53,14 +53,14 @@ export const SayHelloRequest = {
   fromJSON(object: any): SayHelloRequest {
     return {
       text: isSet(object.text) ? String(object.text) : "",
-      CLientID: isSet(object.CLientID) ? Number(object.CLientID) : 0,
+      CLientID: isSet(object.CLientID) ? Long.fromValue(object.CLientID) : Long.UZERO,
     };
   },
 
   toJSON(message: SayHelloRequest): unknown {
     const obj: any = {};
     message.text !== undefined && (obj.text = message.text);
-    message.CLientID !== undefined && (obj.CLientID = Math.round(message.CLientID));
+    message.CLientID !== undefined && (obj.CLientID = (message.CLientID || Long.UZERO).toString());
     return obj;
   },
 
@@ -71,7 +71,9 @@ export const SayHelloRequest = {
   fromPartial(object: DeepPartial<SayHelloRequest>): SayHelloRequest {
     const message = createBaseSayHelloRequest();
     message.text = object.text ?? "";
-    message.CLientID = object.CLientID ?? 0;
+    message.CLientID = (object.CLientID !== undefined && object.CLientID !== null)
+      ? Long.fromValue(object.CLientID)
+      : Long.UZERO;
     return message;
   },
 };
@@ -127,64 +129,97 @@ export const SayHelloResponse = {
   },
 };
 
-export interface Echo {
-  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
-}
+export type EchoDefinition = typeof EchoDefinition;
+export const EchoDefinition = {
+  name: "Echo",
+  fullName: "exampb.Echo",
+  methods: {
+    sayHello: {
+      name: "SayHello",
+      requestType: SayHelloRequest,
+      requestStream: false,
+      responseType: SayHelloResponse,
+      responseStream: false,
+      options: {},
+    },
+  },
+} as const;
 
-export interface EchoEty {
-  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
-}
+export type EchoEtyDefinition = typeof EchoEtyDefinition;
+export const EchoEtyDefinition = {
+  name: "EchoEty",
+  fullName: "exampb.EchoEty",
+  methods: {
+    sayHello: {
+      name: "SayHello",
+      requestType: SayHelloRequest,
+      requestStream: false,
+      responseType: SayHelloResponse,
+      responseStream: false,
+      options: {},
+    },
+  },
+} as const;
 
-export interface EchoSvc2 {
-  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
-}
+export type EchoSvc2Definition = typeof EchoSvc2Definition;
+export const EchoSvc2Definition = {
+  name: "EchoSvc2",
+  fullName: "exampb.EchoSvc2",
+  methods: {
+    sayHello: {
+      name: "SayHello",
+      requestType: SayHelloRequest,
+      requestStream: false,
+      responseType: SayHelloResponse,
+      responseStream: false,
+      options: {},
+    },
+  },
+} as const;
 
 /** 客户端 */
-export interface Client {
-  SayHello(request: SayHelloRequest): Promise<SayHelloResponse>;
-}
+export type ClientDefinition = typeof ClientDefinition;
+export const ClientDefinition = {
+  name: "Client",
+  fullName: "exampb.Client",
+  methods: {
+    sayHello: {
+      name: "SayHello",
+      requestType: SayHelloRequest,
+      requestStream: false,
+      responseType: SayHelloResponse,
+      responseStream: false,
+      options: {},
+    },
+  },
+} as const;
 
 /** 客户端 */
-export interface NoResp {
-  SayHello(request: SayHelloRequest): Promise<Empty>;
-}
-
-declare var self: any | undefined;
-declare var window: any | undefined;
-declare var global: any | undefined;
-var tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== "undefined") {
-    return globalThis;
-  }
-  if (typeof self !== "undefined") {
-    return self;
-  }
-  if (typeof window !== "undefined") {
-    return window;
-  }
-  if (typeof global !== "undefined") {
-    return global;
-  }
-  throw "Unable to locate global object";
-})();
+export type NoRespDefinition = typeof NoRespDefinition;
+export const NoRespDefinition = {
+  name: "NoResp",
+  fullName: "exampb.NoResp",
+  methods: {
+    sayHello: {
+      name: "SayHello",
+      requestType: SayHelloRequest,
+      requestStream: false,
+      responseType: Empty,
+      responseStream: false,
+      options: {},
+    },
+  },
+} as const;
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
-function longToNumber(long: Long): number {
-  if (long.gt(Number.MAX_SAFE_INTEGER)) {
-    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  return long.toNumber();
-}
-
-// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
-// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
   _m0.configure();

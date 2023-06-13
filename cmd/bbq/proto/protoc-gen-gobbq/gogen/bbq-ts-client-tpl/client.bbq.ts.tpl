@@ -6,6 +6,7 @@ import { UnaryResponse } from "gobbq-ts/dist/src/context/unary";
 import { Client } from "gobbq-ts/dist/src";
 import { makeClientConstructor } from "gobbq-ts/dist/src/bbq/bbq";
 import { ServiceType } from "gobbq-ts/dist/proto/bbq";
+import Long from "long";
 
 {{- range $sidx, $m := $.Messages }}
 import { {{$m.GoIdent.GoName}} } from "./{{FileName $.Name}}"
@@ -53,7 +54,7 @@ export interface {{$typeName}} {
 {{end -}}
 }
 
-export function New{{$typeName}}(client: Client<any> {{- if $isSvc}}{{else}}, entityID: Number{{end -}}): {{$typeName}} {
+export function New{{$typeName}}(client: Client<any> {{- if $isSvc}}{{else}}, entityID: Long{{end -}}): {{$typeName}} {
   return makeClientConstructor(client, {{$typeName}}Definition{{- if $isSvc}}{{else}}, entityID{{end -}}) as unknown as {{$typeName}}
 }
 {{end -}}

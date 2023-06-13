@@ -1,6 +1,6 @@
 /* eslint-disable */
-import * as Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "google.protobuf";
 
@@ -904,8 +904,8 @@ export interface UninterpretedOption {
    * identified it as during parsing. Exactly one of these should be set.
    */
   identifier_value: string;
-  positive_int_value: number;
-  negative_int_value: number;
+  positive_int_value: Long;
+  negative_int_value: Long;
   double_value: number;
   string_value: Uint8Array;
   aggregate_value: string;
@@ -3241,8 +3241,8 @@ function createBaseUninterpretedOption(): UninterpretedOption {
   return {
     name: [],
     identifier_value: "",
-    positive_int_value: 0,
-    negative_int_value: 0,
+    positive_int_value: Long.UZERO,
+    negative_int_value: Long.ZERO,
     double_value: 0,
     string_value: new Uint8Array(),
     aggregate_value: "",
@@ -3257,10 +3257,10 @@ export const UninterpretedOption = {
     if (message.identifier_value !== "") {
       writer.uint32(26).string(message.identifier_value);
     }
-    if (message.positive_int_value !== 0) {
+    if (!message.positive_int_value.isZero()) {
       writer.uint32(32).uint64(message.positive_int_value);
     }
-    if (message.negative_int_value !== 0) {
+    if (!message.negative_int_value.isZero()) {
       writer.uint32(40).int64(message.negative_int_value);
     }
     if (message.double_value !== 0) {
@@ -3289,10 +3289,10 @@ export const UninterpretedOption = {
           message.identifier_value = reader.string();
           break;
         case 4:
-          message.positive_int_value = longToNumber(reader.uint64() as Long);
+          message.positive_int_value = reader.uint64() as Long;
           break;
         case 5:
-          message.negative_int_value = longToNumber(reader.int64() as Long);
+          message.negative_int_value = reader.int64() as Long;
           break;
         case 6:
           message.double_value = reader.double();
@@ -3315,8 +3315,8 @@ export const UninterpretedOption = {
     return {
       name: Array.isArray(object?.name) ? object.name.map((e: any) => UninterpretedOption_NamePart.fromJSON(e)) : [],
       identifier_value: isSet(object.identifier_value) ? String(object.identifier_value) : "",
-      positive_int_value: isSet(object.positive_int_value) ? Number(object.positive_int_value) : 0,
-      negative_int_value: isSet(object.negative_int_value) ? Number(object.negative_int_value) : 0,
+      positive_int_value: isSet(object.positive_int_value) ? Long.fromValue(object.positive_int_value) : Long.UZERO,
+      negative_int_value: isSet(object.negative_int_value) ? Long.fromValue(object.negative_int_value) : Long.ZERO,
       double_value: isSet(object.double_value) ? Number(object.double_value) : 0,
       string_value: isSet(object.string_value) ? bytesFromBase64(object.string_value) : new Uint8Array(),
       aggregate_value: isSet(object.aggregate_value) ? String(object.aggregate_value) : "",
@@ -3331,8 +3331,10 @@ export const UninterpretedOption = {
       obj.name = [];
     }
     message.identifier_value !== undefined && (obj.identifier_value = message.identifier_value);
-    message.positive_int_value !== undefined && (obj.positive_int_value = Math.round(message.positive_int_value));
-    message.negative_int_value !== undefined && (obj.negative_int_value = Math.round(message.negative_int_value));
+    message.positive_int_value !== undefined &&
+      (obj.positive_int_value = (message.positive_int_value || Long.UZERO).toString());
+    message.negative_int_value !== undefined &&
+      (obj.negative_int_value = (message.negative_int_value || Long.ZERO).toString());
     message.double_value !== undefined && (obj.double_value = message.double_value);
     message.string_value !== undefined &&
       (obj.string_value = base64FromBytes(
@@ -3350,8 +3352,12 @@ export const UninterpretedOption = {
     const message = createBaseUninterpretedOption();
     message.name = object.name?.map((e) => UninterpretedOption_NamePart.fromPartial(e)) || [];
     message.identifier_value = object.identifier_value ?? "";
-    message.positive_int_value = object.positive_int_value ?? 0;
-    message.negative_int_value = object.negative_int_value ?? 0;
+    message.positive_int_value = (object.positive_int_value !== undefined && object.positive_int_value !== null)
+      ? Long.fromValue(object.positive_int_value)
+      : Long.UZERO;
+    message.negative_int_value = (object.negative_int_value !== undefined && object.negative_int_value !== null)
+      ? Long.fromValue(object.negative_int_value)
+      : Long.ZERO;
     message.double_value = object.double_value ?? 0;
     message.string_value = object.string_value ?? new Uint8Array();
     message.aggregate_value = object.aggregate_value ?? "";
@@ -3800,20 +3806,12 @@ function base64FromBytes(arr: Uint8Array): string {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
-function longToNumber(long: Long): number {
-  if (long.gt(Number.MAX_SAFE_INTEGER)) {
-    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  return long.toNumber();
-}
-
-// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
-// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
   _m0.configure();

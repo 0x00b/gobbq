@@ -9,7 +9,7 @@ protoc -I. -I../../proto/bbq --gobbq_out=plugins=grpc,tpl_dir=/data/home/user00/
 
 # npm install ts-proto
 # export  PATH=$PATH:/root/node_modules/.bin
-protoc -I. -I../../proto/bbq  --ts_proto_out=. --ts_proto_opt=outputClientImpl=false,oneof=unions,snakeToCamel=false,useExactTypes=false ./exam.proto
+protoc -I. -I../../proto/bbq  --ts_proto_out=. --ts_proto_opt=outputServices=generic-definitions,outputClientImpl=false,oneof=unions,snakeToCamel=false,esModuleInterop=true,useExactTypes=false,forceLong=long ./exam.proto
 
 # protoc \
 #     -I. -I../../proto/bbq\

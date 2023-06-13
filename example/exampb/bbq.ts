@@ -1,6 +1,6 @@
 /* eslint-disable */
-import * as Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "bbq";
 
@@ -145,9 +145,9 @@ export interface Header {
   /** sverice or entity */
   ServiceType: ServiceType;
   /** 调用的原EntityID */
-  SrcEntity: number;
+  SrcEntity: Long;
   /** 调用的目的EntityID */
-  DstEntity: number;
+  DstEntity: Long;
   /** 规范格式: 类名，服务名 */
   Type: string;
   /** 规范格式: 接口名 */
@@ -185,8 +185,8 @@ function createBaseHeader(): Header {
     Timeout: 0,
     RequestType: 0,
     ServiceType: 0,
-    SrcEntity: 0,
-    DstEntity: 0,
+    SrcEntity: Long.UZERO,
+    DstEntity: Long.UZERO,
     Type: "",
     Method: "",
     ContentType: 0,
@@ -215,10 +215,10 @@ export const Header = {
     if (message.ServiceType !== 0) {
       writer.uint32(40).int32(message.ServiceType);
     }
-    if (message.SrcEntity !== 0) {
+    if (!message.SrcEntity.isZero()) {
       writer.uint32(48).uint64(message.SrcEntity);
     }
-    if (message.DstEntity !== 0) {
+    if (!message.DstEntity.isZero()) {
       writer.uint32(56).uint64(message.DstEntity);
     }
     if (message.Type !== "") {
@@ -271,10 +271,10 @@ export const Header = {
           message.ServiceType = reader.int32() as any;
           break;
         case 6:
-          message.SrcEntity = longToNumber(reader.uint64() as Long);
+          message.SrcEntity = reader.uint64() as Long;
           break;
         case 7:
-          message.DstEntity = longToNumber(reader.uint64() as Long);
+          message.DstEntity = reader.uint64() as Long;
           break;
         case 8:
           message.Type = reader.string();
@@ -318,8 +318,8 @@ export const Header = {
       Timeout: isSet(object.Timeout) ? Number(object.Timeout) : 0,
       RequestType: isSet(object.RequestType) ? requestTypeFromJSON(object.RequestType) : 0,
       ServiceType: isSet(object.ServiceType) ? serviceTypeFromJSON(object.ServiceType) : 0,
-      SrcEntity: isSet(object.SrcEntity) ? Number(object.SrcEntity) : 0,
-      DstEntity: isSet(object.DstEntity) ? Number(object.DstEntity) : 0,
+      SrcEntity: isSet(object.SrcEntity) ? Long.fromValue(object.SrcEntity) : Long.UZERO,
+      DstEntity: isSet(object.DstEntity) ? Long.fromValue(object.DstEntity) : Long.UZERO,
       Type: isSet(object.Type) ? String(object.Type) : "",
       Method: isSet(object.Method) ? String(object.Method) : "",
       ContentType: isSet(object.ContentType) ? contentTypeFromJSON(object.ContentType) : 0,
@@ -343,8 +343,8 @@ export const Header = {
     message.Timeout !== undefined && (obj.Timeout = Math.round(message.Timeout));
     message.RequestType !== undefined && (obj.RequestType = requestTypeToJSON(message.RequestType));
     message.ServiceType !== undefined && (obj.ServiceType = serviceTypeToJSON(message.ServiceType));
-    message.SrcEntity !== undefined && (obj.SrcEntity = Math.round(message.SrcEntity));
-    message.DstEntity !== undefined && (obj.DstEntity = Math.round(message.DstEntity));
+    message.SrcEntity !== undefined && (obj.SrcEntity = (message.SrcEntity || Long.UZERO).toString());
+    message.DstEntity !== undefined && (obj.DstEntity = (message.DstEntity || Long.UZERO).toString());
     message.Type !== undefined && (obj.Type = message.Type);
     message.Method !== undefined && (obj.Method = message.Method);
     message.ContentType !== undefined && (obj.ContentType = contentTypeToJSON(message.ContentType));
@@ -372,8 +372,12 @@ export const Header = {
     message.Timeout = object.Timeout ?? 0;
     message.RequestType = object.RequestType ?? 0;
     message.ServiceType = object.ServiceType ?? 0;
-    message.SrcEntity = object.SrcEntity ?? 0;
-    message.DstEntity = object.DstEntity ?? 0;
+    message.SrcEntity = (object.SrcEntity !== undefined && object.SrcEntity !== null)
+      ? Long.fromValue(object.SrcEntity)
+      : Long.UZERO;
+    message.DstEntity = (object.DstEntity !== undefined && object.DstEntity !== null)
+      ? Long.fromValue(object.DstEntity)
+      : Long.UZERO;
     message.Type = object.Type ?? "";
     message.Method = object.Method ?? "";
     message.ContentType = object.ContentType ?? 0;
@@ -504,20 +508,12 @@ function base64FromBytes(arr: Uint8Array): string {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
-function longToNumber(long: Long): number {
-  if (long.gt(Number.MAX_SAFE_INTEGER)) {
-    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  return long.toNumber();
-}
-
-// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
-// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
   _m0.configure();
