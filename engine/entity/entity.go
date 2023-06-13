@@ -43,7 +43,7 @@ type IBaseEntity interface {
 
 	Context() Context
 
-	Run(ch chan bool)
+	Run()
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -148,7 +148,13 @@ type baseEntity struct {
 	ticker *time.Ticker
 }
 
-func (e *Entity) Run(ch chan bool) {
+func (e *Entity) Run() {
+	ch := make(chan bool)
+	go e.run(ch)
+	<-ch
+}
+
+func (e *Entity) run(ch chan bool) {
 	xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}

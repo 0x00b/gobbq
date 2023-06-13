@@ -41,9 +41,7 @@ func NewProxy() *Proxy {
 	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
 	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), 0, 0), p)
 
-	ch := make(chan bool)
-	go p.Run(ch)
-	<-ch
+	p.Run()
 
 	p.ConnOtherProxy(nets.WithPacketHandler(p))
 

@@ -38,9 +38,7 @@ func NewGame() *Game {
 
 	gm.EntityMgr.RegisterEntity(nil, temp, gm)
 
-	ch := make(chan bool)
-	go gm.Run(ch)
-	<-ch
+	gm.Run()
 
 	gm.init(temp)
 

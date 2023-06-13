@@ -120,9 +120,7 @@ func (s *EntityManager) NewEntity(c Context, id EntityID, typ string) (IEntity, 
 	s.RegisterEntity(c, id, entity)
 
 	// start message loop
-	ch := make(chan bool)
-	go entity.Run(ch)
-	<-ch
+	entity.Run()
 
 	// send to poxy
 	// if s.ProxyRegister != nil {
@@ -213,9 +211,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	xlog.Tracef("gobbq: registerService 222 eid:%d", ss.EntityID())
 
 	// start msg loop
-	ch := make(chan bool)
-	go ss.Run(ch)
-	<-ch
+	ss.Run()
 
 	xlog.Tracef("gobbq: registerService 333 eid:%d", ss.EntityID())
 

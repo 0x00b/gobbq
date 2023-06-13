@@ -36,9 +36,7 @@ func NewGate() *Gate {
 
 	gt.EntityMgr.RegisterEntity(nil, temp, gt)
 
-	ch := make(chan bool)
-	go gt.Run(ch)
-	<-ch
+	gt.Run()
 
 	gt.init(temp)
 

@@ -5,7 +5,8 @@
 import { UnaryResponse } from "gobbq-ts/dist/src/context/unary";
 import { Client } from "gobbq-ts/dist/src";
 import { makeClientConstructor } from "gobbq-ts/dist/src/bbq/bbq";
-import { EntityID,ServiceType } from "gobbq-ts/dist/proto/bbq";
+import { ServiceType } from "gobbq-ts/dist/proto/bbq";
+import Long from "long";
 import { SayHelloRequest } from "./exam"
 import { SayHelloResponse } from "./exam"
 	
@@ -76,7 +77,7 @@ export interface EchoEtyEntity {
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
 }
 
-export function NewEchoEtyEntity(client: Client<any>, entityID: EntityID): EchoEtyEntity {
+export function NewEchoEtyEntity(client: Client<any>, entityID: Long): EchoEtyEntity {
   return makeClientConstructor(client, EchoEtyEntityDefinition, entityID) as unknown as EchoEtyEntity
 }
 
@@ -148,7 +149,7 @@ export interface ClientEntity {
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
 }
 
-export function NewClientEntity(client: Client<any>, entityID: EntityID): ClientEntity {
+export function NewClientEntity(client: Client<any>, entityID: Long): ClientEntity {
   return makeClientConstructor(client, ClientEntityDefinition, entityID) as unknown as ClientEntity
 }
 // NoRespEntity 客户端
@@ -183,7 +184,7 @@ export interface NoRespEntity {
 	SayHello(request: SayHelloRequest):void
 }
 
-export function NewNoRespEntity(client: Client<any>, entityID: EntityID): NoRespEntity {
+export function NewNoRespEntity(client: Client<any>, entityID: Long): NoRespEntity {
   return makeClientConstructor(client, NoRespEntityDefinition, entityID) as unknown as NoRespEntity
 }
 

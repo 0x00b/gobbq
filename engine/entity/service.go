@@ -52,7 +52,13 @@ func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 	e.OnInit()
 }
 
-func (e *Service) Run(ch chan bool) {
+func (e *Service) Run() {
+	ch := make(chan bool)
+	go e.run(ch)
+	<-ch
+}
+
+func (e *Service) run(ch chan bool) {
 	xlog.Traceln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
