@@ -46,7 +46,7 @@ func (*EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*ex
 	if err != nil {
 		return nil, err
 	}
-	xlog.Println("entity response:", c.Packet().Header.String(), rsp.String())
+	xlog.Println("Service response:", c.Packet().Header.String(), rsp.String())
 
 	return rsp, nil
 }

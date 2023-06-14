@@ -7,7 +7,6 @@ import (
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -67,10 +66,10 @@ type Proxy struct {
 	instIdCounter uint32
 }
 
-type ProxyMap map[entity.ProxyID]*codec.PacketReadWriter
-type ProxySvcMap map[string]*codec.PacketReadWriter
-type instMap map[entity.InstID]*codec.PacketReadWriter
-type serviceMap map[string]*codec.PacketReadWriter
+type ProxyMap map[entity.ProxyID]*nets.PacketReadWriter
+type ProxySvcMap map[string]*nets.PacketReadWriter
+type instMap map[entity.InstID]*nets.PacketReadWriter
+type serviceMap map[string]*nets.PacketReadWriter
 
 func (p *Proxy) NewInstID() entity.InstID {
 	id := atomic.AddUint32(&p.instIdCounter, 1)
@@ -84,7 +83,7 @@ func (p *Proxy) NewInstID() entity.InstID {
 }
 
 // // RegisterEntity register serive
-func (p *Proxy) registerInst(instID entity.InstID, prw *codec.PacketReadWriter) {
+func (p *Proxy) registerInst(instID entity.InstID, prw *nets.PacketReadWriter) {
 	p.instMtx.Lock()
 	defer p.instMtx.Unlock()
 	if _, ok := p.instMaps[instID]; ok {
@@ -95,7 +94,7 @@ func (p *Proxy) registerInst(instID entity.InstID, prw *codec.PacketReadWriter) 
 }
 
 // RegisterEntity register serive
-func (p *Proxy) registerService(svcName string, prw *codec.PacketReadWriter) {
+func (p *Proxy) registerService(svcName string, prw *nets.PacketReadWriter) {
 	p.svcMtx.RLock()
 	defer p.svcMtx.RUnlock()
 	if _, ok := p.svcMaps[svcName]; ok {
@@ -106,7 +105,7 @@ func (p *Proxy) registerService(svcName string, prw *codec.PacketReadWriter) {
 }
 
 // RegisterEntity register serive
-func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter) {
+func (p *Proxy) RegisterProxyService(svcName string, prw *nets.PacketReadWriter) {
 	p.proxySvcMtx.Lock()
 	defer p.proxySvcMtx.Unlock()
 	if _, ok := p.proxySvcMap[svcName]; ok {
@@ -116,7 +115,7 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *codec.PacketReadWriter
 	p.proxySvcMap[svcName] = prw
 }
 
-func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
+func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) {
 
 	// xlog.Debugln("proxy 11")
 	// proxy to inst
@@ -163,7 +162,7 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *codec.Packet) {
 	}
 }
 
-func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *codec.Packet) {
+func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 
 	if hdr.RequestType == bbq.RequestType_RequestRespone {
 		p.ProxyToEntity(entity.DstEntity(pkt), pkt)

@@ -94,7 +94,7 @@ type {{lowerCamelcase $typeName}} struct{
 {{else}}
 func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{else}}error{{end}}{
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version=      1
@@ -135,7 +135,7 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 
 		{{if $m.HasResponse}}
 			// register callback first, than SendPacket
-			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
 				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -232,7 +232,7 @@ func _{{$typeName}}_{{$m.GoName}}_Local_Handler(svc any, ctx entity.Context, in 
 	{{end}}
 }
 
-func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
  
 	hdr := pkt.Header
 	
@@ -248,7 +248,7 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 {{if $m.HasResponse}}
 	rsp, err := _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version=      hdr.Version

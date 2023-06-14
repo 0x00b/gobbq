@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	bs "github.com/0x00b/gobbq"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -14,7 +13,7 @@ import (
 type TestPacket struct {
 }
 
-func (tp *TestPacket) HandlePacket(pkt *codec.Packet) error {
+func (tp *TestPacket) HandlePacket(pkt *nets.Packet) error {
 
 	pkt.Src.SendPacket(pkt)
 

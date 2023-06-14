@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
 
-func (p *Proxy) HandleEOF(prw *codec.PacketReadWriter) {
+func (p *Proxy) HandleEOF(prw *nets.PacketReadWriter) {
 	func() {
 		p.instMtx.Lock()
 		defer p.instMtx.Unlock()
@@ -29,10 +29,10 @@ func (p *Proxy) HandleEOF(prw *codec.PacketReadWriter) {
 	}()
 }
 
-func (p *Proxy) HandleTimeOut(prw *codec.PacketReadWriter) {
+func (p *Proxy) HandleTimeOut(prw *nets.PacketReadWriter) {
 	p.HandleEOF(prw)
 }
 
-func (p *Proxy) HandleFail(prw *codec.PacketReadWriter) {
+func (p *Proxy) HandleFail(prw *nets.PacketReadWriter) {
 	p.HandleEOF(prw)
 }

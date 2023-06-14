@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -43,10 +43,10 @@ func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 		e.context = c
 		e.cancel = cancel
 		e.entityID = id
-		e.callChan = make(chan *codec.Packet, 10000)
+		e.callChan = make(chan *nets.Packet, 10000)
 		e.localCallChan = make(chan *localCall, 10000)
 		e.callback = make(map[string]Callback, 10000)
-		e.respChan = make(chan *codec.Packet, 10000)
+		e.respChan = make(chan *nets.Packet, 10000)
 
 		e.timer.Init()
 		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)

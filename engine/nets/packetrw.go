@@ -1,4 +1,4 @@
-package codec
+package nets
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/xlog"
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ import (
 
 var (
 	errPacketBodyTooLarge = errors.Errorf("packetBody too large")
-	errChecksumError      = errors.Errorf("checksum error")
+	// errChecksumError      = errors.Errorf("checksum error")
 )
 
 type Config struct {
@@ -32,7 +33,7 @@ type PacketReadWriter struct {
 	Config Config
 
 	rwMtx *sync.Mutex
-	rw    net.Conn
+	conn  *Conn
 
 	// write will inc 1
 	writeMsgCnt uint32
@@ -41,12 +42,12 @@ type PacketReadWriter struct {
 }
 
 // NewPacketReadWriter creates a packet connection based on network connection
-func NewPacketReadWriter(rw net.Conn) *PacketReadWriter {
-	return NewPacketReadWriterWithConfig(rw, DefaultConfig())
+func NewPacketReadWriter(conn *Conn) *PacketReadWriter {
+	return NewPacketReadWriterWithConfig(conn, DefaultConfig())
 }
 
-func NewPacketReadWriterWithConfig(rw net.Conn, cfg *Config) *PacketReadWriter {
-	if rw == nil {
+func NewPacketReadWriterWithConfig(conn *Conn, cfg *Config) *PacketReadWriter {
+	if conn == nil {
 		panic(fmt.Errorf("conn is nil"))
 	}
 
@@ -55,7 +56,7 @@ func NewPacketReadWriterWithConfig(rw net.Conn, cfg *Config) *PacketReadWriter {
 	}
 
 	pc := &PacketReadWriter{
-		rw:     rw,
+		conn:   conn,
 		Config: *cfg,
 		rwMtx:  &sync.Mutex{},
 	}
@@ -65,19 +66,11 @@ func NewPacketReadWriterWithConfig(rw net.Conn, cfg *Config) *PacketReadWriter {
 
 // SendPacket write packet data to pc.rw, need to initialize the packet by yourself
 func (pc *PacketReadWriter) SendPacket(packet *Packet) error {
-	pdata := packet.Data()
 
-	xlog.Traceln("send raw:", packet.String())
-
-	pc.rwMtx.Lock()
-	defer pc.rwMtx.Unlock()
-
-	// todo 合并 ，不要分两次 writeFull, 优化不用append
-	err := writeFull(pc.rw, append(packetEndian.AppendUint32(nil, uint32(len(pdata))), pdata...))
+	err := pc.conn.SendPacket(packet)
 	if err != nil {
 		return err
 	}
-	xlog.Traceln("send raw done")
 
 	pc.writeMsgCnt++
 
@@ -97,7 +90,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	var tempBuff [4]byte
 
 	// xlog.Traceln("recv raw 1 ")
-	_, err = io.ReadFull(pc.rw, tempBuff[:])
+	_, err = io.ReadFull(pc.conn.rwc, tempBuff[:])
 	// xlog.Traceln("recv raw 2 ")
 	if err != nil {
 		return nil, nil, err
@@ -106,6 +99,9 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	packetDataSize := packetEndian.Uint32(tempBuff[:])
 	if packetDataSize > MaxPacketBodyLength {
 		return nil, nil, errPacketBodyTooLarge
+	}
+	if packetDataSize < 4 {
+		return nil, nil, errors.New("bad packet")
 	}
 
 	// allocate a packet to receive packetBody
@@ -117,20 +113,20 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	//extendPacketBody 返回的时候已经把header buff排除了
 	packetData := packet.extendPacketData(packetDataSize)
 	// xlog.Traceln("recv raw 4 ")
-	_, err = io.ReadFull(pc.rw, packetData)
+	_, err = io.ReadFull(pc.conn.rwc, packetData)
 	if err != nil {
 		release()
 		return nil, nil, err
 	}
 
-	// xlog.Traceln("recv raw 5 ")
+	xlog.Traceln("recv raw 5 ", packetDataSize, cap(packetData))
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
 
 	// xlog.Traceln("recv raw:", packet.headerLen, string(packetData))
 
 	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
-	err = DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.Header)
+	err = codec.DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.Header)
 	if err != nil {
 		release()
 		return nil, nil, err

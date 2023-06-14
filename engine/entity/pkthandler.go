@@ -4,7 +4,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -21,7 +21,7 @@ func NotMyMethod(err error) bool {
 	return errors.Is(err, ErrServiceNotFound) || errors.Is(err, ErrEntityNotFound)
 }
 
-func (st *EntityManager) HandlePacket(pkt *codec.Packet) error {
+func (st *EntityManager) HandlePacket(pkt *nets.Packet) error {
 
 	if pkt.Header.ServiceType == bbq.ServiceType_Entity ||
 		// 因为虽然service本地也有,但是如果entityid不是本地,说明是其他地方的同名service调用过来的,需要回到原地
@@ -32,7 +32,7 @@ func (st *EntityManager) HandlePacket(pkt *codec.Packet) error {
 	return st.handleCallService(pkt)
 }
 
-func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
+func (st *EntityManager) handleCallService(pkt *nets.Packet) error {
 
 	hdr := pkt.Header
 	service := hdr.Type
@@ -48,7 +48,7 @@ func (st *EntityManager) handleCallService(pkt *codec.Packet) error {
 	return nil
 }
 
-func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
+func (st *EntityManager) handleCallEntity(pkt *nets.Packet) error {
 
 	eid := DstEntity(pkt)
 	if eid.Invalid() {
@@ -73,7 +73,7 @@ func (st *EntityManager) handleCallEntity(pkt *codec.Packet) error {
 
 // =========
 
-func (st *EntityManager) LocalCall(pkt *codec.Packet, in any, respChan chan any) error {
+func (st *EntityManager) LocalCall(pkt *nets.Packet, in any, respChan chan any) error {
 
 	hdr := pkt.Header
 	if hdr.ServiceType == bbq.ServiceType_Entity ||
@@ -86,7 +86,7 @@ func (st *EntityManager) LocalCall(pkt *codec.Packet, in any, respChan chan any)
 
 }
 
-func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respChan chan any) error {
+func (st *EntityManager) handleLocalCallService(pkt *nets.Packet, in any, respChan chan any) error {
 
 	service := pkt.Header.Type
 
@@ -101,7 +101,7 @@ func (st *EntityManager) handleLocalCallService(pkt *codec.Packet, in any, respC
 	return ss.dispatchLocalCall(pkt, in, respChan)
 }
 
-func (st *EntityManager) handleLocalCallEntity(pkt *codec.Packet, in any, respChan chan any) error {
+func (st *EntityManager) handleLocalCallEntity(pkt *nets.Packet, in any, respChan chan any) error {
 
 	// xlog.Traceln("handleLocalCallEntity 1", pkt.Header.String())
 

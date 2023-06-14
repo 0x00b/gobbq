@@ -8,7 +8,6 @@ import (
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
@@ -72,10 +71,10 @@ type Gate struct {
 	*bs.Server
 }
 
-type clientMap map[entity.ID]*codec.PacketReadWriter
+type clientMap map[entity.ID]*nets.PacketReadWriter
 
 // // RegisterEntity register serive
-func (gt *Gate) RegisterEntity(eid entity.EntityID, prw *codec.PacketReadWriter) {
+func (gt *Gate) RegisterEntity(eid entity.EntityID, prw *nets.PacketReadWriter) {
 	gt.cltMtx.Lock()
 	defer gt.cltMtx.Unlock()
 

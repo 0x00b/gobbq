@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 )
 
 // EntityID proxyid + instid + id => (22bit + 10bit + 32bit)
@@ -38,11 +38,11 @@ func FixedEntityID(pid ProxyID, iid InstID, id ID) EntityID {
 	return EntityID(eid)
 }
 
-func DstEntity(pkt *codec.Packet) EntityID {
+func DstEntity(pkt *nets.Packet) EntityID {
 	return EntityID(pkt.Header.GetDstEntity())
 }
 
-func SrcEntity(pkt *codec.Packet) EntityID {
+func SrcEntity(pkt *nets.Packet) EntityID {
 	return EntityID(pkt.Header.GetSrcEntity())
 }
 

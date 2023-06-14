@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/xtaci/kcp-go"
 	"golang.org/x/net/websocket"
 )
 
 type Client struct {
-	*conn
+	conn *Conn
 }
 
 func Connect(netname NetWorkName, ip, port string, ops ...Option) (*Client, error) {
@@ -84,11 +83,11 @@ func newClient(rawConn net.Conn, ops ...Option) *Client {
 	return ct
 }
 
-func (ct *Client) SendPacket(pkt *codec.Packet) error {
+func (ct *Client) SendPacket(pkt *Packet) error {
 	// todo chan
 	return ct.conn.packetReadWriter.SendPacket(pkt)
 }
 
-func (ct *Client) GetPacketReadWriter() *codec.PacketReadWriter {
+func (ct *Client) GetPacketReadWriter() *PacketReadWriter {
 	return ct.conn.packetReadWriter
 }

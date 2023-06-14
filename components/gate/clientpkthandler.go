@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/0x00b/gobbq/components/proxy/ex"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -20,7 +19,7 @@ func NewClientPacketHandler(gate *Gate) *ClientPacketHandler {
 	return st
 }
 
-func (st *ClientPacketHandler) HandlePacket(pkt *codec.Packet) error {
+func (st *ClientPacketHandler) HandlePacket(pkt *nets.Packet) error {
 
 	if st.gate.isMyPacket(pkt) {
 		err := st.gate.EntityMgr.HandlePacket(pkt)

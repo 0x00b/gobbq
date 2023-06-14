@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/engine/timer"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/secure"
@@ -71,8 +71,8 @@ type IBaseEntity interface {
 	setEntityID(id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
-	dispatchPkt(pkt *codec.Packet)
-	dispatchLocalCall(pkt *codec.Packet, req any, respChan chan any) error
+	dispatchPkt(pkt *nets.Packet)
+	dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error
 
 	setParant(s IBaseEntity)
 	addChildren(s IBaseEntity)
@@ -87,7 +87,7 @@ type IEntity interface {
 	entityType()
 }
 
-type methodHandler func(svc any, ctx Context, pkt *codec.Packet, interceptor ServerInterceptor)
+type methodHandler func(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor)
 
 type methodLocalHandler func(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error)
 
@@ -115,7 +115,7 @@ type EntityDesc struct {
 }
 
 type localCall struct {
-	pkt      *codec.Packet
+	pkt      *nets.Packet
 	in       any
 	respChan chan any
 }
@@ -135,10 +135,10 @@ type baseEntity struct {
 	context Context
 	cancel  func()
 
-	callChan      chan *codec.Packet
+	callChan      chan *nets.Packet
 	localCallChan chan *localCall
 
-	respChan chan *codec.Packet
+	respChan chan *nets.Packet
 
 	cbMtx sync.RWMutex
 	// requestid -> callback
@@ -277,10 +277,10 @@ func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
 
 		e.context = c
 		e.cancel = cancel
-		e.callChan = make(chan *codec.Packet, 1000)
+		e.callChan = make(chan *nets.Packet, 1000)
 		e.localCallChan = make(chan *localCall, 1000)
 		e.callback = make(map[string]Callback, 1)
-		e.respChan = make(chan *codec.Packet, 1)
+		e.respChan = make(chan *nets.Packet, 1)
 		e.timer.Init()
 		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
 
@@ -303,7 +303,7 @@ func (e *baseEntity) onDestroy() {
 	})
 }
 
-func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
+func (e *baseEntity) dispatchPkt(pkt *nets.Packet) {
 	if pkt != nil {
 		xlog.Traceln("dispatch:", pkt.String())
 		pkt.Retain()
@@ -315,7 +315,7 @@ func (e *baseEntity) dispatchPkt(pkt *codec.Packet) {
 	}
 }
 
-func (e *baseEntity) dispatchLocalCall(pkt *codec.Packet, req any, respChan chan any) error {
+func (e *baseEntity) dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error {
 	if pkt != nil && req != nil {
 		pkt.Retain()
 
@@ -331,12 +331,12 @@ func (e *baseEntity) dispatchLocalCall(pkt *codec.Packet, req any, respChan chan
 	return ErrBadRequest
 }
 
-func (e *baseEntity) initContext(c Context, pkt *codec.Packet) {
+func (e *baseEntity) initContext(c Context, pkt *nets.Packet) {
 	c.setPacket(pkt)
 	// SetEntityMgr(c, e.desc.EntityMgr)
 }
 
-func (e *baseEntity) handleMethodRsp(c Context, pkt *codec.Packet) error {
+func (e *baseEntity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
@@ -384,7 +384,7 @@ func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityD
 	return err
 }
 
-func (e *baseEntity) handleCallMethod(c Context, pkt *codec.Packet, sd *EntityDesc) error {
+func (e *baseEntity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) error {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)

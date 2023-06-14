@@ -1,4 +1,4 @@
-package codec
+package nets
 
 import (
 	"context"
@@ -8,9 +8,13 @@ import (
 	"sync/atomic"
 
 	"github.com/0x00b/gobbq/engine/bytespool"
+	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
 )
 
+// NOTE 如果需要通过chan 或者其他方式给其他协程使用，一定要retain，release
+// NOTE 如果需要通过chan 或者其他方式给其他协程使用，一定要retain，release
+// NOTE 如果需要通过chan 或者其他方式给其他协程使用，一定要retain，release
 // Packet is a packet for sending data
 type Packet struct {
 	refcount int32
@@ -134,7 +138,7 @@ func (p *Packet) Release() {
 // WriteBytes appends slice of bytes to the end of packetBody
 func (p *Packet) WriteBody(b []byte) error {
 
-	header, err := DefaultCodec.Marshal(p.Header)
+	header, err := codec.DefaultCodec.Marshal(p.Header)
 	if err != nil {
 		return err
 	}
@@ -149,6 +153,11 @@ func (p *Packet) WriteBody(b []byte) error {
 	copy(data[p.headerLen:p.totalLen], b)
 
 	return nil
+}
+
+func (p *Packet) Serialize() []byte {
+	pdata := p.Data()
+	return append(packetEndian.AppendUint32(nil, uint32(len(pdata))), pdata...)
 }
 
 // PacketBody returns the total packetBody of packet

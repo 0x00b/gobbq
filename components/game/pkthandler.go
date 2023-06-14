@@ -11,6 +11,6 @@ package game
 // 	return st
 // }
 
-// func (st *GamePacketHandler) HandlePacket(pkt *codec.Packet) error {
+// func (st *GamePacketHandler) HandlePacket(pkt *nets.Packet) error {
 // 	return st.MethodPacketHandler.HandlePacket(pkt)
 // }

@@ -3,7 +3,6 @@ package nets
 import (
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/proto/bbq"
 )
 
@@ -77,13 +76,13 @@ var DefaultOptions = &Options{
 }
 
 type PacketHandler interface {
-	HandlePacket(pkt *codec.Packet) error
+	HandlePacket(pkt *Packet) error
 }
 
 type ConnErrHandler interface {
-	HandleEOF(*conn)
-	HandleTimeOut(*conn)
-	HandleFail(*conn)
+	HandleEOF(*Conn)
+	HandleTimeOut(*Conn)
+	HandleFail(*Conn)
 }
 
 // A Option sets options such as credentials, codec and keepalive parameters, etc.

@@ -8,14 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// exampb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -34,7 +33,7 @@ type echoService struct {
 
 func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -73,7 +72,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -147,7 +146,7 @@ func _EchoService_SayHello_Local_Handler(svc any, ctx entity.Context, in any, in
 
 }
 
-func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -161,7 +160,7 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *code
 
 	rsp, err := _EchoService_SayHello_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -252,7 +251,7 @@ type echoEtyEntity struct {
 
 func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -291,7 +290,7 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -365,7 +364,7 @@ func _EchoEtyEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, 
 
 }
 
-func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -379,7 +378,7 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *co
 
 	rsp, err := _EchoEtyEntity_SayHello_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -447,7 +446,7 @@ type echoSvc2Service struct {
 
 func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -486,7 +485,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -560,7 +559,7 @@ func _EchoSvc2Service_SayHello_Local_Handler(svc any, ctx entity.Context, in any
 
 }
 
-func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -574,7 +573,7 @@ func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *
 
 	rsp, err := _EchoSvc2Service_SayHello_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -665,7 +664,7 @@ type clientEntity struct {
 
 func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -704,7 +703,7 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -778,7 +777,7 @@ func _ClientEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, i
 
 }
 
-func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -792,7 +791,7 @@ func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 
 	rsp, err := _ClientEntity_SayHello_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -883,7 +882,7 @@ type noRespEntity struct {
 
 func (t *noRespEntity) SayHello(c entity.Context, req *SayHelloRequest) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -967,7 +966,7 @@ func _NoRespEntity_SayHello_Local_Handler(svc any, ctx entity.Context, in any, i
 
 }
 
-func _NoRespEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _NoRespEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 

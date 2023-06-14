@@ -59,7 +59,7 @@ type service struct {
 	closed atomic.Bool
 
 	connMtx sync.Mutex
-	conns   map[*conn]struct{}
+	conns   map[*Conn]struct{}
 
 	websocket *WebSocketService
 }
@@ -67,7 +67,7 @@ type service struct {
 func NewNetService(opts ...Option) *service {
 	svc := &service{
 		opts:  &Options{},
-		conns: make(map[*conn]struct{}),
+		conns: make(map[*Conn]struct{}),
 	}
 
 	svc.ctx, svc.cancel = context.WithCancel(context.Background())
@@ -250,7 +250,7 @@ func (s *service) closeAll() {
 	wg.Wait()
 }
 
-func (s *service) storeConn(cn *conn) {
+func (s *service) storeConn(cn *Conn) {
 	if s.closed.Load() {
 		return
 	}
@@ -260,7 +260,7 @@ func (s *service) storeConn(cn *conn) {
 	s.conns[cn] = struct{}{}
 }
 
-func (s *service) unstoreConn(cn *conn) {
+func (s *service) unstoreConn(cn *Conn) {
 	if s.closed.Load() {
 		return
 	}
@@ -272,17 +272,17 @@ func (s *service) unstoreConn(cn *conn) {
 
 // ConnErrHandler
 
-func (s *service) HandleEOF(cn *conn) {
+func (s *service) HandleEOF(cn *Conn) {
 	if cn == nil {
 		return
 	}
 	s.unstoreConn(cn)
 }
 
-func (s *service) HandleTimeOut(cn *conn) {
+func (s *service) HandleTimeOut(cn *Conn) {
 	s.HandleEOF(cn)
 }
 
-func (s *service) HandleFail(cn *conn) {
+func (s *service) HandleFail(cn *Conn) {
 	s.HandleEOF(cn)
 }

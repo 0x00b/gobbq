@@ -10,9 +10,9 @@ func TestTcpClient(m *testing.T) {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	// ws := codec.NewPacketReadWriter(wsc)
+	// ws := nets.NewPacketReadWriter(wsc)
 
-	// pkt, release := codec.NewPacket()
+	// pkt, release := nets.NewPacket()
 	// defer release()
 
 	// pkt.WriteBody([]byte("dsfsdfs"))

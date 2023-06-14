@@ -8,14 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// testpb "github.com/0x00b/gobbq/example/exampb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -34,7 +33,7 @@ type frameService struct {
 
 func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartFrameRsp, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -73,7 +72,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(StartFrameRsp)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -147,7 +146,7 @@ func _FrameService_StartFrame_Local_Handler(svc any, ctx entity.Context, in any,
 
 }
 
-func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -161,7 +160,7 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *c
 
 	rsp, err := _FrameService_StartFrame_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version

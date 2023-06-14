@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/0x00b/gobbq/engine/codec"
+import "github.com/0x00b/gobbq/engine/nets"
 
 type ServerInfo struct {
 	// Server is the service implementation the user provides. This is read-only.
@@ -10,7 +10,7 @@ type ServerInfo struct {
 }
 
 // 请求回调
-type Callback func(pkt *codec.Packet)
+type Callback func(pkt *nets.Packet)
 
 type Handler func(ctx Context, req any) (any, error)
 

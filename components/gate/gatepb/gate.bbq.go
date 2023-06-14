@@ -8,14 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -34,7 +33,7 @@ type gateService struct {
 
 func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -73,7 +72,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -112,7 +111,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -161,7 +160,7 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -200,7 +199,7 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -280,7 +279,7 @@ func _GateService_RegisterClient_Local_Handler(svc any, ctx entity.Context, in a
 
 }
 
-func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -294,7 +293,7 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 
 	rsp, err := _GateService_RegisterClient_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -362,7 +361,7 @@ func _GateService_UnregisterClient_Local_Handler(svc any, ctx entity.Context, in
 
 }
 
-func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -407,7 +406,7 @@ func _GateService_Ping_Local_Handler(svc any, ctx entity.Context, in any, interc
 
 }
 
-func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -421,7 +420,7 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Pa
 
 	rsp, err := _GateService_Ping_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version

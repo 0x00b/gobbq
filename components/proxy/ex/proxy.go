@@ -2,7 +2,6 @@ package ex
 
 import (
 	"github.com/0x00b/gobbq/conf"
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 )
 
@@ -21,7 +20,7 @@ func ConnProxy(ops ...nets.Option) {
 	ProxyClient = cli
 }
 
-func SendProxy(pkt *codec.Packet) error {
+func SendProxy(pkt *nets.Packet) error {
 
 	return ProxyClient.SendPacket(pkt)
 

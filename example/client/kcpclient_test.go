@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/xtaci/kcp-go"
@@ -19,7 +20,7 @@ func TestMain(t *testing.T) {
 	}
 	fmt.Println("runing")
 
-	pkt, _ := codec.NewPacket()
+	pkt, _ := nets.NewPacket()
 
 	hdr := &bbq.Header{
 		Version:   1,

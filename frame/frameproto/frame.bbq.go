@@ -8,14 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// frameproto "github.com/0x00b/gobbq/frame/frameproto"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -57,7 +56,7 @@ type frameSeverEntity struct {
 
 func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -106,7 +105,7 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 
 func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -145,7 +144,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(InitRsp)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -184,7 +183,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 
 func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -223,7 +222,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(JoinRsp)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -262,7 +261,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 
 func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*ProgressRsp, error) {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -301,7 +300,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *codec.Packet) {
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(ProgressRsp)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -340,7 +339,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 
 func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -389,7 +388,7 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -438,7 +437,7 @@ func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
 
 func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -487,7 +486,7 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -592,7 +591,7 @@ func _FrameSeverEntity_Heartbeat_Local_Handler(svc any, ctx entity.Context, in a
 
 }
 
-func _FrameSeverEntity_Heartbeat_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Heartbeat_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -637,7 +636,7 @@ func _FrameSeverEntity_Init_Local_Handler(svc any, ctx entity.Context, in any, i
 
 }
 
-func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -651,7 +650,7 @@ func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 
 	rsp, err := _FrameSeverEntity_Init_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -719,7 +718,7 @@ func _FrameSeverEntity_Join_Local_Handler(svc any, ctx entity.Context, in any, i
 
 }
 
-func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -733,7 +732,7 @@ func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *cod
 
 	rsp, err := _FrameSeverEntity_Join_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -801,7 +800,7 @@ func _FrameSeverEntity_Progress_Local_Handler(svc any, ctx entity.Context, in an
 
 }
 
-func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -815,7 +814,7 @@ func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt 
 
 	rsp, err := _FrameSeverEntity_Progress_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := codec.NewPacket()
+	npkt, release := nets.NewPacket()
 	defer release()
 
 	npkt.Header.Version = hdr.Version
@@ -883,7 +882,7 @@ func _FrameSeverEntity_Ready_Local_Handler(svc any, ctx entity.Context, in any, 
 
 }
 
-func _FrameSeverEntity_Ready_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Ready_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -928,7 +927,7 @@ func _FrameSeverEntity_Move_Local_Handler(svc any, ctx entity.Context, in any, i
 
 }
 
-func _FrameSeverEntity_Move_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Move_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -973,7 +972,7 @@ func _FrameSeverEntity_Input_Local_Handler(svc any, ctx entity.Context, in any, 
 
 }
 
-func _FrameSeverEntity_Input_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Input_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -1018,7 +1017,7 @@ func _FrameSeverEntity_Result_Local_Handler(svc any, ctx entity.Context, in any,
 
 }
 
-func _FrameSeverEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -1128,7 +1127,7 @@ type frameClientEntity struct {
 
 func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -1177,7 +1176,7 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
 func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -1226,7 +1225,7 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -1275,7 +1274,7 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 
 func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 
-	pkt, release := codec.NewPacket()
+	pkt, release := nets.NewPacket()
 	defer release()
 
 	pkt.Header.Version = 1
@@ -1368,7 +1367,7 @@ func _FrameClientEntity_Start_Local_Handler(svc any, ctx entity.Context, in any,
 
 }
 
-func _FrameClientEntity_Start_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameClientEntity_Start_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -1413,7 +1412,7 @@ func _FrameClientEntity_Frame_Local_Handler(svc any, ctx entity.Context, in any,
 
 }
 
-func _FrameClientEntity_Frame_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameClientEntity_Frame_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -1458,7 +1457,7 @@ func _FrameClientEntity_Result_Local_Handler(svc any, ctx entity.Context, in any
 
 }
 
-func _FrameClientEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameClientEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -1503,7 +1502,7 @@ func _FrameClientEntity_Close_Local_Handler(svc any, ctx entity.Context, in any,
 
 }
 
-func _FrameClientEntity_Close_Remote_Handler(svc any, ctx entity.Context, pkt *codec.Packet, interceptor entity.ServerInterceptor) {
+func _FrameClientEntity_Close_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 

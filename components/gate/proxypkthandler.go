@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -12,7 +11,7 @@ import (
 
 var _ nets.PacketHandler = &Gate{}
 
-func (gt *Gate) isMyPacket(pkt *codec.Packet) bool {
+func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
 
 	hdr := pkt.Header
 	dstEty := entity.DstEntity(pkt)
@@ -26,7 +25,7 @@ func (gt *Gate) isMyPacket(pkt *codec.Packet) bool {
 
 }
 
-func (gt *Gate) HandlePacket(pkt *codec.Packet) error {
+func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
 	if gt.isMyPacket(pkt) {
 		err := gt.Server.EntityMgr.HandlePacket(pkt)
@@ -37,7 +36,7 @@ func (gt *Gate) HandlePacket(pkt *codec.Packet) error {
 	}
 
 	dstEty := entity.DstEntity(pkt)
-	rw, ok := func() (*codec.PacketReadWriter, bool) {
+	rw, ok := func() (*nets.PacketReadWriter, bool) {
 		gt.cltMtx.Lock()
 		defer gt.cltMtx.Unlock()
 		prw, ok := gt.cltMap[dstEty.ID()]

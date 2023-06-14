@@ -6,7 +6,6 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -41,7 +40,7 @@ func NewEntityManager() *EntityManager {
 
 type Proxy interface {
 	// for remote call, just send request packet, dont handle response
-	SendPacket(pkt *codec.Packet) error
+	SendPacket(pkt *nets.Packet) error
 }
 
 type RegisterProxy interface {

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/nets"
 )
 
 type Context interface {
@@ -24,7 +24,7 @@ type Context interface {
 
 	EntityID() EntityID
 
-	Packet() *codec.Packet
+	Packet() *nets.Packet
 
 	SrcEntity() EntityID
 
@@ -83,7 +83,7 @@ type Context interface {
 	GetStringMapStringSlice(key string) (smss map[string][]string)
 
 	// inner
-	setPacket(pkt *codec.Packet)
+	setPacket(pkt *nets.Packet)
 }
 
 // ============ for bbq inner start=================
@@ -201,18 +201,18 @@ type baseContext struct {
 	// Keys is a key/value pair exclusively for the context of each request.
 	Keys map[string]any
 
-	pkt *codec.Packet
+	pkt *nets.Packet
 }
 
 func (c *baseContext) Entity() IBaseEntity {
 	return c.entity
 }
 
-func (c *baseContext) Packet() *codec.Packet {
+func (c *baseContext) Packet() *nets.Packet {
 	return c.pkt
 }
 
-func (c *baseContext) setPacket(pkt *codec.Packet) {
+func (c *baseContext) setPacket(pkt *nets.Packet) {
 	c.pkt = pkt
 }
 

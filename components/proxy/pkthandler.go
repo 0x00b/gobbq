@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
@@ -12,7 +11,7 @@ import (
 
 var _ nets.PacketHandler = &Proxy{}
 
-func (p *Proxy) isMyPacket(pkt *codec.Packet) bool {
+func (p *Proxy) isMyPacket(pkt *nets.Packet) bool {
 
 	hdr := pkt.Header
 	dstEty := entity.DstEntity(pkt)
@@ -29,7 +28,7 @@ func (p *Proxy) isMyPacket(pkt *codec.Packet) bool {
 	return p.EntityMgr.IsMyService(hdr.GetType())
 }
 
-func (p *Proxy) HandlePacket(pkt *codec.Packet) error {
+func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
 
 	// xlog.Debugln("proxy 1")
 
