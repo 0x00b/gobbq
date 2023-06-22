@@ -43,7 +43,7 @@ func NewGate() *Gate {
 }
 
 func (gt *Gate) init(old entity.EntityID) {
-	ex.ConnProxy(nets.WithPacketHandler(gt))
+	ex.ConnProxy(nets.WithPacketHandler(gt), nets.WithConnCallback(&ProxyConnCallBack{gate: gt}))
 
 	gt.EntityMgr.Proxy = ex.ProxyClient
 
@@ -71,10 +71,10 @@ type Gate struct {
 	*bs.Server
 }
 
-type clientMap map[entity.ID]*nets.PacketReadWriter
+type clientMap map[entity.ID]*nets.Conn
 
 // // RegisterEntity register serive
-func (gt *Gate) RegisterEntity(eid entity.EntityID, prw *nets.PacketReadWriter) {
+func (gt *Gate) RegisterEntity(eid entity.EntityID, prw *nets.Conn) {
 	gt.cltMtx.Lock()
 	defer gt.cltMtx.Unlock()
 

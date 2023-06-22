@@ -58,6 +58,7 @@ type Proxy struct {
 	svcMtx  sync.RWMutex
 	svcMaps serviceMap
 
+	proxyMtx sync.RWMutex
 	proxyMap ProxyMap
 
 	proxySvcMtx sync.RWMutex
@@ -66,10 +67,10 @@ type Proxy struct {
 	instIdCounter uint32
 }
 
-type ProxyMap map[entity.ProxyID]*nets.PacketReadWriter
-type ProxySvcMap map[string]*nets.PacketReadWriter
-type instMap map[entity.InstID]*nets.PacketReadWriter
-type serviceMap map[string]*nets.PacketReadWriter
+type ProxyMap map[entity.ProxyID]*nets.Conn
+type ProxySvcMap map[string]*nets.Conn
+type instMap map[entity.InstID]*nets.Conn
+type serviceMap map[string]*nets.Conn
 
 func (p *Proxy) NewInstID() entity.InstID {
 	id := atomic.AddUint32(&p.instIdCounter, 1)
@@ -83,7 +84,7 @@ func (p *Proxy) NewInstID() entity.InstID {
 }
 
 // // RegisterEntity register serive
-func (p *Proxy) registerInst(instID entity.InstID, prw *nets.PacketReadWriter) {
+func (p *Proxy) registerInst(instID entity.InstID, prw *nets.Conn) {
 	p.instMtx.Lock()
 	defer p.instMtx.Unlock()
 	if _, ok := p.instMaps[instID]; ok {
@@ -94,7 +95,7 @@ func (p *Proxy) registerInst(instID entity.InstID, prw *nets.PacketReadWriter) {
 }
 
 // RegisterEntity register serive
-func (p *Proxy) registerService(svcName string, prw *nets.PacketReadWriter) {
+func (p *Proxy) registerService(svcName string, prw *nets.Conn) {
 	p.svcMtx.RLock()
 	defer p.svcMtx.RUnlock()
 	if _, ok := p.svcMaps[svcName]; ok {
@@ -105,7 +106,7 @@ func (p *Proxy) registerService(svcName string, prw *nets.PacketReadWriter) {
 }
 
 // RegisterEntity register serive
-func (p *Proxy) RegisterProxyService(svcName string, prw *nets.PacketReadWriter) {
+func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
 	p.proxySvcMtx.Lock()
 	defer p.proxySvcMtx.Unlock()
 	if _, ok := p.proxySvcMap[svcName]; ok {
@@ -238,9 +239,9 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 		}
 		xlog.Println("RegisterProxy done...")
 
-		p.proxyMap[entity.ProxyID(cfg.ID)] = prxy.GetPacketReadWriter()
+		p.proxyMap[entity.ProxyID(cfg.ID)] = prxy.GetConn()
 		for _, v := range rsp.ServiceNames {
-			p.RegisterProxyService(v, prxy.GetPacketReadWriter())
+			p.RegisterProxyService(v, prxy.GetConn())
 		}
 	}
 }

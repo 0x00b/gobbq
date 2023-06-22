@@ -47,7 +47,7 @@ func NewGame() *Game {
 
 func (g *Game) init(old entity.EntityID) {
 
-	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr))
+	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr), nets.WithConnCallback(g))
 
 	g.EntityMgr.Proxy = ex.ProxyClient
 

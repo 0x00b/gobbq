@@ -36,7 +36,7 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 	}
 
 	dstEty := entity.DstEntity(pkt)
-	rw, ok := func() (*nets.PacketReadWriter, bool) {
+	rw, ok := func() (*nets.Conn, bool) {
 		gt.cltMtx.Lock()
 		defer gt.cltMtx.Unlock()
 		prw, ok := gt.cltMap[dstEty.ID()]

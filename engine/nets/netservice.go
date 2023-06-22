@@ -270,19 +270,23 @@ func (s *service) unstoreConn(cn *Conn) {
 	delete(s.conns, cn)
 }
 
-// ConnErrHandler
+// ConnCallback
 
-func (s *service) HandleEOF(cn *Conn) {
+func (s *service) HandleClose(cn *Conn) {
 	if cn == nil {
 		return
 	}
 	s.unstoreConn(cn)
 }
 
+func (s *service) HandleEOF(cn *Conn) {
+	s.HandleClose(cn)
+}
+
 func (s *service) HandleTimeOut(cn *Conn) {
-	s.HandleEOF(cn)
+	s.HandleClose(cn)
 }
 
 func (s *service) HandleFail(cn *Conn) {
-	s.HandleEOF(cn)
+	s.HandleClose(cn)
 }

@@ -19,7 +19,7 @@ import (
 type Packet struct {
 	refcount int32
 
-	Src *PacketReadWriter // not nil indicates this is request packet
+	Src *Conn // not nil indicates this is request packet
 
 	// header: 只能在packet的生命周期内使用
 	Header *bbq.Header

@@ -57,6 +57,8 @@ func (f *FrameSeverEntity) Join(c entity.Context, req *frameproto.JoinReq) (*fra
 
 	xlog.Info("recv join", req.String())
 
+	f.Watch(c.SrcEntity())
+
 	f.entities = append(f.entities, c.SrcEntity())
 	f.curNum++
 

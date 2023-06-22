@@ -16,13 +16,13 @@ var _ nets.PacketHandler = &EntityManager{}
 type EntityManager struct {
 	Proxy
 
-	entityMtx sync.RWMutex // guards following
-
 	serve bool
 
-	Services    map[string]IService      // service name -> service info
-	entityDescs map[string]*EntityDesc   // entity name -> entity info
-	Entities    map[EntityID]IBaseEntity // entity id -> entity impl
+	Services    map[string]IService    // service name -> service info
+	entityDescs map[string]*EntityDesc // entity name -> entity info
+
+	entityMtx sync.RWMutex             // guards following
+	Entities  map[EntityID]IBaseEntity // entity id -> entity impl
 
 	ProxyRegister RegisterProxy
 
@@ -150,11 +150,16 @@ func (s *EntityManager) Close(ch chan struct{}) error {
 	}
 
 	// close entity
-	for _, v := range s.Entities {
-		v.OnDestroy()
-		v.onDestroy()
-	}
+	func() {
+		s.entityMtx.Lock()
+		defer s.entityMtx.Unlock()
 
+		for _, v := range s.Entities {
+			v.OnDestroy()
+			v.onDestroy()
+		}
+
+	}()
 	return nil
 }
 

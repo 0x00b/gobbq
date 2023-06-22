@@ -26,7 +26,7 @@ func main() {
 
 	p.RegisterNetService(nets.NewNetService(
 		nets.WithPacketHandler(p),
-		// nets.WithConnErrHandler(p),
+		nets.WithConnCallback(p),
 		nets.WithNetwork(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
 	)
 

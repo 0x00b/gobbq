@@ -8,5 +8,5 @@
 7、packet重构一下，buf包含长度，write不需要append
 8、entity的主动释放
 9、entity watch/unwatch
-
 *** 10、帧同步 ***
+11、log

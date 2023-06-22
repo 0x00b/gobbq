@@ -58,8 +58,9 @@ type IBaseEntity interface {
 	OnTick()
 
 	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
-	// Watch/unwatch entity
-	// Receive
+	Watch(id EntityID)
+	Unwatch(id EntityID)
+	Receive(WatchNotify)
 
 	// === for inner ===
 	getEntityMgr() *EntityManager
@@ -85,6 +86,13 @@ type IEntity interface {
 	SetEntityDesc(desc *EntityDesc)
 
 	entityType()
+}
+
+type State int
+
+type WatchNotify struct {
+	EntityID EntityID
+	State    State
 }
 
 type methodHandler func(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor)
@@ -151,6 +159,8 @@ type baseEntity struct {
 	runOnce     sync.Once
 	initOnce    sync.Once
 	destroyOnce sync.Once
+
+	watchers []EntityID
 }
 
 func (e *Entity) Run() {
@@ -398,6 +408,14 @@ func (e *baseEntity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDes
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))
 
 	return nil
+}
+
+func (e *baseEntity) Watch(id EntityID)   {}
+func (e *baseEntity) Unwatch(id EntityID) {}
+func (e *baseEntity) Receive(WatchNotify) {}
+
+func (e *baseEntity) RecvWatch(id EntityID) {
+	e.watchers = append(e.watchers, id)
 }
 
 // AddOnceTimer 直接用，不需要重写，除非有特殊需求

@@ -85,9 +85,9 @@ func newClient(rawConn net.Conn, ops ...Option) *Client {
 
 func (ct *Client) SendPacket(pkt *Packet) error {
 	// todo chan
-	return ct.conn.packetReadWriter.SendPacket(pkt)
+	return ct.conn.SendPacket(pkt)
 }
 
-func (ct *Client) GetPacketReadWriter() *PacketReadWriter {
-	return ct.conn.packetReadWriter
+func (ct *Client) GetConn() *Conn {
+	return ct.conn
 }

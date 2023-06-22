@@ -22,8 +22,8 @@ func newDefaultConn(ctx context.Context, rawConn net.Conn, opts *Options) *Conn 
 
 	tc.packetReadWriter = NewPacketReadWriter(tc)
 
-	if opts.ConnErrHandler != nil {
-		tc.connErrHandlers = append(tc.connErrHandlers, opts.ConnErrHandler)
+	if opts.ConnCallback != nil {
+		tc.ConnCallbacks = append(tc.ConnCallbacks, opts.ConnCallback)
 	}
 
 	return tc
@@ -41,58 +41,58 @@ type Conn struct {
 	idleTimeout time.Duration
 	lastVisited time.Time
 
-	PacketHandler   PacketHandler
-	connErrHandlers []ConnErrHandler
+	PacketHandler PacketHandler
+	ConnCallbacks []ConnCallback
 
 	closeOnce sync.Once
 	closed    bool
 }
 
-func (st *Conn) Name() string {
+func (cn *Conn) Name() string {
 	return "server"
 }
 
-func (st *Conn) close() (e error) {
-	st.closeOnce.Do(func() {
-		if st.cancel != nil {
-			st.cancel()
+func (cn *Conn) close() (e error) {
+	cn.closeOnce.Do(func() {
+		if cn.cancel != nil {
+			cn.cancel()
 		}
 
-		e = st.rwc.Close()
+		e = cn.rwc.Close()
 		if e != nil {
 			xlog.Errorln(e)
 		}
-		st.closed = true
+		cn.closed = true
 	})
 	return e
 }
 
-func (st *Conn) Close(closeChan chan struct{}) (e error) {
-	e = st.close()
+func (cn *Conn) Close(closeChan chan struct{}) (e error) {
+	e = cn.close()
 	closeChan <- struct{}{}
 	return e
 }
 
-func (st *Conn) Serve() {
-	defer st.close()
+func (cn *Conn) Serve() {
+	defer cn.close()
 
 	for {
 		// xlog.Traceln("serve 1")
 		// 检查上游是否关闭
 		select {
-		case <-st.ctx.Done():
+		case <-cn.ctx.Done():
 			xlog.Trace("context done...")
 			return
 		default:
 		}
 		// xlog.Traceln("serve 2")
 
-		// st.idleTimeout = 10 * time.Second
-		if st.idleTimeout > 0 {
+		// cn.idleTimeout = 10 * time.Second
+		if cn.idleTimeout > 0 {
 			now := time.Now()
-			if now.Sub(st.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
-				st.lastVisited = now
-				err := st.rwc.SetReadDeadline(now.Add(st.idleTimeout))
+			if now.Sub(cn.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
+				cn.lastVisited = now
+				err := cn.rwc.SetReadDeadline(now.Add(cn.idleTimeout))
 				if err != nil {
 					xlog.Traceln("transport: tcpconn SetReadDeadline fail ", err)
 					return
@@ -101,23 +101,23 @@ func (st *Conn) Serve() {
 		}
 
 		// xlog.Traceln("serve 3", utils.GoID())
-		pkt, release, err := st.packetReadWriter.ReadPacket()
+		pkt, release, err := cn.packetReadWriter.ReadPacket()
 		// xlog.Traceln("serve 4")
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
-				st.handleEOF(err)
+				cn.handleEOF(err)
 				return
 			}
 			if e, ok := err.(net.Error); ok && e.Timeout() { // 客户端超过空闲时间没有发包，服务端主动超时关闭
-				st.handleTimeOut(err)
+				cn.handleTimeOut(err)
 				return
 			}
-			st.handleFail(err)
+			cn.handleFail(err)
 			return
 		}
 
 		// xlog.Traceln("serve 5")
-		err = st.handle(pkt, release)
+		err = cn.handle(pkt, release)
 		// xlog.Traceln("serve 6")
 		if err != nil {
 			xlog.Errorln("handle failed", err)
@@ -125,55 +125,55 @@ func (st *Conn) Serve() {
 	}
 }
 
-func (st *Conn) handle(pkt *Packet, release ReleasePkt) error {
+func (cn *Conn) handle(pkt *Packet, release ReleasePkt) error {
 	defer release()
 
 	// todo report
 
-	return st.PacketHandler.HandlePacket(pkt)
+	return cn.PacketHandler.HandlePacket(pkt)
 }
 
-func (st *Conn) handleEOF(err error) {
+func (cn *Conn) handleEOF(err error) {
 	xlog.Infoln("transport: conn  EOF ", err)
 
-	for _, v := range st.connErrHandlers {
-		v.HandleEOF(st)
+	for _, v := range cn.ConnCallbacks {
+		v.HandleEOF(cn)
 	}
 }
 
-func (st *Conn) handleTimeOut(err error) {
+func (cn *Conn) handleTimeOut(err error) {
 	xlog.Infoln("transport: conn  Time out ", err)
 
-	for _, v := range st.connErrHandlers {
-		v.HandleTimeOut(st)
+	for _, v := range cn.ConnCallbacks {
+		v.HandleTimeOut(cn)
 	}
 }
 
-func (st *Conn) handleFail(err error) {
+func (cn *Conn) handleFail(err error) {
 	xlog.Errorln("transport: conn serve ReadFrame fail ", err)
 
-	for _, v := range st.connErrHandlers {
-		v.HandleFail(st)
+	for _, v := range cn.ConnCallbacks {
+		v.HandleFail(cn)
 	}
 }
 
-func (st *Conn) registerConErrHandler(ConnErrHandler ConnErrHandler) {
-	if ConnErrHandler == nil {
+func (cn *Conn) registerConErrHandler(ConnCallback ConnCallback) {
+	if ConnCallback == nil {
 		return
 	}
 
-	st.connErrHandlers = append(st.connErrHandlers, ConnErrHandler)
+	cn.ConnCallbacks = append(cn.ConnCallbacks, ConnCallback)
 }
 
 // AsyncWritePacket async writes a packet, this method will never block
-func (st *Conn) SendPacket(p *Packet) (err error) {
-	if st.closed {
+func (cn *Conn) SendPacket(p *Packet) (err error) {
+	if cn.closed {
 		return errors.New("conn closing")
 	}
 	defer func() {
 		if err != nil {
 			xlog.Traceln("close conn...")
-			st.close()
+			cn.close()
 			return
 		}
 	}()
@@ -185,14 +185,14 @@ func (st *Conn) SendPacket(p *Packet) (err error) {
 	}()
 	timeout := time.Second * 5
 	if timeout == 0 {
-		return writeFull(st.rwc, p.Serialize())
+		return writeFull(cn.rwc, p.Serialize())
 	} else {
 		ch := make(chan error)
 		secure.GO(func() {
 			defer func() {
 				ch <- err
 			}()
-			err = writeFull(st.rwc, p.Serialize())
+			err = writeFull(cn.rwc, p.Serialize())
 		})
 		select {
 		case err = <-ch:

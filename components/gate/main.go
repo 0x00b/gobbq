@@ -34,6 +34,7 @@ func main() {
 	gt.RegisterNetService(
 		nets.NewNetService(
 			nets.WithPacketHandler(NewClientPacketHandler(gt)),
+			nets.WithConnCallback(gt),
 			nets.WithNetwork(nets.NetWorkName(conf.C.Gate.Inst[0].Net), fmt.Sprintf(":%s", conf.C.Gate.Inst[0].Port))),
 	)
 

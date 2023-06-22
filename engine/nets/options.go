@@ -43,8 +43,8 @@ type Options struct {
 	// for kcp mtu
 	KcpMTU int
 
-	PacketHandler  PacketHandler
-	ConnErrHandler ConnErrHandler
+	PacketHandler PacketHandler
+	ConnCallback  ConnCallback
 }
 
 var DefaultOptions = &Options{
@@ -72,14 +72,15 @@ var DefaultOptions = &Options{
 	KcpDisableCongestionControl:    1,
 	KcpMTU:                         1400,
 	PacketHandler:                  nil,
-	ConnErrHandler:                 nil,
+	ConnCallback:                   nil,
 }
 
 type PacketHandler interface {
 	HandlePacket(pkt *Packet) error
 }
 
-type ConnErrHandler interface {
+type ConnCallback interface {
+	HandleClose(*Conn)
 	HandleEOF(*Conn)
 	HandleTimeOut(*Conn)
 	HandleFail(*Conn)
@@ -94,9 +95,9 @@ func WithPacketHandler(ph PacketHandler) Option {
 	}
 }
 
-func WithConnErrHandler(ph ConnErrHandler) Option {
+func WithConnCallback(ph ConnCallback) Option {
 	return func(o *Options) {
-		o.ConnErrHandler = ph
+		o.ConnCallback = ph
 	}
 }
 

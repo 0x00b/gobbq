@@ -34,11 +34,6 @@ type PacketReadWriter struct {
 
 	rwMtx *sync.Mutex
 	conn  *Conn
-
-	// write will inc 1
-	writeMsgCnt uint32
-	// read will inc 1
-	readMsgCnt uint32
 }
 
 // NewPacketReadWriter creates a packet connection based on network connection
@@ -64,25 +59,6 @@ func NewPacketReadWriterWithConfig(conn *Conn, cfg *Config) *PacketReadWriter {
 	return pc
 }
 
-// SendPacket write packet data to pc.rw, need to initialize the packet by yourself
-func (pc *PacketReadWriter) SendPacket(packet *Packet) error {
-
-	err := pc.conn.SendPacket(packet)
-	if err != nil {
-		return err
-	}
-
-	pc.writeMsgCnt++
-
-	// if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
-	// 	var crc32Buffer [4]byte
-	// 	packetBodyCrc := crc32.ChecksumIEEE(pdata)
-	// 	packetEndian.PutUint32(crc32Buffer[:], packetBodyCrc)
-	// 	return writeFull(pc.rw, crc32Buffer[:])
-	// }
-	return nil
-}
-
 // recv receives the next packet
 func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	var err error
@@ -106,7 +82,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 
 	// allocate a packet to receive packetBody
 	packet, release := NewPacket()
-	packet.Src = pc
+	packet.Src = pc.conn
 	packet.totalLen = packetDataSize
 
 	// xlog.Traceln("recv raw 3 ")
@@ -133,8 +109,6 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	}
 
 	xlog.Traceln("recv raw:", packet.String())
-
-	pc.readMsgCnt++
 
 	// receive checksum (uint32)
 	// if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {
