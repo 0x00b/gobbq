@@ -8,6 +8,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/proto/bbqsys"
 	"github.com/0x00b/gobbq/xlog"
 )
 
@@ -37,6 +38,9 @@ func NewGame() *Game {
 	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
 
 	gm.EntityMgr.RegisterEntity(nil, temp, gm)
+
+	// 系统接口
+	bbqsys.RegisterBbqSysEntity(gm.EntityMgr, gm)
 
 	gm.Run()
 

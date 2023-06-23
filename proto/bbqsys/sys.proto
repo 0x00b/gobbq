@@ -1,0 +1,24 @@
+syntax = "proto3";
+option go_package = "github.com/0x00b/gobbq/proto/bbqsys;bbqsys";
+package bbqsys;
+
+import "bbq.proto";
+
+// for options
+// import "google/protobuf/descriptor.proto";
+
+
+message WatchRequest{
+	uint64 EntityID = 1;
+}
+
+message WatchResponse{
+}
+ 
+service BbqSys {
+	option (bbq.service_type) = System;
+
+	rpc SysWatch(WatchRequest) returns(WatchResponse) {}
+	rpc SysUnwatch(WatchRequest) returns(WatchResponse) {}
+	rpc SysNotify(WatchRequest) returns(WatchResponse) {}
+}

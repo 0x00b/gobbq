@@ -9,6 +9,7 @@ import (
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/proto/bbqsys"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -28,6 +29,8 @@ func main() {
 	}, xlog.DefaultLogTag{})
 
 	gt := NewGate()
+
+	bbqsys.RegisterBbqSysEntity(gt.EntityMgr, &GateEntity{gate: gt})
 
 	gatepb.RegisterGateService(gt.EntityMgr, gt)
 

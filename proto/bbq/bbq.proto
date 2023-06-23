@@ -26,6 +26,8 @@ enum ServiceType {
 	Entity= 0;
 	// 请求service，只需要提供完整接口名，service是单例entity，只能有一个
 	Service = 1;
+	// 系统接口，proxyid+instid
+	System = 2;
 }
 
 // 使用string，方便作为key等
