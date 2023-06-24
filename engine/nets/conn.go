@@ -169,6 +169,8 @@ func (cn *Conn) registerConErrHandler(ConnCallback ConnCallback) {
 
 // AsyncWritePacket async writes a packet, this method will never block
 func (cn *Conn) SendPacket(p *Packet) (err error) {
+	xlog.Traceln("start send:", p.String())
+
 	if cn.closed {
 		return errors.New("conn closing")
 	}
@@ -185,8 +187,6 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 			err = errors.New("conn closing")
 		}
 	}()
-
-	xlog.Traceln("send:", p.String())
 
 	timeout := time.Second * 5
 	if timeout == 0 {
