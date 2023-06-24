@@ -8,12 +8,22 @@ import (
 
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
-	"github.com/0x00b/gobbq/proto/bbqsys"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+type GateEntity struct {
+	entity.Entity //没啥用
+	gate          *Gate
+}
+
+// 使用service的entity id
+func (g *GateEntity) EntityID() entity.EntityID {
+	return g.gate.EntityID()
+}
 
 func main() {
 
@@ -29,8 +39,6 @@ func main() {
 	}, xlog.DefaultLogTag{})
 
 	gt := NewGate()
-
-	bbqsys.RegisterBbqSysEntity(gt.EntityMgr, &GateEntity{gate: gt})
 
 	gatepb.RegisterGateService(gt.EntityMgr, gt)
 

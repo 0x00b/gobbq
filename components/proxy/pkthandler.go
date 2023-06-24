@@ -25,7 +25,8 @@ func (p *Proxy) isMyPacket(pkt *nets.Packet) bool {
 		return false
 	}
 
-	return p.EntityMgr.IsMyService(hdr.GetType())
+	_, ok := p.EntityMgr.GetService(hdr.GetType())
+	return ok
 }
 
 func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
@@ -50,16 +51,14 @@ func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
 
 	// xlog.Debugln("proxy 2")
 
-	// request
-	// send to game
-	// or send to gate
-	if hdr.ServiceType == bbq.ServiceType_Entity {
-		// xlog.Debugln("proxy 3")
+	// send to game or gate
+	switch hdr.ServiceType {
+	case bbq.ServiceType_Entity:
 		p.ProxyToEntity(dstEty, pkt)
-		// xlog.Debugln("proxy 4")
-	} else {
-		// call service
+	case bbq.ServiceType_Service:
 		p.ProxyToService(hdr, pkt)
+	default:
+		xlog.Errorln("unknown service type")
 	}
 
 	return nil

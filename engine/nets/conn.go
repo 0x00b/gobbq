@@ -183,6 +183,9 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 			err = errors.New("conn closing")
 		}
 	}()
+
+	xlog.Traceln("send:", p.String())
+
 	timeout := time.Second * 5
 	if timeout == 0 {
 		return writeFull(cn.rwc, p.Serialize())

@@ -17,11 +17,12 @@ func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
 	dstEty := entity.DstEntity(pkt)
 	if hdr.GetServiceType() == bbq.ServiceType_Entity ||
 		hdr.RequestType == bbq.RequestType_RequestRespone {
-		_, ok := gt.EntityMgr.GetMyEntity(dstEty)
+		_, ok := gt.EntityMgr.GetEntity(dstEty)
 		return ok
 	}
 
-	return gt.EntityMgr.IsMyService(hdr.GetType())
+	_, ok := gt.EntityMgr.GetService(hdr.GetType())
+	return ok
 
 }
 
@@ -36,12 +37,7 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 	}
 
 	dstEty := entity.DstEntity(pkt)
-	rw, ok := func() (*nets.Conn, bool) {
-		gt.cltMtx.Lock()
-		defer gt.cltMtx.Unlock()
-		prw, ok := gt.cltMap[dstEty.ID()]
-		return prw, ok
-	}()
+	rw, ok := gt.GetClient(dstEty)
 	if !ok {
 		return errors.New("unknown client")
 	}
@@ -50,4 +46,11 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 	// https://github.com/skywind3000/kcp/issues/176
 	return rw.SendPacket(pkt)
 
+}
+
+func (gt *Gate) GetClient(eid entity.EntityID) (*nets.Conn, bool) {
+	gt.cltMtx.Lock()
+	defer gt.cltMtx.Unlock()
+	prw, ok := gt.cltMap[eid.ID()]
+	return prw, ok
 }

@@ -19,7 +19,7 @@ type IService interface {
 }
 
 type Service struct {
-	baseEntity
+	Entity
 
 	desc *EntityDesc
 }
@@ -47,6 +47,7 @@ func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 		e.localCallChan = make(chan *localCall, 10000)
 		e.callback = make(map[string]Callback, 10000)
 		e.respChan = make(chan *nets.Packet, 10000)
+		e.watchers = make(map[EntityID]bool)
 
 		e.timer.Init()
 		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
@@ -73,6 +74,8 @@ func (e *Service) run(ch chan bool) {
 	defer func() {
 		wg.Wait()
 		// todo unregister service, and svcentity
+
+		e.onDestroy()
 
 	}()
 

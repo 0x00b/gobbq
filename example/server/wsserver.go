@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/0x00b/gobbq/components/game"
 	"github.com/0x00b/gobbq/conf"
@@ -13,7 +14,7 @@ import (
 
 func main() {
 
-	xlog.Init("info", true, true, &lumberjack.Logger{
+	xlog.Init("trace", true, true, &lumberjack.Logger{
 		Filename:  "./server.log",
 		MaxAge:    7,
 		LocalTime: true,
@@ -37,11 +38,16 @@ type EchoService struct {
 	entity.Service
 }
 
-func (*EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
+func (e *EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	xlog.Println("service", c.Packet().Header.String(), req.String())
 
 	echoClient := exampb.NewEchoEtyEntity(c)
+
+	xlog.Println("watch starting")
+	e.Watch(echoClient.EntityID)
+	xlog.Println("watch done")
+
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err
@@ -61,9 +67,10 @@ func (e *EchoEntity) OnTick() {
 
 func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
-	// e.AddCallback(1*time.Second, func() {
-	// 	xlog.Infoln("tick.1111..")
-	// })
+	e.AddCallback(2*time.Second, func() {
+		xlog.Infoln("tick.1111..")
+		e.Stop()
+	})
 	// e.AddTimer(2*time.Second, func() {
 	// 	xlog.Infoln("tick..2222.")
 	// })

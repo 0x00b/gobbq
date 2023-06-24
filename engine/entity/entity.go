@@ -16,21 +16,6 @@ var _ IEntity = &Entity{}
 
 type Entity struct {
 	baseEntity
-	desc *EntityDesc
-}
-
-func (e *Entity) entityType() {}
-
-func (e *Entity) EntityDesc() *EntityDesc {
-	return e.desc
-}
-
-func (e *Entity) SetEntityDesc(desc *EntityDesc) {
-	e.desc = desc
-}
-
-func (e *Entity) getEntityMgr() *EntityManager {
-	return e.desc.EntityMgr
 }
 
 type IBaseEntity interface {
@@ -45,6 +30,7 @@ type IBaseEntity interface {
 	Context() Context
 
 	Run()
+	Stop()
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -139,6 +125,8 @@ type baseEntity struct {
 	// （4）3，异常：的心跳丢失，异常状态持续一段时间后，进入迁移状态
 	// （5）4，销毁：完成迁移后，会进入销毁状态
 
+	desc *EntityDesc
+
 	// context
 	context Context
 	cancel  func()
@@ -160,7 +148,7 @@ type baseEntity struct {
 	initOnce    sync.Once
 	destroyOnce sync.Once
 
-	watchers []EntityID
+	watchers map[EntityID]bool
 }
 
 func (e *Entity) Run() {
@@ -184,6 +172,7 @@ func (e *Entity) run(ch chan bool) {
 		xlog.Debugln("stop message loop", e.EntityID())
 		// todo unregister entity
 
+		e.onDestroy()
 	}()
 	tempch := make(chan bool)
 	// response
@@ -245,7 +234,25 @@ func (e *Entity) run(ch chan bool) {
 	}
 }
 
+func (e *baseEntity) Stop() {
+	e.cancel()
+}
+
 //  for inner
+
+func (e *baseEntity) entityType() {}
+
+func (e *baseEntity) EntityDesc() *EntityDesc {
+	return e.desc
+}
+
+func (e *baseEntity) SetEntityDesc(desc *EntityDesc) {
+	e.desc = desc
+}
+
+func (e *baseEntity) getEntityMgr() *EntityManager {
+	return e.desc.EntityMgr
+}
 
 func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	if requestID == "" || cb == nil {
@@ -293,22 +300,28 @@ func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
 		e.respChan = make(chan *nets.Packet, 1)
 		e.timer.Init()
 		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
+		e.watchers = make(map[EntityID]bool)
 
-		e.OnInit()
+		c.Entity().OnInit()
 	})
 }
 
 func (e *baseEntity) onDestroy() {
 	e.destroyOnce.Do(func() {
 
+		e.context.Entity().OnDestroy()
+
+		for id := range e.watchers {
+			client := NewBbqSysEntityClient(id)
+			client.SysNotify(e.Context(), &WatchRequest{EntityID: uint64(e.EntityID())})
+		}
+
+		e.ticker.Stop()
+
 		close(e.callChan)
 		close(e.respChan)
 		close(e.localCallChan)
 
-		e.ticker.Stop()
-		e.OnDestroy()
-
-		e.cancel()
 		releaseContext(e.context)
 	})
 }
@@ -408,14 +421,6 @@ func (e *baseEntity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDes
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))
 
 	return nil
-}
-
-func (e *baseEntity) Watch(id EntityID)   {}
-func (e *baseEntity) Unwatch(id EntityID) {}
-func (e *baseEntity) Receive(WatchNotify) {}
-
-func (e *baseEntity) RecvWatch(id EntityID) {
-	e.watchers = append(e.watchers, id)
 }
 
 // AddOnceTimer 直接用，不需要重写，除非有特殊需求

@@ -37,7 +37,7 @@ func (st *EntityManager) handleCallService(pkt *nets.Packet) error {
 	hdr := pkt.Header
 	service := hdr.Type
 
-	svc, ok := st.Services[service]
+	svc, ok := st.GetService(service)
 	if !ok {
 		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
 		return ErrServiceNotFound
@@ -58,7 +58,7 @@ func (st *EntityManager) handleCallEntity(pkt *nets.Packet) error {
 
 	// xlog.Traceln("start find entity")
 
-	entity, ok := st.GetMyEntity(eid)
+	entity, ok := st.GetEntity(eid)
 	if !ok {
 		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid)
 		return ErrEntityNotFound
@@ -90,7 +90,7 @@ func (st *EntityManager) handleLocalCallService(pkt *nets.Packet, in any, respCh
 
 	service := pkt.Header.Type
 
-	ss, ok := st.Services[service]
+	ss, ok := st.GetService(service)
 	if !ok {
 		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
 		return ErrServiceNotFound
@@ -110,7 +110,7 @@ func (st *EntityManager) handleLocalCallEntity(pkt *nets.Packet, in any, respCha
 		return ErrEmptyEntityID
 	}
 
-	entity, ok := st.GetMyEntity(eid)
+	entity, ok := st.GetEntity(eid)
 	if !ok {
 		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
 		return ErrEntityNotFound

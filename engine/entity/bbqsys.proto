@@ -1,6 +1,6 @@
 syntax = "proto3";
-option go_package = "github.com/0x00b/gobbq/proto/bbqsys;bbqsys";
-package bbqsys;
+option go_package = "github.com/0x00b/gobbq/proto/entity;entity";
+package entity;
 
 import "bbq.proto";
 

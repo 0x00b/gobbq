@@ -2,44 +2,41 @@
 // DON'T EDIT IT!!
 //  请勿添加其他内容，包括函数，结构体，变量等等，否则重新生成时会丢失。
 
-package bbqsys
+package entity
 
 import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
-	// bbqsys "github.com/0x00b/gobbq/proto/bbqsys"
-
+	// entity "github.com/0x00b/gobbq/proto/entity"
 )
 
 var _ = snowflake.GenUUID()
 
-func RegisterBbqSysEntity(etyMgr *entity.EntityManager, impl BbqSysEntity) {
+func RegisterBbqSysEntity(etyMgr *EntityManager, impl BbqSysEntity) {
 	etyMgr.RegisterEntityDesc(&BbqSysEntityDesc, impl)
 }
 
-func NewBbqSysEntityClient(eid entity.EntityID) *bbqSysEntity {
+func NewBbqSysEntityClient(eid EntityID) *bbqSysEntity {
 	t := &bbqSysEntity{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewBbqSysEntity(c entity.Context) *bbqSysEntity {
-	etyMgr := entity.GetEntityMgr(c)
+func NewBbqSysEntity(c Context) *bbqSysEntity {
+	etyMgr := GetEntityMgr(c)
 	return NewBbqSysEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewBbqSysEntityWithID(c entity.Context, id entity.EntityID) *bbqSysEntity {
+func NewBbqSysEntityWithID(c Context, id EntityID) *bbqSysEntity {
 
-	etyMgr := entity.GetEntityMgr(c)
+	etyMgr := GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, BbqSysEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
@@ -53,10 +50,10 @@ func NewBbqSysEntityWithID(c entity.Context, id entity.EntityID) *bbqSysEntity {
 }
 
 type bbqSysEntity struct {
-	EntityID entity.EntityID
+	EntityID EntityID
 }
 
-func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt, release := nets.NewPacket()
 	defer release()
@@ -78,13 +75,13 @@ func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResp
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
-	etyMgr := entity.GetEntityMgr(c)
+	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
-		if !entity.NotMyMethod(err) {
+		if !NotMyMethod(err) {
 			return nil, err
 		}
 
@@ -97,7 +94,7 @@ func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResp
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -108,7 +105,7 @@ func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResp
 			chanRsp <- rsp
 		})
 
-		err = entity.GetProxy(c).SendPacket(pkt)
+		err = GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -117,10 +114,10 @@ func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResp
 	var rsp any
 	select {
 	case <-c.Done():
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("context done")
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
@@ -134,7 +131,7 @@ func (t *bbqSysEntity) SysWatch(c entity.Context, req *WatchRequest) (*WatchResp
 
 }
 
-func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt, release := nets.NewPacket()
 	defer release()
@@ -156,13 +153,13 @@ func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchRe
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
-	etyMgr := entity.GetEntityMgr(c)
+	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
-		if !entity.NotMyMethod(err) {
+		if !NotMyMethod(err) {
 			return nil, err
 		}
 
@@ -175,7 +172,7 @@ func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchRe
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -186,7 +183,7 @@ func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchRe
 			chanRsp <- rsp
 		})
 
-		err = entity.GetProxy(c).SendPacket(pkt)
+		err = GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -195,10 +192,10 @@ func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchRe
 	var rsp any
 	select {
 	case <-c.Done():
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("context done")
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
@@ -212,7 +209,7 @@ func (t *bbqSysEntity) SysUnwatch(c entity.Context, req *WatchRequest) (*WatchRe
 
 }
 
-func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *bbqSysEntity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt, release := nets.NewPacket()
 	defer release()
@@ -234,13 +231,13 @@ func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchRes
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
-	etyMgr := entity.GetEntityMgr(c)
+	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
-		if !entity.NotMyMethod(err) {
+		if !NotMyMethod(err) {
 			return nil, err
 		}
 
@@ -253,7 +250,7 @@ func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchRes
 		pkt.WriteBody(hdrBytes)
 
 		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -264,7 +261,7 @@ func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchRes
 			chanRsp <- rsp
 		})
 
-		err = entity.GetProxy(c).SendPacket(pkt)
+		err = GetProxy(c).SendPacket(pkt)
 		if err != nil {
 			return nil, err
 		}
@@ -273,10 +270,10 @@ func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchRes
 	var rsp any
 	select {
 	case <-c.Done():
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("context done")
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
-		entity.PopCallback(c, pkt.Header.RequestId)
+		PopCallback(c, pkt.Header.RequestId)
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
@@ -292,29 +289,29 @@ func (t *bbqSysEntity) SysNotify(c entity.Context, req *WatchRequest) (*WatchRes
 
 // BbqSysEntity
 type BbqSysEntity interface {
-	entity.IEntity
+	IEntity
 
 	// SysWatch
-	SysWatch(c entity.Context, req *WatchRequest) (*WatchResponse, error)
+	SysWatch(c Context, req *WatchRequest) (*WatchResponse, error)
 
 	// SysUnwatch
-	SysUnwatch(c entity.Context, req *WatchRequest) (*WatchResponse, error)
+	SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error)
 
 	// SysNotify
-	SysNotify(c entity.Context, req *WatchRequest) (*WatchResponse, error)
+	SysNotify(c Context, req *WatchRequest) (*WatchResponse, error)
 }
 
-func _BbqSysEntity_SysWatch_Handler(svc any, ctx entity.Context, in *WatchRequest, interceptor entity.ServerInterceptor) (*WatchResponse, error) {
+func _BbqSysEntity_SysWatch_Handler(svc any, ctx Context, in *WatchRequest, interceptor ServerInterceptor) (*WatchResponse, error) {
 	if interceptor == nil {
 		return svc.(BbqSysEntity).SysWatch(ctx, in)
 	}
 
-	info := &entity.ServerInfo{
+	info := &ServerInfo{
 		Server:     svc,
-		FullMethod: "/bbqsys.BbqSysEntity/SysWatch",
+		FullMethod: "/BbqSysEntity/SysWatch",
 	}
 
-	handler := func(ctx entity.Context, rsp any) (any, error) {
+	handler := func(ctx Context, rsp any) (any, error) {
 
 		return svc.(BbqSysEntity).SysWatch(ctx, in)
 
@@ -327,13 +324,13 @@ func _BbqSysEntity_SysWatch_Handler(svc any, ctx entity.Context, in *WatchReques
 
 }
 
-func _BbqSysEntity_SysWatch_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+func _BbqSysEntity_SysWatch_Local_Handler(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error) {
 
 	return _BbqSysEntity_SysWatch_Handler(svc, ctx, in.(*WatchRequest), interceptor)
 
 }
 
-func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -386,17 +383,17 @@ func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx entity.Context, pkt *net
 
 }
 
-func _BbqSysEntity_SysUnwatch_Handler(svc any, ctx entity.Context, in *WatchRequest, interceptor entity.ServerInterceptor) (*WatchResponse, error) {
+func _BbqSysEntity_SysUnwatch_Handler(svc any, ctx Context, in *WatchRequest, interceptor ServerInterceptor) (*WatchResponse, error) {
 	if interceptor == nil {
 		return svc.(BbqSysEntity).SysUnwatch(ctx, in)
 	}
 
-	info := &entity.ServerInfo{
+	info := &ServerInfo{
 		Server:     svc,
-		FullMethod: "/bbqsys.BbqSysEntity/SysUnwatch",
+		FullMethod: "/BbqSysEntity/SysUnwatch",
 	}
 
-	handler := func(ctx entity.Context, rsp any) (any, error) {
+	handler := func(ctx Context, rsp any) (any, error) {
 
 		return svc.(BbqSysEntity).SysUnwatch(ctx, in)
 
@@ -409,13 +406,13 @@ func _BbqSysEntity_SysUnwatch_Handler(svc any, ctx entity.Context, in *WatchRequ
 
 }
 
-func _BbqSysEntity_SysUnwatch_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+func _BbqSysEntity_SysUnwatch_Local_Handler(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error) {
 
 	return _BbqSysEntity_SysUnwatch_Handler(svc, ctx, in.(*WatchRequest), interceptor)
 
 }
 
-func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -468,17 +465,17 @@ func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx entity.Context, pkt *n
 
 }
 
-func _BbqSysEntity_SysNotify_Handler(svc any, ctx entity.Context, in *WatchRequest, interceptor entity.ServerInterceptor) (*WatchResponse, error) {
+func _BbqSysEntity_SysNotify_Handler(svc any, ctx Context, in *WatchRequest, interceptor ServerInterceptor) (*WatchResponse, error) {
 	if interceptor == nil {
 		return svc.(BbqSysEntity).SysNotify(ctx, in)
 	}
 
-	info := &entity.ServerInfo{
+	info := &ServerInfo{
 		Server:     svc,
-		FullMethod: "/bbqsys.BbqSysEntity/SysNotify",
+		FullMethod: "/BbqSysEntity/SysNotify",
 	}
 
-	handler := func(ctx entity.Context, rsp any) (any, error) {
+	handler := func(ctx Context, rsp any) (any, error) {
 
 		return svc.(BbqSysEntity).SysNotify(ctx, in)
 
@@ -491,13 +488,13 @@ func _BbqSysEntity_SysNotify_Handler(svc any, ctx entity.Context, in *WatchReque
 
 }
 
-func _BbqSysEntity_SysNotify_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+func _BbqSysEntity_SysNotify_Local_Handler(svc any, ctx Context, in any, interceptor ServerInterceptor) (any, error) {
 
 	return _BbqSysEntity_SysNotify_Handler(svc, ctx, in.(*WatchRequest), interceptor)
 
 }
 
-func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor) {
 
 	hdr := pkt.Header
 
@@ -550,10 +547,10 @@ func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx entity.Context, pkt *ne
 
 }
 
-var BbqSysEntityDesc = entity.EntityDesc{
-	TypeName:    "bbqsys.BbqSysEntity",
+var BbqSysEntityDesc = EntityDesc{
+	TypeName:    "BbqSysEntity",
 	HandlerType: (*BbqSysEntity)(nil),
-	Methods: map[string]entity.MethodDesc{
+	Methods: map[string]MethodDesc{
 
 		"SysWatch": {
 			MethodName:   "SysWatch",
@@ -574,5 +571,5 @@ var BbqSysEntityDesc = entity.EntityDesc{
 		},
 	},
 
-	Metadata: "sys.proto",
+	Metadata: "bbqsys.proto",
 }

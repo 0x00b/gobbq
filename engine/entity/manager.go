@@ -56,7 +56,6 @@ func (s *EntityManager) InitEntity(c Context, id EntityID, entity IBaseEntity) e
 	ctx.entity = entity
 
 	entity.onInit(ctx, cancel, id)
-	entity.OnInit()
 
 	if c != nil {
 		entity.setParant(c.Entity())
@@ -145,8 +144,7 @@ func (s *EntityManager) RegisterEntityDesc(sd *EntityDesc, ss IEntity, intercept
 func (s *EntityManager) Close(ch chan struct{}) error {
 	// close svc
 	for _, v := range s.Services {
-		v.OnDestroy()
-		v.onDestroy()
+		v.Stop()
 	}
 
 	// close entity
@@ -155,8 +153,7 @@ func (s *EntityManager) Close(ch chan struct{}) error {
 		defer s.entityMtx.Unlock()
 
 		for _, v := range s.Entities {
-			v.OnDestroy()
-			v.onDestroy()
+			v.Stop()
 		}
 
 	}()
@@ -172,6 +169,13 @@ func (s *EntityManager) registerEntityDesc(sd *EntityDesc, ss IEntity, intercept
 	if _, ok := s.entityDescs[sd.TypeName]; ok {
 		xlog.Tracef("gobbq: registerEntityDesc found duplicate entity registration for %q", sd.TypeName)
 		return
+	}
+
+	for k, v := range BbqSysEntityDesc.Methods {
+		if _, ok := sd.Methods[k]; ok {
+			panic("dup method with sys:" + k)
+		}
+		sd.Methods[k] = v
 	}
 
 	sd.EntityMgr = s
@@ -198,10 +202,18 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	if s.serve {
 		xlog.Tracef("gobbq: registerService after EntityManager.Serve for %q", sd.TypeName)
 	}
-	if _, ok := s.Services[sd.TypeName]; ok {
+	if _, ok := s.GetService(sd.TypeName); ok {
 		xlog.Tracef("gobbq: registerService found duplicate service registration for %q", sd.TypeName)
 		return
 	}
+
+	for k, v := range BbqSysEntityDesc.Methods {
+		if _, ok := sd.Methods[k]; ok {
+			panic("dup method with sys:" + k)
+		}
+		sd.Methods[k] = v
+	}
+
 	sd.EntityMgr = s
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
@@ -250,7 +262,7 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 }
 
 // 需要优化, gate的id再拆分,不要直接用这个来判断是不是自己的entity
-func (s *EntityManager) GetMyEntity(eid EntityID) (IBaseEntity, bool) {
+func (s *EntityManager) GetEntity(eid EntityID) (IBaseEntity, bool) {
 	s.entityMtx.RLock()
 	defer s.entityMtx.RUnlock()
 
@@ -258,7 +270,7 @@ func (s *EntityManager) GetMyEntity(eid EntityID) (IBaseEntity, bool) {
 	return e, ok
 }
 
-func (s *EntityManager) IsMyService(typ string) bool {
-	_, ok := s.Services[typ]
-	return ok
+func (s *EntityManager) GetService(typ string) (IService, bool) {
+	svc, ok := s.Services[typ]
+	return svc, ok
 }
