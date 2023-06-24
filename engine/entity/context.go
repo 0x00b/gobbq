@@ -20,7 +20,7 @@ type Context interface {
 	/************************************/
 	Copy() (Context, releaseCtx)
 
-	Entity() IBaseEntity
+	Entity() IEntity
 
 	EntityID() EntityID
 
@@ -192,7 +192,7 @@ type baseContext struct {
 	ctx context.Context
 
 	// 属于这个entity
-	entity IBaseEntity
+	entity IEntity
 
 	err error
 
@@ -204,7 +204,7 @@ type baseContext struct {
 	pkt *nets.Packet
 }
 
-func (c *baseContext) Entity() IBaseEntity {
+func (c *baseContext) Entity() IEntity {
 	return c.entity
 }
 

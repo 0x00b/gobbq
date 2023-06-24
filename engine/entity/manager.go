@@ -21,8 +21,8 @@ type EntityManager struct {
 	Services    map[string]IService    // service name -> service info
 	entityDescs map[string]*EntityDesc // entity name -> entity info
 
-	entityMtx sync.RWMutex             // guards following
-	Entities  map[EntityID]IBaseEntity // entity id -> entity impl
+	entityMtx sync.RWMutex         // guards following
+	Entities  map[EntityID]IEntity // entity id -> entity impl
 
 	ProxyRegister RegisterProxy
 
@@ -34,7 +34,7 @@ func NewEntityManager() *EntityManager {
 	return &EntityManager{
 		Services:    make(map[string]IService),
 		entityDescs: make(map[string]*EntityDesc),
-		Entities:    make(map[EntityID]IBaseEntity),
+		Entities:    make(map[EntityID]IEntity),
 	}
 }
 
@@ -51,7 +51,7 @@ type RegisterProxy interface {
 	// UnregisterServiceToProxy(svcName TypeName) error
 }
 
-func (s *EntityManager) InitEntity(c Context, id EntityID, entity IBaseEntity) error {
+func (s *EntityManager) InitEntity(c Context, id EntityID, entity IEntity) error {
 	ctx, cancel := allocContext(c)
 	ctx.entity = entity
 
@@ -64,7 +64,7 @@ func (s *EntityManager) InitEntity(c Context, id EntityID, entity IBaseEntity) e
 	return nil
 }
 
-func (s *EntityManager) RegisterEntity(c Context, id EntityID, entity IBaseEntity) error {
+func (s *EntityManager) RegisterEntity(c Context, id EntityID, entity IEntity) error {
 
 	s.InitEntity(c, id, entity)
 
@@ -262,7 +262,7 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 }
 
 // 需要优化, gate的id再拆分,不要直接用这个来判断是不是自己的entity
-func (s *EntityManager) GetEntity(eid EntityID) (IBaseEntity, bool) {
+func (s *EntityManager) GetEntity(eid EntityID) (IEntity, bool) {
 	s.entityMtx.RLock()
 	defer s.entityMtx.RUnlock()
 

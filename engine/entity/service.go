@@ -10,7 +10,7 @@ import (
 )
 
 type IService interface {
-	IBaseEntity
+	IEntity
 
 	ServiceDesc() *EntityDesc
 	SetServiceDesc(desc *EntityDesc)
@@ -20,8 +20,6 @@ type IService interface {
 
 type Service struct {
 	Entity
-
-	desc *EntityDesc
 }
 
 func (s *Service) ServiceDesc() *EntityDesc {
@@ -30,10 +28,6 @@ func (s *Service) ServiceDesc() *EntityDesc {
 
 func (s *Service) SetServiceDesc(desc *EntityDesc) {
 	s.desc = desc
-}
-
-func (s *Service) getEntityMgr() *EntityManager {
-	return s.desc.EntityMgr
 }
 
 func (e *Service) serviceType() {}

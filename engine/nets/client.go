@@ -91,3 +91,7 @@ func (ct *Client) SendPacket(pkt *Packet) error {
 func (ct *Client) GetConn() *Conn {
 	return ct.conn
 }
+
+// func (ct *Client) Close() *Conn {
+// 	return ct.conn.Close()
+// }

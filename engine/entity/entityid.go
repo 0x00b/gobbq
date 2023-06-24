@@ -19,10 +19,10 @@ type ProxyID uint32
 const (
 	proxyIDBitNum = 22
 	instIDBitNum  = 10
-	idBitNum      = 32
+	IdBitNum      = 32
 	proxyIDMask   = 1<<proxyIDBitNum - 1
 	instIDMask    = 1<<instIDBitNum - 1
-	idBitMask     = 1<<idBitNum - 1
+	idBitMask     = 1<<IdBitNum - 1
 )
 
 type EntityIDGenerator interface {
@@ -34,7 +34,7 @@ func NewEntityID(pid ProxyID, iid InstID) EntityID {
 }
 
 func FixedEntityID(pid ProxyID, iid InstID, id ID) EntityID {
-	eid := uint64(pid)<<(64-proxyIDBitNum) | uint64(iid&instIDMask)<<idBitNum | uint64(id&idBitMask)
+	eid := uint64(pid)<<(64-proxyIDBitNum) | uint64(iid&instIDMask)<<IdBitNum | uint64(id&idBitMask)
 	return EntityID(eid)
 }
 
@@ -59,7 +59,7 @@ func (eid EntityID) ProxyID() ProxyID {
 }
 
 func (eid EntityID) InstID() InstID {
-	return InstID((eid >> idBitNum) & instIDMask)
+	return InstID((eid >> IdBitNum) & instIDMask)
 }
 
 func (eid EntityID) ID() ID {

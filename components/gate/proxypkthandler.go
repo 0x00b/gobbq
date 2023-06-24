@@ -11,24 +11,23 @@ import (
 
 var _ nets.PacketHandler = &Gate{}
 
-func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
+func (gt *Gate) isMyPacketFromProxy(pkt *nets.Packet) bool {
 
 	hdr := pkt.Header
 	dstEty := entity.DstEntity(pkt)
+
 	if hdr.GetServiceType() == bbq.ServiceType_Entity ||
 		hdr.RequestType == bbq.RequestType_RequestRespone {
-		_, ok := gt.EntityMgr.GetEntity(dstEty)
-		return ok
+		return gt.IsMyEntity(dstEty)
 	}
 
 	_, ok := gt.EntityMgr.GetService(hdr.GetType())
 	return ok
-
 }
 
 func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
-	if gt.isMyPacket(pkt) {
+	if gt.isMyPacketFromProxy(pkt) {
 		err := gt.Server.EntityMgr.HandlePacket(pkt)
 		if err != nil {
 			xlog.Errorln("bad req handle:", pkt.Header.String(), err)
@@ -36,7 +35,14 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 		return err
 	}
 
+	hdr := pkt.Header
 	dstEty := entity.DstEntity(pkt)
+	// 如果是发给客户端的系统调用，需要拦截
+	if hdr.Type == entity.BbqSysEntityDesc.TypeName {
+		gt.DispatchPkt(pkt)
+		return nil
+	}
+
 	rw, ok := gt.GetClient(dstEty)
 	if !ok {
 		return errors.New("unknown client")
@@ -51,6 +57,6 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 func (gt *Gate) GetClient(eid entity.EntityID) (*nets.Conn, bool) {
 	gt.cltMtx.Lock()
 	defer gt.cltMtx.Unlock()
-	prw, ok := gt.cltMap[eid.ID()]
+	prw, ok := gt.cltMap[eid]
 	return prw, ok
 }

@@ -62,4 +62,6 @@ func TestWSClient(m *testing.T) {
 
 	wg.Wait()
 
+	client.Gate.GetConn().Close(nil)
+
 }

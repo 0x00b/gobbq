@@ -69,7 +69,9 @@ func (cn *Conn) close() (e error) {
 
 func (cn *Conn) Close(closeChan chan struct{}) (e error) {
 	e = cn.close()
-	closeChan <- struct{}{}
+	if closeChan != nil {
+		closeChan <- struct{}{}
+	}
 	return e
 }
 

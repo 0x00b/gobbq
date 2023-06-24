@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -13,6 +14,12 @@ func (p *Gate) HandleClose(cn *nets.Conn) {
 			xlog.Debugln("remove client:", eid)
 			delete(p.cltMap, eid)
 
+			wc := p.watcher[eid]
+
+			for id := range wc {
+				client := entity.NewBbqSysEntityClient(id)
+				client.SysNotify(p.Context(), &entity.WatchRequest{EntityID: uint64(eid)})
+			}
 			// do something
 		}
 	}

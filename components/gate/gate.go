@@ -18,8 +18,9 @@ func NewGate() *Gate {
 	conf.Init("gate.yaml")
 
 	gt := &Gate{
-		Server: bs.NewServer(),
-		cltMap: make(clientMap),
+		Server:  bs.NewServer(),
+		cltMap:  make(clientMap),
+		watcher: make(map[entity.EntityID]map[entity.EntityID]bool),
 	}
 
 	gt.EntityMgr.ProxyRegister = gt
@@ -30,8 +31,7 @@ func NewGate() *Gate {
 	desc.EntityMgr = gt.EntityMgr
 	gt.SetServiceDesc(&desc)
 
-	eid := uint16(entity.GenIDU32())
-	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
+	temp := gt.NewEntityID()
 
 	gt.EntityMgr.RegisterEntity(nil, temp, gt)
 
@@ -69,16 +69,18 @@ type Gate struct {
 	cltMap clientMap
 
 	*bs.Server
+
+	watcher map[entity.EntityID]map[entity.EntityID]bool
 }
 
-type clientMap map[entity.ID]*nets.Conn
+type clientMap map[entity.EntityID]*nets.Conn
 
 // // RegisterEntity register serive
 func (gt *Gate) RegisterEntity(eid entity.EntityID, prw *nets.Conn) {
 	gt.cltMtx.Lock()
 	defer gt.cltMtx.Unlock()
 
-	gt.cltMap[eid.ID()] = prw
+	gt.cltMap[eid] = prw
 }
 
 // GateService
@@ -89,7 +91,7 @@ type GateService struct {
 // RegisterClient
 func (gt *Gate) RegisterClient(c entity.Context, req *gatepb.RegisterClientRequest) (*gatepb.RegisterClientResponse, error) {
 
-	id := gt.NewEntityID()
+	id := gt.NewClientEntityID()
 
 	gt.RegisterEntity(id, c.Packet().Src)
 
@@ -141,8 +143,22 @@ func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 	return nil
 }
 
+const (
+	IdBitNum = entity.IdBitNum - 1
+)
+
 func (gt *Gate) NewEntityID() entity.EntityID {
-	return entity.NewEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID())
+	id := entity.GenIDU32() | (1 << IdBitNum) //最高位是1代表是gate的entity， 为0代表client
+	return entity.FixedEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID(), entity.ID(id))
+}
+
+func (gt *Gate) NewClientEntityID() entity.EntityID {
+	id := entity.GenIDU32() & (1<<IdBitNum - 1) //最高位是1代表是gate的entity， 为0代表client
+	return entity.FixedEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID(), entity.ID(id))
+}
+
+func (gt *Gate) IsMyEntity(id entity.EntityID) bool {
+	return (id.ID() >> IdBitNum) == 1
 }
 
 func (gt *Gate) Serve() error {

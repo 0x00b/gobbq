@@ -14,11 +14,7 @@ import (
 
 var _ IEntity = &Entity{}
 
-type Entity struct {
-	baseEntity
-}
-
-type IBaseEntity interface {
+type IEntity interface {
 
 	// EntityID
 	EntityID() EntityID
@@ -58,15 +54,11 @@ type IBaseEntity interface {
 	setEntityID(id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
-	dispatchPkt(pkt *nets.Packet)
+	DispatchPkt(pkt *nets.Packet)
 	dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error
 
-	setParant(s IBaseEntity)
-	addChildren(s IBaseEntity)
-}
-
-type IEntity interface {
-	IBaseEntity
+	setParant(s IEntity)
+	addChildren(s IEntity)
 
 	EntityDesc() *EntityDesc
 	SetEntityDesc(desc *EntityDesc)
@@ -114,7 +106,7 @@ type localCall struct {
 	respChan chan any
 }
 
-type baseEntity struct {
+type Entity struct {
 	// id
 	entityID EntityID
 
@@ -234,27 +226,27 @@ func (e *Entity) run(ch chan bool) {
 	}
 }
 
-func (e *baseEntity) Stop() {
+func (e *Entity) Stop() {
 	e.cancel()
 }
 
 //  for inner
 
-func (e *baseEntity) entityType() {}
+func (e *Entity) entityType() {}
 
-func (e *baseEntity) EntityDesc() *EntityDesc {
+func (e *Entity) EntityDesc() *EntityDesc {
 	return e.desc
 }
 
-func (e *baseEntity) SetEntityDesc(desc *EntityDesc) {
+func (e *Entity) SetEntityDesc(desc *EntityDesc) {
 	e.desc = desc
 }
 
-func (e *baseEntity) getEntityMgr() *EntityManager {
+func (e *Entity) getEntityMgr() *EntityManager {
 	return e.desc.EntityMgr
 }
 
-func (e *baseEntity) registerCallback(requestID string, cb Callback) {
+func (e *Entity) registerCallback(requestID string, cb Callback) {
 	if requestID == "" || cb == nil {
 		return
 	}
@@ -266,7 +258,7 @@ func (e *baseEntity) registerCallback(requestID string, cb Callback) {
 	e.callback[requestID] = cb
 }
 
-func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
+func (e *Entity) popCallback(requestID string) (Callback, bool) {
 	if requestID == "" {
 		return nil, false
 	}
@@ -284,11 +276,11 @@ func (e *baseEntity) popCallback(requestID string) (Callback, bool) {
 	return cb, true
 }
 
-func (e *baseEntity) setEntityID(id EntityID) {
+func (e *Entity) setEntityID(id EntityID) {
 	e.entityID = id
 }
 
-func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
+func (e *Entity) onInit(c Context, cancel func(), id EntityID) {
 	e.initOnce.Do(func() {
 		e.setEntityID(id)
 
@@ -306,7 +298,7 @@ func (e *baseEntity) onInit(c Context, cancel func(), id EntityID) {
 	})
 }
 
-func (e *baseEntity) onDestroy() {
+func (e *Entity) onDestroy() {
 	e.destroyOnce.Do(func() {
 
 		e.context.Entity().OnDestroy()
@@ -326,7 +318,7 @@ func (e *baseEntity) onDestroy() {
 	})
 }
 
-func (e *baseEntity) dispatchPkt(pkt *nets.Packet) {
+func (e *Entity) DispatchPkt(pkt *nets.Packet) {
 	if pkt != nil {
 		xlog.Traceln("dispatch:", pkt.String())
 		pkt.Retain()
@@ -338,7 +330,7 @@ func (e *baseEntity) dispatchPkt(pkt *nets.Packet) {
 	}
 }
 
-func (e *baseEntity) dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error {
+func (e *Entity) dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error {
 	if pkt != nil && req != nil {
 		pkt.Retain()
 
@@ -354,12 +346,12 @@ func (e *baseEntity) dispatchLocalCall(pkt *nets.Packet, req any, respChan chan 
 	return ErrBadRequest
 }
 
-func (e *baseEntity) initContext(c Context, pkt *nets.Packet) {
+func (e *Entity) initContext(c Context, pkt *nets.Packet) {
 	c.setPacket(pkt)
 	// SetEntityMgr(c, e.desc.EntityMgr)
 }
 
-func (e *baseEntity) handleMethodRsp(c Context, pkt *nets.Packet) error {
+func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
@@ -378,7 +370,7 @@ func (e *baseEntity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 	return nil
 }
 
-func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) error {
+func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) error {
 	defer lc.pkt.Release()
 
 	e.initContext(c, lc.pkt)
@@ -407,7 +399,7 @@ func (e *baseEntity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityD
 	return err
 }
 
-func (e *baseEntity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) error {
+func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) error {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
@@ -424,24 +416,24 @@ func (e *baseEntity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDes
 }
 
 // AddOnceTimer 直接用，不需要重写，除非有特殊需求
-func (e *baseEntity) AddCallback(d time.Duration, callback timer.CallbackFunc) {
+func (e *Entity) AddCallback(d time.Duration, callback timer.CallbackFunc) {
 	e.timer.AddCallback(d, callback)
 }
 
 // AddRepeatTimer 直接用，不需要重写，除非有特殊需求
-func (e *baseEntity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
+func (e *Entity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
 	e.timer.AddTimer(d, callback)
 }
 
 // empty/default implement
 
-func (e *baseEntity) setParant(svc IBaseEntity)   {}
-func (e *baseEntity) addChildren(ety IBaseEntity) {}
+func (e *Entity) setParant(svc IEntity)   {}
+func (e *Entity) addChildren(ety IEntity) {}
 
-func (e *baseEntity) OnInit()            {}
-func (e *baseEntity) OnDestroy()         {}
-func (e *baseEntity) OnMigrateOut()      {} // Called just before entity is migrating out
-func (e *baseEntity) OnMigrateIn()       {} // Called just after entity is migrating in
-func (e *baseEntity) Context() Context   { return e.context }
-func (e *baseEntity) OnTick()            {}
-func (e *baseEntity) EntityID() EntityID { return e.entityID }
+func (e *Entity) OnInit()            {}
+func (e *Entity) OnDestroy()         {}
+func (e *Entity) OnMigrateOut()      {} // Called just before entity is migrating out
+func (e *Entity) OnMigrateIn()       {} // Called just after entity is migrating in
+func (e *Entity) Context() Context   { return e.context }
+func (e *Entity) OnTick()            {}
+func (e *Entity) EntityID() EntityID { return e.entityID }

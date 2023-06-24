@@ -45,6 +45,8 @@ func (e *EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (
 	// 	xlog.Infoln("tick..2222.")
 	// })
 
+	e.Watch(entity.EntityID(req.CLientID))
+
 	xlog.Println("service2222 req", c.Packet().Header.String(), req.String())
 
 	echoClient := exampb.NewEchoServiceClient()
