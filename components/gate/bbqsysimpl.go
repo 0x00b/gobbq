@@ -9,13 +9,19 @@ import (
 
 // SysWatch
 func (g *Gate) SysWatch(c entity.Context, req *entity.WatchRequest) (*entity.WatchResponse, error) {
-	xlog.Infoln("SysWatch", req.EntityID)
 	pkt := c.Packet()
+	dst := entity.DstEntity(pkt)
 
-	wc := g.watcher[entity.DstEntity(pkt)]
+	xlog.Infoln("SysWatch", req.EntityID)
+
+	if g.IsMyEntity(dst) {
+		return g.Service.SysWatch(c, req)
+	}
+
+	wc := g.watcher[dst]
 	if wc == nil {
 		wc = make(map[entity.EntityID]bool)
-		g.watcher[entity.DstEntity(pkt)] = wc
+		g.watcher[dst] = wc
 	}
 	wc[entity.EntityID(req.EntityID)] = true
 
@@ -27,7 +33,13 @@ func (g *Gate) SysUnwatch(c entity.Context, req *entity.WatchRequest) (*entity.W
 	xlog.Infoln("SysUnwatch", req.EntityID)
 
 	pkt := c.Packet()
-	wc := g.watcher[entity.DstEntity(pkt)]
+	dst := entity.DstEntity(pkt)
+
+	if g.IsMyEntity(dst) {
+		return g.Service.SysUnwatch(c, req)
+	}
+
+	wc := g.watcher[dst]
 	delete(wc, entity.EntityID(req.EntityID))
 
 	return &entity.WatchResponse{}, nil

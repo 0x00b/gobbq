@@ -73,6 +73,37 @@ func (e *Service) run(ch chan bool) {
 
 	}()
 
+	tempch := make(chan bool)
+	// response
+	secure.GO(func() {
+		for {
+			select {
+			case tempch <- true:
+
+			case <-e.context.Done():
+				xlog.Debugln("ctx done", e)
+				return
+
+			case pkt := <-e.respChan:
+				xlog.Tracef("handle: %s", pkt.String())
+
+				wg.Add(1)
+
+				// 异步
+				ctx, release := e.context.Copy()
+				npkt := pkt
+				secure.GO(func() {
+					defer release()
+					defer wg.Done()
+					e.handleMethodRsp(ctx, npkt)
+				})
+			}
+		}
+	})
+
+	// 上面的for执行了，在继续下面的for
+	<-tempch
+
 	// async request, responese
 	for {
 		select {
@@ -114,20 +145,6 @@ func (e *Service) run(ch chan bool) {
 				if err != nil {
 					xlog.Errorln(err)
 				}
-			})
-
-		case pkt := <-e.respChan:
-			xlog.Tracef("handle: %s", pkt.String())
-
-			wg.Add(1)
-
-			// 异步
-			ctx, release := e.context.Copy()
-			npkt := pkt
-			secure.GO(func() {
-				defer release()
-				defer wg.Done()
-				e.handleMethodRsp(ctx, npkt)
 			})
 
 		case <-e.ticker.C:

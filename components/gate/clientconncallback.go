@@ -6,6 +6,7 @@ import (
 	"github.com/0x00b/gobbq/xlog"
 )
 
+// todo  kcp 协议链接断开感知
 func (p *Gate) HandleClose(cn *nets.Conn) {
 	p.cltMtx.Lock()
 	defer p.cltMtx.Unlock()

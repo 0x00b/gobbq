@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/gate/gatepb"
@@ -60,6 +61,10 @@ func (gt *Gate) init(old entity.EntityID) {
 	instID := entity.InstID(rsp.GetInstID())
 	newid := entity.FixedEntityID(proxyID, instID, gt.Service.EntityID().ID())
 	gt.EntityMgr.ReplaceEntityID(old, newid)
+
+	gt.AddTimer(10*time.Second, func() {
+		client.Ping(gt.Context(), &proxypb.PingPong{})
+	})
 }
 
 type Gate struct {
@@ -158,7 +163,9 @@ func (gt *Gate) NewClientEntityID() entity.EntityID {
 }
 
 func (gt *Gate) IsMyEntity(id entity.EntityID) bool {
-	return (id.ID() >> IdBitNum) == 1
+	return id.ProxyID() == gt.EntityID().ProxyID() &&
+		id.InstID() == gt.EntityID().InstID() &&
+		(id.ID()>>IdBitNum) == 1
 }
 
 func (gt *Gate) Serve() error {

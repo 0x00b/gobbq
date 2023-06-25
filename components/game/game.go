@@ -62,6 +62,10 @@ func (g *Game) init(old entity.EntityID) {
 	instID := entity.InstID(rsp.GetInstID())
 	new := entity.FixedEntityID(proxyID, instID, g.Entity.EntityID().ID())
 	g.EntityMgr.ReplaceEntityID(old, new)
+
+	g.AddTimer(10*time.Second, func() {
+		client.Ping(g.Context(), &proxypb.PingPong{})
+	})
 }
 
 // func (g *Game) RegisterEntityToProxy(eid entity.EntityID) error {

@@ -1,6 +1,8 @@
 package client
 
 import (
+	"time"
+
 	"github.com/0x00b/gobbq/components/gate/gatepb"
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
@@ -62,6 +64,10 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 
 	newID := entity.EntityID(rsp.GetEntityID())
 	client.EntityMgr.ReplaceEntityID(eid, newID)
+
+	client.AddTimer(10*time.Second, func() {
+		gateSvc.Ping(client.Context(), &gatepb.PingPong{})
+	})
 
 	return client
 }

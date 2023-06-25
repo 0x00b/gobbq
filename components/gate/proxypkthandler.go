@@ -11,7 +11,7 @@ import (
 
 var _ nets.PacketHandler = &Gate{}
 
-func (gt *Gate) isMyPacketFromProxy(pkt *nets.Packet) bool {
+func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
 
 	hdr := pkt.Header
 	dstEty := entity.DstEntity(pkt)
@@ -27,7 +27,7 @@ func (gt *Gate) isMyPacketFromProxy(pkt *nets.Packet) bool {
 
 func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
-	if gt.isMyPacketFromProxy(pkt) {
+	if gt.isMyPacket(pkt) {
 		err := gt.Server.EntityMgr.HandlePacket(pkt)
 		if err != nil {
 			xlog.Errorln("bad req handle:", pkt.Header.String(), err)

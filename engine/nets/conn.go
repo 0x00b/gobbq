@@ -89,7 +89,7 @@ func (cn *Conn) Serve() {
 		}
 		// xlog.Traceln("serve 2")
 
-		// cn.idleTimeout = 10 * time.Second
+		cn.idleTimeout = 30 * time.Second
 		if cn.idleTimeout > 0 {
 			now := time.Now()
 			if now.Sub(cn.lastVisited) > 5*time.Second { // SetReadDeadline性能损耗较严重，每5s才更新一次timeout
