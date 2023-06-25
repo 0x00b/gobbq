@@ -3,6 +3,7 @@ package main
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
@@ -42,7 +43,7 @@ func NewProxy() *Proxy {
 
 	p.Run()
 
-	p.ConnOtherProxy(nets.WithPacketHandler(p))
+	p.ConnOtherProxys(nets.WithPacketHandler(p), nets.WithConnCallback(p))
 
 	return p
 }
@@ -205,7 +206,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 	}
 }
 
-func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
+func (p *Proxy) ConnOtherProxys(ops ...nets.Option) {
 	for i := 1; i < int(conf.C.Proxy.InstNum); i++ {
 
 		// connect to proxy
@@ -216,34 +217,44 @@ func (p *Proxy) ConnOtherProxy(ops ...nets.Option) {
 		// if cfg.ID == 0 {
 
 		// }
-
-		prxy, err := nets.Connect(nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, ops...)
-
-		if err != nil {
-			panic(err)
-		}
-
-		c, release := p.Context().Copy()
-		defer release()
-
-		entity.SetProxy(c, prxy)
-
-		xlog.Println("RegisterProxy ing...")
-
-		rsp, err := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(cfg.ID), 0, 0)).
-			RegisterProxy(c, &proxypb.RegisterProxyRequest{
-				ProxyID: uint32(p.EntityID().ProxyID()),
-			})
-		if err != nil {
-			panic(err)
-		}
-		xlog.Println("RegisterProxy done...")
-
-		p.proxyMap[entity.ProxyID(cfg.ID)] = prxy.GetConn()
-		for _, v := range rsp.ServiceNames {
-			p.RegisterProxyService(v, prxy.GetConn())
-		}
+		p.ConnOtherProxy(cfg, ops...)
 	}
+}
+
+func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
+
+	prxy, err := nets.Connect(nets.NetWorkName(pcfg.Net), pcfg.IP, pcfg.Port, ops...)
+
+	if err != nil {
+		panic(err)
+	}
+
+	c, release := p.Context().Copy()
+	// defer release()
+	_ = release
+
+	entity.SetProxy(c, prxy)
+
+	xlog.Println("RegisterProxy ing...")
+
+	other := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
+
+	rsp, err := other.RegisterProxy(c, &proxypb.RegisterProxyRequest{
+		ProxyID: uint32(p.EntityID().ProxyID()),
+	})
+	if err != nil {
+		panic(err)
+	}
+	xlog.Println("RegisterProxy done...")
+
+	p.proxyMap[entity.ProxyID(pcfg.ID)] = prxy.GetConn()
+	for _, v := range rsp.ServiceNames {
+		p.RegisterProxyService(v, prxy.GetConn())
+	}
+
+	p.AddTimer(10*time.Second, func() {
+		other.Ping(c, &proxypb.PingPong{})
+	})
 }
 
 func (p *Proxy) NewEntityID() entity.EntityID {
