@@ -34,7 +34,7 @@ type IEntity interface {
 
 	// AddCallback 直接用，不需要重写，除非有特殊需求
 	AddCallback(d time.Duration, callback timer.CallbackFunc)
-	// AddTimer 直接用，不需要重写，除非有特殊需求, Timer和Tick本质区别是,Tick在entity里是同步的,Timer是异步的
+	// AddTimer 直接用，不需要重写，除非有特殊需求
 	AddTimer(d time.Duration, callback timer.CallbackFunc)
 	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
 	OnTick()

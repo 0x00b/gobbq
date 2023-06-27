@@ -23,10 +23,14 @@ func (p *Proxy) HandleClose(cn *nets.Conn) {
 	func() {
 		p.svcMtx.Lock()
 		defer p.svcMtx.Unlock()
-		for svc, svcPrw := range p.svcMaps {
-			if cn == svcPrw {
-				xlog.Debugln("remove svr:", svc)
-				delete(p.svcMaps, svc)
+		for svc, svcPrws := range p.svcMaps {
+			for i, t := range svcPrws {
+				if cn == t {
+					xlog.Debugln("remove svr:", svc)
+					lastIdx := len(svcPrws) - 1
+					svcPrws[i] = svcPrws[lastIdx]
+					p.svcMaps[svc] = svcPrws[:lastIdx]
+				}
 			}
 		}
 	}()

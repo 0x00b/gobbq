@@ -9,25 +9,39 @@ import (
 )
 
 const (
-	// MaxReadyTime          int64  = 20            // 准备阶段最长时间，如果超过这个时间没人连进来直接关闭游戏
-	// MaxGameFrame          uint32 = 30*60*3 + 100 // 每局最大帧数
-	// BroadcastOffsetFrames        = 3             // 每隔多少帧广播一次
-	kMaxFrameDataPerMsg  = 60 // 每个消息包最多包含多少个帧数据
-	kBadNetworkThreshold = 2  // 这个时间段没有收到心跳包认为他网络很差，不再持续给发包(网络层的读写时间设置的比较长，客户端要求的方案)
+	MaxReadyTime         int64  = 20            // 准备阶段最长时间，如果超过这个时间没人连进来直接关闭游戏
+	MaxGameFrame         uint32 = 30*60*3 + 100 // 每局最大帧数
+	kMaxFrameDataPerMsg         = 60            // 每个消息包最多包含多少个帧数据
+	kBadNetworkThreshold        = 2             // 这个时间段没有收到心跳包认为他网络很差，不再持续给发包(网络层的读写时间设置的比较长，客户端要求的方案)
 )
 const (
-	Frequency = 15                      // 每秒15帧
-	TickTimer = time.Second / Frequency // 心跳Timer
+	Frequency = 15               // 每秒15帧
+	TickTimer = 1000 / Frequency // 心跳Timer
+)
+
+// GameState 游戏状态
+type GameState int
+
+const (
+	GameReady GameState = 0 // 准备阶段
+	GamRuning GameState = 1 // 战斗中阶段
+	GameOver  GameState = 2 // 结束阶段
+	GameStop  GameState = 3 // 停止
 )
 
 // FrameSever
 type FrameSever struct {
 	entity.Entity
 
+	startTime              int64
+	lastBroadcastFrameTime int64
+
 	entityNum int
 	curNum    int
 
-	status int
+	status GameState
+
+	// result map[uint64]uint64
 
 	players map[entity.EntityID]*Player
 
@@ -35,6 +49,62 @@ type FrameSever struct {
 }
 
 func (f *FrameSever) OnTick() {
+
+	now := time.Now().UnixMilli()
+
+	switch f.status {
+	case GameReady:
+		delta := (now - f.startTime) / 1000
+		if delta < MaxReadyTime {
+			if f.checkReady() {
+				f.doStart()
+			}
+			return
+		}
+
+		if f.getOnlinePlayerCount() > 0 {
+			// 大于最大准备时间，只要有在线的，就强制开始
+			f.doStart()
+			xlog.Warn("[game(%d)] force start game because ready state is timeout ", f.EntityID())
+			return
+		}
+
+		// 全都没连进来，直接结束
+		f.status = GameOver
+		xlog.Error("[game(%d)] game over!! nobody ready", f.EntityID())
+
+		return
+	case GamRuning:
+		if f.checkOver() {
+			f.status = GameOver
+			xlog.Info("[game(%d)] game over successfully!!", f.EntityID())
+			return
+		}
+
+		if f.isTimeout() {
+			f.status = GameOver
+			xlog.Warn("[game(%d)] game timeout", f.EntityID())
+			return
+		}
+
+		if now-f.lastBroadcastFrameTime < TickTimer {
+			return
+		}
+
+		f.lastBroadcastFrameTime = now
+
+		f.logic.tick()
+		f.broadcastFrameData()
+
+		return
+	case GameOver:
+		f.doGameOver()
+		f.status = GameStop
+		xlog.Info("[game(%d)] do game over", f.EntityID())
+		return
+	case GameStop:
+		return
+	}
 
 }
 
@@ -60,14 +130,12 @@ func (f *FrameSever) Init(c entity.Context, req *frameproto.InitReq) (*frameprot
 	f.entityNum = int(req.GetClientNum())
 	f.players = make(map[entity.EntityID]*Player, f.entityNum)
 	f.logic = newLockstep()
-	f.logic.reset()
 
 	return &frameproto.InitRsp{}, nil
 }
 
 func (f *FrameSever) broadcastFrameData() {
 
-	xlog.Info("broadcastFrameData")
 	if f.status == 1 {
 
 		xlog.Info("stoped")
@@ -178,21 +246,7 @@ func (f *FrameSever) Join(c entity.Context, req *frameproto.JoinReq) (*frameprot
 	xlog.Info("recv join", f.curNum, f.entityNum)
 
 	if f.curNum >= f.entityNum {
-
-		for _, v := range f.players {
-			client := frameproto.NewFrameClientEntityClient(v.clientID)
-			err := client.Start(c, &frameproto.StartReq{})
-			if err != nil {
-				xlog.Errorln(err)
-				// return nil, err
-			}
-		}
-
-		f.AddTimer(TickTimer, func() {
-			f.logic.tick()
-			f.broadcastFrameData()
-		})
-
+		f.doStart()
 	}
 
 	return &frameproto.JoinRsp{}, nil
@@ -205,6 +259,9 @@ func (f *FrameSever) Progress(c entity.Context, req *frameproto.ProgressReq) (*f
 
 // Ready
 func (f *FrameSever) Ready(c entity.Context, req *frameproto.ReadyReq) error {
+
+	f.doReady(f.players[c.SrcEntity()])
+
 	return nil
 
 }
@@ -228,4 +285,88 @@ func (f *FrameSever) Input(c entity.Context, req *frameproto.InputReq) error {
 func (f *FrameSever) Result(c entity.Context, req *frameproto.ResultReq) error {
 
 	return nil
+}
+
+func (f *FrameSever) doReady(p *Player) {
+
+	if p.isReady {
+		return
+	}
+
+	p.isReady = true
+
+	// msg := pb_packet.NewPacket(uint8(pb.ID_MSG_Ready), nil)
+	// p.SendMessage(msg)
+}
+
+func (f *FrameSever) checkReady() bool {
+	for _, v := range f.players {
+		if !v.isReady {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (f *FrameSever) doStart() {
+
+	// f.clientFrameCount = 0
+	f.logic.reset()
+	for _, v := range f.players {
+		v.isReady = true
+		v.loadingProgress = 100
+	}
+
+	f.startTime = time.Now().UnixMilli()
+
+	for _, v := range f.players {
+		client := frameproto.NewFrameClientEntityClient(v.clientID)
+		err := client.Start(f.Context(), &frameproto.StartReq{})
+		if err != nil {
+			xlog.Errorln(err)
+			// return nil, err
+		}
+	}
+
+	f.status = GamRuning
+
+	// f.listener.OnGameStart(f.id)
+}
+
+func (f *FrameSever) doGameOver() {
+
+	// f.OnGameOver(f.id)
+}
+
+func (f *FrameSever) getOnlinePlayerCount() int {
+
+	i := 0
+	for _, v := range f.players {
+		if v.IsOnline() {
+			i++
+		}
+	}
+
+	return i
+}
+
+func (f *FrameSever) checkOver() bool {
+	// 只要有人没发结果并且还在线，就不结束
+	for _, v := range f.players {
+		if !v.isOnline {
+			continue
+		}
+
+		// if _, ok := f.result[v.id]; !ok {
+		return false
+		// }
+	}
+
+	return true
+}
+
+func (f *FrameSever) isTimeout() bool {
+	return f.logic.getFrameCount() > MaxGameFrame
+
 }

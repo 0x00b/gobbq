@@ -69,9 +69,9 @@ type Proxy struct {
 }
 
 type ProxyMap map[entity.ProxyID]*nets.Conn
-type ProxySvcMap map[string]*nets.Conn
+type ProxySvcMap map[string][]*nets.Conn
 type instMap map[entity.InstID]*nets.Conn
-type serviceMap map[string]*nets.Conn
+type serviceMap map[string][]*nets.Conn
 
 func (p *Proxy) NewInstID() entity.InstID {
 	id := atomic.AddUint32(&p.instIdCounter, 1)
@@ -97,13 +97,13 @@ func (p *Proxy) registerInst(instID entity.InstID, prw *nets.Conn) {
 
 // RegisterEntity register serive
 func (p *Proxy) registerService(svcName string, prw *nets.Conn) {
-	p.svcMtx.RLock()
-	defer p.svcMtx.RUnlock()
-	if _, ok := p.svcMaps[svcName]; ok {
-		xlog.Errorln("already has svc")
-	}
+	p.svcMtx.Lock()
+	defer p.svcMtx.Unlock()
+	// if _, ok := p.svcMaps[svcName]; ok {
+	// 	xlog.Errorln("already has svc")
+	// }
 
-	p.svcMaps[svcName] = prw
+	p.svcMaps[svcName] = append(p.svcMaps[svcName], prw)
 }
 
 // RegisterEntity register serive
@@ -114,7 +114,7 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
 		xlog.Errorln("already has svc")
 	}
 
-	p.proxySvcMap[svcName] = prw
+	p.proxySvcMap[svcName] = append(p.proxySvcMap[svcName], prw)
 }
 
 func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) {
@@ -177,13 +177,14 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 		p.svcMtx.RLock()
 		defer p.svcMtx.RUnlock()
 
-		prw, ok := p.svcMaps[svcType]
-		if ok {
-			xlog.Debugln("proxy to svc", prw)
-			prw.SendPacket(pkt)
-			return true
+		prws, ok := p.svcMaps[svcType]
+		if !ok {
+			return false
 		}
-		return false
+		xlog.Debugln("proxy to svc", prws)
+		sid := hdr.GetSrcEntity()
+		prws[sid%uint64(len(prws))].SendPacket(pkt)
+		return true
 	}()
 
 	if sendLocal {
@@ -193,12 +194,13 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 	// proxy to other proxy
 	sendProxy := func() bool {
 		typ := pkt.Header.Type
-		prw, ok := p.proxySvcMap[typ]
-		if ok {
-			prw.SendPacket(pkt)
-			return true
+		prws, ok := p.proxySvcMap[typ]
+		if !ok {
+			return false
 		}
-		return false
+		sid := hdr.GetSrcEntity()
+		prws[sid%uint64(len(prws))].SendPacket(pkt)
+		return true
 	}()
 
 	if !sendProxy {
