@@ -136,7 +136,7 @@ func (f *FrameSever) Init(c entity.Context, req *frameproto.InitReq) (*frameprot
 
 func (f *FrameSever) broadcastFrameData() {
 
-	if f.status == 1 {
+	if f.status == GameStop {
 
 		xlog.Info("stoped")
 		return
@@ -201,7 +201,7 @@ func (f *FrameSever) broadcastFrameData() {
 
 }
 
-func (f *FrameSever) EntityNotify(wn entity.NotifyInfo) {
+func (f *FrameSever) OnNotify(wn entity.NotifyInfo) {
 	xlog.Infoln("receive watch client notify...", wn.EntityID)
 	// 断线了
 

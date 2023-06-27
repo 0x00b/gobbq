@@ -102,8 +102,8 @@ func (s *EntityManager) NewEntity(c Context, id EntityID, typ string) (IEntity, 
 
 	svcValue := reflect.New(svcType)
 	svc := svcValue.Interface()
-	entity, ok := svc.(IEntity)
-	if !ok || entity == nil {
+	e, ok := svc.(IEntity)
+	if !ok || e == nil {
 		xlog.Errorln("error type", svcType.Name())
 		return nil, fmt.Errorf("new entity file %s", typ)
 	}
@@ -112,21 +112,21 @@ func (s *EntityManager) NewEntity(c Context, id EntityID, typ string) (IEntity, 
 	xlog.Infoln("register entity id:", unsafe.Pointer(s), id.String())
 
 	newDesc := *desc
-	newDesc.EntityImpl = entity
+	newDesc.EntityImpl = e
 	newDesc.EntityMgr = s
-	entity.SetEntityDesc(&newDesc)
+	SetEntityDesc(e, &newDesc)
 
-	s.RegisterEntity(c, id, entity)
+	s.RegisterEntity(c, id, e)
 
 	// start message loop
-	entity.Run()
+	Run(e)
 
 	// send to poxy
 	// if s.ProxyRegister != nil {
 	// s.ProxyRegister.RegisterEntityToProxy(id)
 	// }
 
-	return entity, nil
+	return e, nil
 }
 
 func (s *EntityManager) RegisterEntityDesc(sd *EntityDesc, ss IEntity, intercepter ...ServerInterceptor) {
@@ -217,7 +217,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	sd.EntityMgr = s
 	sd.EntityImpl = ss
 	sd.interceptors = intercepter
-	ss.SetServiceDesc(sd)
+	SetServiceDesc(ss, sd)
 
 	xlog.Tracef("gobbq: registerService 111 eid:%d", ss.EntityID())
 
@@ -226,7 +226,7 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	xlog.Tracef("gobbq: registerService 222 eid:%d", ss.EntityID())
 
 	// start msg loop
-	ss.Run()
+	Run(ss)
 
 	xlog.Tracef("gobbq: registerService 333 eid:%d", ss.EntityID())
 

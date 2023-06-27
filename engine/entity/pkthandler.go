@@ -43,7 +43,7 @@ func (st *EntityManager) handleCallService(pkt *nets.Packet) error {
 		return ErrServiceNotFound
 	}
 
-	svc.DispatchPkt(pkt)
+	DispatchPkt(svc, pkt)
 
 	return nil
 }
@@ -66,7 +66,7 @@ func (st *EntityManager) handleCallEntity(pkt *nets.Packet) error {
 
 	// xlog.Traceln("dispatchPkt send:", pkt.Header.RequestId)
 
-	entity.DispatchPkt(pkt)
+	DispatchPkt(entity, pkt)
 
 	return nil
 }

@@ -32,13 +32,13 @@ func NewGame() *Game {
 	desc := entity.EntityDesc{}
 	desc.EntityImpl = gm
 	desc.EntityMgr = gm.EntityMgr
-	gm.SetEntityDesc(&desc)
+	entity.SetEntityDesc(gm, &desc)
 
 	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
 
 	gm.EntityMgr.RegisterEntity(nil, temp, gm)
 
-	gm.Run()
+	entity.Run(gm)
 
 	gm.init(temp)
 

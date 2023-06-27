@@ -13,8 +13,8 @@ type IService interface {
 	IEntity
 
 	ServiceDesc() *EntityDesc
-	SetServiceDesc(desc *EntityDesc)
 
+	setServiceDesc(desc *EntityDesc)
 	serviceType()
 }
 
@@ -26,7 +26,11 @@ func (s *Service) ServiceDesc() *EntityDesc {
 	return s.desc
 }
 
-func (s *Service) SetServiceDesc(desc *EntityDesc) {
+func SetServiceDesc(s IService, desc *EntityDesc) {
+	s.setEntityDesc(desc)
+}
+
+func (s *Service) setServiceDesc(desc *EntityDesc) {
 	s.desc = desc
 }
 
@@ -50,17 +54,16 @@ func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 	})
 }
 
-func (e *Service) Run() {
-	e.runOnce.Do(func() {
-		ch := make(chan bool)
-		secure.GO(func() {
-			e.run(ch)
-		})
-		<-ch
-	})
-}
-
 func (e *Service) run(ch chan bool) {
+	done := true
+	e.runOnce.Do(func() {
+		done = false
+	})
+	if done {
+		ch <- true
+		return
+	}
+
 	xlog.Traceln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}

@@ -39,7 +39,7 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 	dstEty := entity.DstEntity(pkt)
 	// 如果是发给客户端的系统调用，需要拦截
 	if hdr.Type == entity.BbqSysEntityDesc.TypeName {
-		gt.DispatchPkt(pkt)
+		entity.DispatchPkt(gt, pkt)
 		return nil
 	}
 

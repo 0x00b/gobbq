@@ -36,7 +36,7 @@ func (e *EchoService2) OnTick() {
 	// xlog.Infoln("tick...")
 }
 
-func (e *EchoService2) EntityNotify(wn entity.NotifyInfo) {
+func (e *EchoService2) OnNotify(wn entity.NotifyInfo) {
 	xlog.Infoln("receive watch client notify...", wn.EntityID)
 }
 

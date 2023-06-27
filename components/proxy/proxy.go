@@ -34,14 +34,14 @@ func NewProxy() *Proxy {
 	desc := proxypb.ProxyEtyEntityDesc
 	desc.EntityImpl = p
 	desc.EntityMgr = p.EntityMgr
-	p.SetEntityDesc(&desc)
+	entity.SetEntityDesc(p, &desc)
 
 	eid := uint16(conf.C.Proxy.Inst[0].ID)
 
 	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
 	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), 0, 0), p)
 
-	p.Run()
+	entity.Run(p)
 
 	p.ConnOtherProxys(nets.WithPacketHandler(p), nets.WithConnCallback(p))
 

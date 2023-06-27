@@ -30,13 +30,13 @@ func NewGate() *Gate {
 	desc := gatepb.GateServiceDesc
 	desc.EntityImpl = gt
 	desc.EntityMgr = gt.EntityMgr
-	gt.SetServiceDesc(&desc)
+	entity.SetServiceDesc(gt, &desc)
 
 	temp := gt.NewEntityID()
 
 	gt.EntityMgr.RegisterEntity(nil, temp, gt)
 
-	gt.Run()
+	entity.Run(gt)
 
 	gt.init(temp)
 

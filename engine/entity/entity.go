@@ -14,19 +14,17 @@ import (
 
 var _ IEntity = &Entity{}
 
+// On开头的表示可重写
 type IEntity interface {
 
 	// EntityID
 	EntityID() EntityID
+	Context() Context
+	EntityDesc() *EntityDesc
 
 	// Entity Lifetime
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
 	OnDestroy() // Called when entity is destroying (just before destroy)
-
-	Context() Context
-
-	Run()
-	Stop()
 
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
@@ -42,7 +40,10 @@ type IEntity interface {
 	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
 	Watch(id EntityID)
 	Unwatch(id EntityID)
-	EntityNotify(NotifyInfo)
+	OnNotify(NotifyInfo)
+
+	// 主动结束
+	Stop()
 
 	// === for inner ===
 	getEntityMgr() *EntityManager
@@ -54,16 +55,17 @@ type IEntity interface {
 	setEntityID(id EntityID)
 	onDestroy() // Called when entity is destroying (just before destroy), for inner
 
-	DispatchPkt(pkt *nets.Packet)
+	dispatchPkt(pkt *nets.Packet)
 	dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any) error
 
 	setParant(s IEntity)
 	addChildren(s IEntity)
 
-	EntityDesc() *EntityDesc
-	SetEntityDesc(desc *EntityDesc)
+	setEntityDesc(desc *EntityDesc)
 
 	entityType()
+
+	run(ch chan bool)
 }
 
 type State int
@@ -142,17 +144,24 @@ type Entity struct {
 	watchers map[EntityID]bool
 }
 
-func (e *Entity) Run() {
-	e.runOnce.Do(func() {
-		ch := make(chan bool)
-		secure.GO(func() {
-			e.run(ch)
-		})
-		<-ch
+func Run(e IEntity) {
+	ch := make(chan bool)
+	secure.GO(func() {
+		e.run(ch)
 	})
+	<-ch
 }
 
 func (e *Entity) run(ch chan bool) {
+	done := true
+	e.runOnce.Do(func() {
+		done = false
+	})
+	if done {
+		ch <- true
+		return
+	}
+
 	xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
@@ -237,7 +246,11 @@ func (e *Entity) EntityDesc() *EntityDesc {
 	return e.desc
 }
 
-func (e *Entity) SetEntityDesc(desc *EntityDesc) {
+func SetEntityDesc(e IEntity, desc *EntityDesc) {
+	e.setEntityDesc(desc)
+}
+
+func (e *Entity) setEntityDesc(desc *EntityDesc) {
 	e.desc = desc
 }
 
@@ -317,7 +330,11 @@ func (e *Entity) onDestroy() {
 	})
 }
 
-func (e *Entity) DispatchPkt(pkt *nets.Packet) {
+func DispatchPkt(e IEntity, pkt *nets.Packet) {
+	e.dispatchPkt(pkt)
+}
+
+func (e *Entity) dispatchPkt(pkt *nets.Packet) {
 	if pkt != nil {
 		// xlog.Traceln("dispatch:", pkt.String())
 		pkt.Retain()
