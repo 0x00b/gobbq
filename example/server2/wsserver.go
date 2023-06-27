@@ -36,6 +36,10 @@ func (e *EchoService2) OnTick() {
 	// xlog.Infoln("tick...")
 }
 
+func (e *EchoService2) EntityNotify(wn entity.NotifyInfo) {
+	xlog.Infoln("receive watch client notify...", wn.EntityID)
+}
+
 func (e *EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {
 
 	// e.AddCallback(1*time.Second, func() {

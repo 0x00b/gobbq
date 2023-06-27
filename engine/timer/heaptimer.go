@@ -43,8 +43,7 @@ func (h *_TimerHeap) Less(i, j int) bool {
 }
 
 func (h *_TimerHeap) Swap(i, j int) {
-	var tmp *timer
-	tmp = h.timers[i]
+	tmp := h.timers[i]
 	h.timers[i] = h.timers[j]
 	h.timers[j] = tmp
 }

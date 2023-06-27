@@ -15,7 +15,7 @@ func (e *Entity) Unwatch(id EntityID) {
 }
 
 // Receive 默认实现
-func (e *Entity) Receive(w WatchNotify) {
+func (e *Entity) EntityNotify(w NotifyInfo) {
 
 	xlog.Infoln("default receive", w.EntityID)
 
@@ -41,7 +41,7 @@ func (e *Entity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error
 func (e *Entity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	xlog.Infoln("SysNotify", req.EntityID)
-	c.Entity().Receive(WatchNotify{EntityID: EntityID(req.EntityID)})
+	c.Entity().EntityNotify(NotifyInfo{EntityID: EntityID(req.EntityID)})
 
 	return &WatchResponse{}, nil
 }

@@ -23,7 +23,7 @@ type FrameService struct {
 // StartFrame
 func (f *FrameService) StartFrame(c entity.Context, req *testpb.StartFrameReq) (*testpb.StartFrameRsp, error) {
 
-	if f.tempFrameSvr.Invalid() {
+	if !f.tempFrameSvr.Invalid() {
 		return &testpb.StartFrameRsp{FrameSvr: uint64(f.tempFrameSvr)}, nil
 	}
 
@@ -58,7 +58,7 @@ func main() {
 	var g = game.NewGame()
 
 	testpb.RegisterFrameService(g.EntityMgr, &FrameService{})
-	frameproto.RegisterFrameSeverEntity(g.EntityMgr, &frame.FrameSeverEntity{})
+	frameproto.RegisterFrameSeverEntity(g.EntityMgr, &frame.FrameSever{})
 
 	g.Serve()
 }

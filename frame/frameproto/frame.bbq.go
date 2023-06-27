@@ -8,13 +8,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// frameproto "github.com/0x00b/gobbq/frame/frameproto"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -386,55 +388,6 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 }
 
-func (t *frameSeverEntity) Move(c entity.Context, req *MoveReq) error {
-
-	pkt, release := nets.NewPacket()
-	defer release()
-
-	pkt.Header.Version = 1
-	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 10
-	pkt.Header.RequestType = bbq.RequestType_RequestRequest
-	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = uint64(c.EntityID())
-	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = FrameSeverEntityDesc.TypeName
-	pkt.Header.Method = "Move"
-	pkt.Header.ContentType = bbq.ContentType_Proto
-	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
-	pkt.Header.TransInfo = map[string][]byte{}
-	pkt.Header.ErrCode = 0
-	pkt.Header.ErrMsg = ""
-
-	etyMgr := entity.GetEntityMgr(c)
-	if etyMgr == nil {
-		return errors.New("bad context")
-	}
-	err := etyMgr.LocalCall(pkt, req, nil)
-	if err != nil {
-		if !entity.NotMyMethod(err) {
-			return err
-		}
-
-		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
-		if err != nil {
-			xlog.Errorln(err)
-			return err
-		}
-
-		pkt.WriteBody(hdrBytes)
-
-		err = entity.GetProxy(c).SendPacket(pkt)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-
-}
-
 func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 	pkt, release := nets.NewPacket()
@@ -551,9 +504,6 @@ type FrameSeverEntity interface {
 
 	// Ready
 	Ready(c entity.Context, req *ReadyReq) error
-
-	// Move
-	Move(c entity.Context, req *MoveReq) error
 
 	// Input
 	Input(c entity.Context, req *InputReq) error
@@ -898,51 +848,6 @@ func _FrameSeverEntity_Ready_Remote_Handler(svc any, ctx entity.Context, pkt *ne
 
 }
 
-func _FrameSeverEntity_Move_Handler(svc any, ctx entity.Context, in *MoveReq, interceptor entity.ServerInterceptor) error {
-	if interceptor == nil {
-		return svc.(FrameSeverEntity).Move(ctx, in)
-	}
-
-	info := &entity.ServerInfo{
-		Server:     svc,
-		FullMethod: "/frameproto.FrameSeverEntity/Move",
-	}
-
-	handler := func(ctx entity.Context, rsp any) (any, error) {
-
-		return nil, svc.(FrameSeverEntity).Move(ctx, in)
-
-	}
-
-	rsp, err := interceptor(ctx, in, info, handler)
-	_ = rsp
-
-	return err
-
-}
-
-func _FrameSeverEntity_Move_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
-
-	return nil, _FrameSeverEntity_Move_Handler(svc, ctx, in.(*MoveReq), interceptor)
-
-}
-
-func _FrameSeverEntity_Move_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
-
-	hdr := pkt.Header
-
-	in := new(MoveReq)
-	reqbuf := pkt.PacketBody()
-	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// err
-		return
-	}
-
-	_FrameSeverEntity_Move_Handler(svc, ctx, in, interceptor)
-
-}
-
 func _FrameSeverEntity_Input_Handler(svc any, ctx entity.Context, in *InputReq, interceptor entity.ServerInterceptor) error {
 	if interceptor == nil {
 		return svc.(FrameSeverEntity).Input(ctx, in)
@@ -1066,12 +971,6 @@ var FrameSeverEntityDesc = entity.EntityDesc{
 			MethodName:   "Ready",
 			Handler:      _FrameSeverEntity_Ready_Remote_Handler,
 			LocalHandler: _FrameSeverEntity_Ready_Local_Handler,
-		},
-
-		"Move": {
-			MethodName:   "Move",
-			Handler:      _FrameSeverEntity_Move_Remote_Handler,
-			LocalHandler: _FrameSeverEntity_Move_Local_Handler,
 		},
 
 		"Input": {

@@ -95,7 +95,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 		return nil, nil, err
 	}
 
-	xlog.Traceln("recv raw 5 ", packetDataSize, cap(packetData))
+	// xlog.Traceln("recv raw 5 ", packetDataSize, cap(packetData))
 
 	packet.headerLen = packetEndian.Uint32(packetData[:4])
 

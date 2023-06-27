@@ -15,7 +15,6 @@ service FrameSever {
 	rpc Join(JoinReq) returns(JoinRsp) {}
 	rpc Progress(ProgressReq) returns(ProgressRsp) {}
 	rpc Ready(ReadyReq) returns(google.protobuf.Empty) {}
-	rpc Move(MoveReq) returns(google.protobuf.Empty) {} //可以针对性优化，所以独立出来一个协议
 	rpc Input(InputReq) returns(google.protobuf.Empty) {}
 	rpc Result(ResultReq) returns(google.protobuf.Empty) {}
 }
@@ -33,27 +32,37 @@ service FrameClient {
 message Position {
 	int32 x = 1;
 	int32 y = 2;
+	int32 z = 3;
 }
 
-message MoveReq{
-	Position Pos = 1;
+enum OPID {
+	None = 0;
+	Move = 1;
 }
- 
+
 message InputData{
-	string Data = 1;
+    OPID OPID	 = 1;    //操作id
+    Position Pos = 2;    //操作位置
 }
+
+message FrameData{
+	uint64 CLientID	= 1;
+	InputData Input = 2;
+}
+
+message Frame{
+    uint32 FrameID	= 1;    //帧ID
+	repeated FrameData Data  = 2;
+}
+
+// client input
 message InputReq{
-	InputData Data = 1;
+	InputData Input = 1;
 }
 
-message FrameData {
-	uint64 CLientID = 1;
-	Position Pos = 2;
-	repeated InputData Data = 3;
-}
-
+// server to client frame
 message FrameReq {
-	repeated FrameData Data = 1;
+	repeated Frame Frames 	= 2;
 }
 
 message HeartbeatReq{

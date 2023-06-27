@@ -85,7 +85,7 @@ func (e *Service) run(ch chan bool) {
 				return
 
 			case pkt := <-e.respChan:
-				xlog.Tracef("handle: %s", pkt.String())
+				// xlog.Tracef("handle: %s", pkt.String())
 
 				wg.Add(1)
 

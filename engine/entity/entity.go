@@ -34,7 +34,7 @@ type IEntity interface {
 
 	// AddCallback 直接用，不需要重写，除非有特殊需求
 	AddCallback(d time.Duration, callback timer.CallbackFunc)
-	// AddTimer 直接用，不需要重写，除非有特殊需求
+	// AddTimer 直接用，不需要重写，除非有特殊需求, Timer和Tick本质区别是,Tick在entity里是同步的,Timer是异步的
 	AddTimer(d time.Duration, callback timer.CallbackFunc)
 	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
 	OnTick()
@@ -42,7 +42,7 @@ type IEntity interface {
 	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
 	Watch(id EntityID)
 	Unwatch(id EntityID)
-	Receive(WatchNotify)
+	EntityNotify(NotifyInfo)
 
 	// === for inner ===
 	getEntityMgr() *EntityManager
@@ -68,9 +68,8 @@ type IEntity interface {
 
 type State int
 
-type WatchNotify struct {
+type NotifyInfo struct {
 	EntityID EntityID
-	State    State
 }
 
 type methodHandler func(svc any, ctx Context, pkt *nets.Packet, interceptor ServerInterceptor)
@@ -251,7 +250,7 @@ func (e *Entity) registerCallback(requestID string, cb Callback) {
 		return
 	}
 
-	xlog.Debugln("register callback:", requestID)
+	// xlog.Debugln("register callback:", requestID)
 
 	e.cbMtx.Lock()
 	defer e.cbMtx.Unlock()
@@ -263,7 +262,7 @@ func (e *Entity) popCallback(requestID string) (Callback, bool) {
 		return nil, false
 	}
 
-	xlog.Debugln("unregister callback:", requestID)
+	// xlog.Debugln("unregister callback:", requestID)
 
 	e.cbMtx.Lock()
 	defer e.cbMtx.Unlock()
@@ -320,7 +319,7 @@ func (e *Entity) onDestroy() {
 
 func (e *Entity) DispatchPkt(pkt *nets.Packet) {
 	if pkt != nil {
-		xlog.Traceln("dispatch:", pkt.String())
+		// xlog.Traceln("dispatch:", pkt.String())
 		pkt.Retain()
 		if pkt.Header.RequestType == bbq.RequestType_RequestRequest {
 			e.callChan <- pkt
@@ -359,7 +358,7 @@ func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.popCallback(pkt.Header.RequestId)
 		if ok {
-			xlog.Debugln("callback:", pkt.Header.RequestId)
+			// xlog.Debugln("callback:", pkt.Header.RequestId)
 			cb(pkt)
 			return nil
 		}

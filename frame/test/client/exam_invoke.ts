@@ -1,4 +1,4 @@
-import { ClientResultReq, CloseReq, FrameReq, StartReq } from '../../frameproto/frame';
+import { ClientResultReq, CloseReq, FrameReq, InputData, InputReq, OPID, StartReq } from '../../frameproto/frame';
 import { FrameClientEntityDefinition, FrameSeverEntity, NewFrameSeverEntity } from '../../frameproto/frame.bbq'
 import { NewFrameService } from '../testpb/testpb.bbq'
 import { Client } from 'gobbq-ts/dist/src';
@@ -11,9 +11,17 @@ class FrameClientEntity {
     let x = 1
     let y = 1
     setInterval(() => {
-      frameSvr.Move({
-        Pos: { x: x++, y: y += 2 }
-      })
+      let req = InputReq.create({
+        Input: {
+            OPID: OPID.Move,
+            Pos: {
+                x: x++,
+                y: y++,
+                z: 0,
+            }
+          }
+    })
+      frameSvr.Input(req)
     }, 200)
 
   }
@@ -21,7 +29,7 @@ class FrameClientEntity {
   // Frame
   Frame(ctx: Context, request: FrameReq): void {
 
-    console.log("recv frame:", request)
+    console.log("recv frame:",JSON.stringify(request))
 
   }
 

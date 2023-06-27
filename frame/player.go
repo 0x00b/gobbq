@@ -8,7 +8,6 @@ import (
 
 type Player struct {
 	clientID          entity.EntityID
-	idx               int32
 	isReady           bool
 	isOnline          bool
 	loadingProgress   int32
@@ -16,10 +15,9 @@ type Player struct {
 	sendFrameCount    uint32
 }
 
-func NewPlayer(id entity.EntityID, idx int32) *Player {
+func NewPlayer(id entity.EntityID) *Player {
 	p := &Player{
 		clientID: id,
-		idx:      idx,
 	}
 
 	return p
@@ -27,6 +25,14 @@ func NewPlayer(id entity.EntityID, idx int32) *Player {
 
 func (p *Player) IsOnline() bool {
 	return p.isOnline
+}
+
+func (p *Player) LoadingProgress() int32 {
+	return p.loadingProgress
+}
+
+func (p *Player) SetLoadingProgress(n int32) {
+	p.loadingProgress = n
 }
 
 func (p *Player) RefreshHeartbeatTime() {
@@ -49,5 +55,4 @@ func (p *Player) Cleanup() {
 
 	p.isReady = false
 	p.isOnline = false
-
 }

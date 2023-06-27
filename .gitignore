@@ -43,6 +43,7 @@ tests/
 /example/server/server
 /example/server2/proxy
 /example/server2/server2
+/frame/test/server/server
 
 package.json
 package-lock.json
