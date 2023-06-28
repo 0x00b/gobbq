@@ -35,8 +35,8 @@ type frameService struct {
 
 func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartFrameRsp, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -162,8 +162,8 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *n
 
 	rsp, err := _FrameService_StartFrame_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId

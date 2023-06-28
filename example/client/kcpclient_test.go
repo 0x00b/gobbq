@@ -20,7 +20,7 @@ func TestMain(t *testing.T) {
 	}
 	fmt.Println("runing")
 
-	pkt, _ := nets.NewPacket()
+	pkt := nets.NewPacket()
 
 	hdr := &bbq.Header{
 		Version:   1,

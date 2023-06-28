@@ -25,6 +25,7 @@ func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
 	return ok
 }
 
+// 这里处理的是所有来自proxy的消息, 如果SendPacket是同步的,那当一个客户端断连, 发包阻塞时,会阻塞整个proxy消息的处理
 func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
 	if gt.isMyPacket(pkt) {

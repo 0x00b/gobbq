@@ -8,13 +8,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -33,8 +35,8 @@ type gateService struct {
 
 func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -111,8 +113,8 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -160,8 +162,8 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -293,8 +295,8 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 
 	rsp, err := _GateService_RegisterClient_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -420,8 +422,8 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Pac
 
 	rsp, err := _GateService_Ping_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId

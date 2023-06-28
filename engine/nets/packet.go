@@ -79,10 +79,8 @@ const (
 	FlagDataChecksumIEEE uint32 = 0x01
 )
 
-// 获取packet的地方，作为函数返回值，强提醒记得release pkt
-type ReleasePkt func()
-
-func allocPacket() *Packet {
+// NewPacket 一定要记得 pkt.Release()
+func NewPacket() *Packet {
 	pkt := packetPool.Get().(*Packet)
 
 	pkt.reset()
@@ -90,15 +88,6 @@ func allocPacket() *Packet {
 	// xlog.Printf("pkt pool get: %d", unsafe.Pointer(pkt))
 
 	return pkt
-}
-
-// NewPacket allocates a new packet
-func NewPacket() (*Packet, ReleasePkt) {
-	pkt := allocPacket()
-	return pkt, func() {
-		// xlog.Printf("release callback %d", unsafe.Pointer(pkt))
-		pkt.Release()
-	}
 }
 
 func (p *Packet) Context() context.Context {

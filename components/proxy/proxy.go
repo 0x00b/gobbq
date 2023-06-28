@@ -178,7 +178,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 		defer p.svcMtx.RUnlock()
 
 		prws, ok := p.svcMaps[svcType]
-		if !ok {
+		if !ok || len(prws) == 0 {
 			return false
 		}
 		xlog.Debugln("proxy to svc", prws)
@@ -195,7 +195,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 	sendProxy := func() bool {
 		typ := pkt.Header.Type
 		prws, ok := p.proxySvcMap[typ]
-		if !ok {
+		if !ok || len(prws) == 0 {
 			return false
 		}
 		sid := hdr.GetSrcEntity()

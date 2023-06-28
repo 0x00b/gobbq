@@ -55,8 +55,8 @@ type bbqSysEntity struct {
 
 func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -133,8 +133,8 @@ func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, e
 
 func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -211,8 +211,8 @@ func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse,
 
 func (t *bbqSysEntity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -344,8 +344,8 @@ func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packe
 
 	rsp, err := _BbqSysEntity_SysWatch_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -426,8 +426,8 @@ func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx Context, pkt *nets.Pac
 
 	rsp, err := _BbqSysEntity_SysUnwatch_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -508,8 +508,8 @@ func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx Context, pkt *nets.Pack
 
 	rsp, err := _BbqSysEntity_SysNotify_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId

@@ -8,28 +8,28 @@ class FrameClientEntity {
 
   // Start
   Start(ctx: Context, request: StartReq): void {
-    let x = 1
-    let y = 1
-    setInterval(() => {
-      let req = InputReq.create({
-        Input: {
-            OPID: OPID.Move,
-            Pos: {
-                x: x++,
-                y: y++,
-                z: 0,
-            }
-          }
-    })
-      frameSvr.Input(req)
-    }, 200)
+    // let x = 1
+    // let y = 1
+    // setInterval(() => {
+    //   let req = InputReq.create({
+    //     Input: {
+    //       OPID: OPID.Move,
+    //       Pos: {
+    //         x: x++,
+    //         y: y++,
+    //         z: 0,
+    //       }
+    //     }
+    //   })
+    //   frameSvr.Input(req)
+    // }, 200)
 
   }
 
   // Frame
   Frame(ctx: Context, request: FrameReq): void {
 
-    console.log("recv frame:",JSON.stringify(request))
+    console.log("recv frame:", JSON.stringify(request))
 
   }
 
@@ -60,7 +60,7 @@ async function test() {
 
   let startSvc = NewFrameService(client)
 
-  startSvc.StartFrame({}).then(({ error, response }) => {
+  await startSvc.StartFrame({}).then(({ error, response }) => {
 
     if (error || !response.FrameSvr) {
       console.log(error)
@@ -68,15 +68,13 @@ async function test() {
     }
 
     frameSvr = NewFrameSeverEntity(client, response.FrameSvr)
-    // let c = NewEchoEtyEntity(client, EntityID.create({ID: "xxxx"}))
-
-    let rsp = frameSvr.Join({ CLientID: client.EntityID })
-    rsp.then(({ response }) => {
-      console.log("succ rsp:", response)
-    })
-
   })
 
+  await frameSvr.Join({ CLientID: client.EntityID }).then(({ response }) => {
+    console.log("succ rsp:", response)
+  })
+  
+  frameSvr.Ready({})
 
 }
 

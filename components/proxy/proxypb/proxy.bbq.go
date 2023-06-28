@@ -8,13 +8,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/tool/snowflake"
+	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -56,8 +58,8 @@ type proxyEtyEntity struct {
 
 func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -134,8 +136,8 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -212,8 +214,8 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -345,8 +347,8 @@ func _ProxyEtyEntity_RegisterProxy_Remote_Handler(svc any, ctx entity.Context, p
 
 	rsp, err := _ProxyEtyEntity_RegisterProxy_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -427,8 +429,8 @@ func _ProxyEtyEntity_SyncService_Remote_Handler(svc any, ctx entity.Context, pkt
 
 	rsp, err := _ProxyEtyEntity_SyncService_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -509,8 +511,8 @@ func _ProxyEtyEntity_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.
 
 	rsp, err := _ProxyEtyEntity_Ping_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -589,8 +591,8 @@ type proxySvcService struct {
 
 func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -667,8 +669,8 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -745,8 +747,8 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -823,8 +825,8 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -959,8 +961,8 @@ func _ProxySvcService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, p
 
 	rsp, err := _ProxySvcService_RegisterInst_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -1041,8 +1043,8 @@ func _ProxySvcService_RegisterService_Remote_Handler(svc any, ctx entity.Context
 
 	rsp, err := _ProxySvcService_RegisterService_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -1123,8 +1125,8 @@ func _ProxySvcService_UnregisterService_Remote_Handler(svc any, ctx entity.Conte
 
 	rsp, err := _ProxySvcService_UnregisterService_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -1205,8 +1207,8 @@ func _ProxySvcService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets
 
 	rsp, err := _ProxySvcService_Ping_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId

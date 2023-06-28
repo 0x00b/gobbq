@@ -60,7 +60,7 @@ func NewPacketReadWriterWithConfig(conn *Conn, cfg *Config) *PacketReadWriter {
 }
 
 // recv receives the next packet
-func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
+func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 	var err error
 
 	var tempBuff [4]byte
@@ -69,19 +69,19 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	_, err = io.ReadFull(pc.conn.rwc, tempBuff[:])
 	// xlog.Traceln("recv raw 2 ")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	packetDataSize := packetEndian.Uint32(tempBuff[:])
 	if packetDataSize > MaxPacketBodyLength {
-		return nil, nil, errPacketBodyTooLarge
+		return nil, errPacketBodyTooLarge
 	}
 	if packetDataSize < 4 {
-		return nil, nil, errors.New("bad packet")
+		return nil, errors.New("bad packet")
 	}
 
 	// allocate a packet to receive packetBody
-	packet, release := NewPacket()
+	packet := NewPacket()
 	packet.Src = pc.conn
 	packet.totalLen = packetDataSize
 
@@ -91,8 +91,8 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	// xlog.Traceln("recv raw 4 ")
 	_, err = io.ReadFull(pc.conn.rwc, packetData)
 	if err != nil {
-		release()
-		return nil, nil, err
+		packet.Release()
+		return nil, err
 	}
 
 	// xlog.Traceln("recv raw 5 ", packetDataSize, cap(packetData))
@@ -104,8 +104,8 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	// header, headerlen包含自己本身的长度（4个字节），后面才是真正的header内容
 	err = codec.DefaultCodec.Unmarshal(packetData[4:packet.headerLen], packet.Header)
 	if err != nil {
-		release()
-		return nil, nil, err
+		packet.Release()
+		return nil, err
 	}
 
 	xlog.Traceln("recv raw:", packet.String())
@@ -125,7 +125,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, ReleasePkt, error) {
 	// 	}
 	// }
 
-	return packet, release, nil
+	return packet, nil
 }
 
 func writeFull(conn net.Conn, data []byte) error {

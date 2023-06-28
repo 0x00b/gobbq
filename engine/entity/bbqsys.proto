@@ -16,7 +16,7 @@ message WatchResponse{
 }
  
 service BbqSys {
-	option (bbq.service_type) = System;
+	option (bbq.service_type) = Entity;
 
 	rpc SysWatch(WatchRequest) returns(WatchResponse) {}
 	rpc SysUnwatch(WatchRequest) returns(WatchResponse) {}

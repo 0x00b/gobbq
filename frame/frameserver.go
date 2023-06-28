@@ -23,10 +23,11 @@ const (
 type GameState int
 
 const (
-	GameReady GameState = 0 // 准备阶段
-	GamRuning GameState = 1 // 战斗中阶段
-	GameOver  GameState = 2 // 结束阶段
-	GameStop  GameState = 3 // 停止
+	GameNone  GameState = 0 // 准备阶段
+	GameReady GameState = 1 // 准备阶段
+	GamRuning GameState = 2 // 战斗中阶段
+	GameOver  GameState = 3 // 结束阶段
+	GameStop  GameState = 4 // 停止
 )
 
 // FrameSever
@@ -37,11 +38,10 @@ type FrameSever struct {
 	lastBroadcastFrameTime int64
 
 	entityNum int
-	curNum    int
 
 	status GameState
 
-	// result map[uint64]uint64
+	result map[entity.EntityID]uint64
 
 	players map[entity.EntityID]*Player
 
@@ -53,6 +53,9 @@ func (f *FrameSever) OnTick() {
 	now := time.Now().UnixMilli()
 
 	switch f.status {
+	case GameNone:
+		return
+
 	case GameReady:
 		delta := (now - f.startTime) / 1000
 		if delta < MaxReadyTime {
@@ -125,11 +128,13 @@ func (f *FrameSever) Heartbeat(c entity.Context, req *frameproto.HeartbeatReq) e
 // Init
 func (f *FrameSever) Init(c entity.Context, req *frameproto.InitReq) (*frameproto.InitRsp, error) {
 
-	xlog.Info(c, "Init entityNum:", f.entityNum)
+	xlog.Info(c, "Init entityNum:", req.ClientNum)
 
 	f.entityNum = int(req.GetClientNum())
 	f.players = make(map[entity.EntityID]*Player, f.entityNum)
 	f.logic = newLockstep()
+	f.startTime = time.Now().UnixMilli()
+	f.status = GameReady
 
 	return &frameproto.InitRsp{}, nil
 }
@@ -214,7 +219,7 @@ func (f *FrameSever) OnNotify(wn entity.NotifyInfo) {
 		}
 	}
 	// stoped
-	f.status = 1
+	f.status = GameOver
 }
 
 // Join
@@ -237,17 +242,15 @@ func (f *FrameSever) Join(c entity.Context, req *frameproto.JoinReq) (*frameprot
 
 	p = NewPlayer(id)
 	p.isOnline = true
-	p.isReady = true
 
 	f.players[id] = p
 
-	f.curNum++
+	// xlog.Info("recv join", f.entityNum)
 
-	xlog.Info("recv join", f.curNum, f.entityNum)
-
-	if f.curNum >= f.entityNum {
-		f.doStart()
-	}
+	// Tick中检查是否满足开始条件
+	// if f.curNum >= f.entityNum {
+	// 	f.doStart()
+	// }
 
 	return &frameproto.JoinRsp{}, nil
 }
@@ -255,6 +258,14 @@ func (f *FrameSever) Join(c entity.Context, req *frameproto.JoinReq) (*frameprot
 // Progress
 func (f *FrameSever) Progress(c entity.Context, req *frameproto.ProgressReq) (*frameproto.ProgressRsp, error) {
 	return &frameproto.ProgressRsp{}, nil
+}
+
+func (f *FrameSever) doReady(p *Player) {
+
+	if p.isReady {
+		return
+	}
+	p.isReady = true
 }
 
 // Ready
@@ -287,26 +298,17 @@ func (f *FrameSever) Result(c entity.Context, req *frameproto.ResultReq) error {
 	return nil
 }
 
-func (f *FrameSever) doReady(p *Player) {
-
-	if p.isReady {
-		return
-	}
-
-	p.isReady = true
-
-	// msg := pb_packet.NewPacket(uint8(pb.ID_MSG_Ready), nil)
-	// p.SendMessage(msg)
-}
-
 func (f *FrameSever) checkReady() bool {
+
+	cnt := 0
 	for _, v := range f.players {
 		if !v.isReady {
 			return false
 		}
+		cnt++
 	}
 
-	return true
+	return cnt >= f.entityNum
 }
 
 func (f *FrameSever) doStart() {
@@ -318,7 +320,7 @@ func (f *FrameSever) doStart() {
 		v.loadingProgress = 100
 	}
 
-	f.startTime = time.Now().UnixMilli()
+	f.status = GamRuning
 
 	for _, v := range f.players {
 		client := frameproto.NewFrameClientEntityClient(v.clientID)
@@ -328,10 +330,6 @@ func (f *FrameSever) doStart() {
 			// return nil, err
 		}
 	}
-
-	f.status = GamRuning
-
-	// f.listener.OnGameStart(f.id)
 }
 
 func (f *FrameSever) doGameOver() {
@@ -351,6 +349,7 @@ func (f *FrameSever) getOnlinePlayerCount() int {
 	return i
 }
 
+// 可以按照超过一半人结束就结束游戏
 func (f *FrameSever) checkOver() bool {
 	// 只要有人没发结果并且还在线，就不结束
 	for _, v := range f.players {
@@ -358,9 +357,9 @@ func (f *FrameSever) checkOver() bool {
 			continue
 		}
 
-		// if _, ok := f.result[v.id]; !ok {
-		return false
-		// }
+		if _, ok := f.result[v.clientID]; !ok {
+			return false
+		}
 	}
 
 	return true

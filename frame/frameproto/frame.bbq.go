@@ -58,8 +58,8 @@ type frameSeverEntity struct {
 
 func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -107,8 +107,8 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 
 func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -185,8 +185,8 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 
 func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -263,8 +263,8 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 
 func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*ProgressRsp, error) {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -341,8 +341,8 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 
 func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -390,8 +390,8 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -439,8 +439,8 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -600,8 +600,8 @@ func _FrameSeverEntity_Init_Remote_Handler(svc any, ctx entity.Context, pkt *net
 
 	rsp, err := _FrameSeverEntity_Init_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -682,8 +682,8 @@ func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *net
 
 	rsp, err := _FrameSeverEntity_Join_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -764,8 +764,8 @@ func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt 
 
 	rsp, err := _FrameSeverEntity_Progress_Handler(svc, ctx, in, interceptor)
 
-	npkt, release := nets.NewPacket()
-	defer release()
+	npkt := nets.NewPacket()
+	defer npkt.Release()
 
 	npkt.Header.Version = hdr.Version
 	npkt.Header.RequestId = hdr.RequestId
@@ -1026,8 +1026,8 @@ type frameClientEntity struct {
 
 func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -1075,8 +1075,8 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
 func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -1124,8 +1124,8 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()
@@ -1173,8 +1173,8 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 
 func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 
-	pkt, release := nets.NewPacket()
-	defer release()
+	pkt := nets.NewPacket()
+	defer pkt.Release()
 
 	pkt.Header.Version = 1
 	pkt.Header.RequestId = snowflake.GenUUID()

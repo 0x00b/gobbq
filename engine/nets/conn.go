@@ -18,6 +18,8 @@ func newDefaultConn(ctx context.Context, rawConn net.Conn, opts *Options) *Conn 
 		ctx:           ctx,
 		rwc:           rawConn,
 		PacketHandler: opts.PacketHandler,
+		pktRecvChan:   make(chan *Packet, 500),
+		pktSendChan:   make(chan *Packet, 500),
 	}
 
 	tc.packetReadWriter = NewPacketReadWriter(tc)
@@ -46,6 +48,9 @@ type Conn struct {
 
 	closeOnce sync.Once
 	closed    bool
+
+	pktRecvChan chan *Packet
+	pktSendChan chan *Packet
 }
 
 func (cn *Conn) Name() string {
@@ -62,6 +67,10 @@ func (cn *Conn) close() (e error) {
 		if e != nil {
 			xlog.Errorln(e)
 		}
+
+		close(cn.pktRecvChan)
+		close(cn.pktSendChan)
+
 		cn.closed = true
 	})
 	return e
@@ -78,6 +87,10 @@ func (cn *Conn) Close(closeChan chan struct{}) (e error) {
 func (cn *Conn) Serve() {
 	defer cn.close()
 
+	secure.GO(cn.handleLoop)
+	secure.GO(cn.writeLoop)
+
+	// recv loop
 	for {
 		// xlog.Traceln("serve 1")
 		// 检查上游是否关闭
@@ -103,7 +116,7 @@ func (cn *Conn) Serve() {
 		}
 
 		// xlog.Traceln("serve 3", utils.GoID())
-		pkt, release, err := cn.packetReadWriter.ReadPacket()
+		pkt, err := cn.packetReadWriter.ReadPacket()
 		// xlog.Traceln("serve 4")
 		if err != nil {
 			if err == io.EOF || errors.Is(err, io.EOF) {
@@ -118,17 +131,12 @@ func (cn *Conn) Serve() {
 			return
 		}
 
-		// xlog.Traceln("serve 5")
-		err = cn.handle(pkt, release)
-		// xlog.Traceln("serve 6")
-		if err != nil {
-			xlog.Errorln("handle failed", err)
-		}
+		cn.pktRecvChan <- pkt
 	}
 }
 
-func (cn *Conn) handle(pkt *Packet, release ReleasePkt) error {
-	defer release()
+func (cn *Conn) handle(pkt *Packet) error {
+	defer pkt.Release()
 
 	// todo report
 
@@ -172,7 +180,7 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 	xlog.Traceln("start send:", p.String())
 
 	if cn.closed {
-		return errors.New("conn closing")
+		return errors.New("conn closed")
 	}
 	defer func() {
 		if err != nil {
@@ -182,28 +190,89 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 		}
 	}()
 
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New("conn closing")
+	// 需要改写,可配置
+	timeout := time.Second * 5
+
+	if timeout == 0 {
+		select {
+		case <-cn.ctx.Done():
+			xlog.Trace("context done...")
+			return
+
+		case cn.pktSendChan <- p:
+			p.Retain()
+			return nil
+
+		default:
+			return errors.New("conn blocking")
 		}
+
+	} else {
+		select {
+		case <-cn.ctx.Done():
+			xlog.Trace("context done...")
+			return
+
+		case cn.pktSendChan <- p:
+			p.Retain()
+			return nil
+
+		case <-time.After(timeout):
+			return errors.New("conn timeount blocking")
+		}
+	}
+}
+
+func (cn *Conn) writeLoop() {
+	defer func() {
+		cn.close()
 	}()
 
-	timeout := time.Second * 5
-	if timeout == 0 {
-		return writeFull(cn.rwc, p.Serialize())
-	} else {
-		ch := make(chan error)
-		secure.GO(func() {
-			defer func() {
-				ch <- err
-			}()
-			err = writeFull(cn.rwc, p.Serialize())
-		})
+	for {
 		select {
-		case err = <-ch:
-			return err
-		case <-time.After(timeout):
-			return errors.New("conn ErrWriteBlocking")
+		case <-cn.ctx.Done():
+			xlog.Trace("context done...")
+			return
+
+		case p := <-cn.pktSendChan:
+			func() {
+				defer p.Release()
+				if cn.closed {
+					// 需要改写, 可能chan中还有pkt,需要pkt.Release
+					return
+				}
+				cn.rwc.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				err := writeFull(cn.rwc, p.Serialize())
+				if err != nil {
+					xlog.Errorln(err)
+					return
+				}
+			}()
+		}
+	}
+}
+
+func (cn *Conn) handleLoop() {
+	defer func() {
+		cn.close()
+	}()
+
+	for {
+		select {
+		case <-cn.ctx.Done():
+			xlog.Trace("context done...")
+			return
+
+		case pkt := <-cn.pktRecvChan:
+			if cn.closed {
+				// 需要改写, 可能chan中还有pkt,需要pkt.Release
+				return
+			}
+
+			err := cn.handle(pkt)
+			if err != nil {
+				xlog.Errorln("handle failed", err)
+			}
 		}
 	}
 }
