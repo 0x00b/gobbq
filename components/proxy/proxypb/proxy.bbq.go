@@ -25,19 +25,19 @@ func RegisterProxyEtyEntity(etyMgr *entity.EntityManager, impl ProxyEtyEntity) {
 	etyMgr.RegisterEntityDesc(&ProxyEtyEntityDesc, impl)
 }
 
-func NewProxyEtyEntityClient(eid entity.EntityID) *proxyEtyEntity {
-	t := &proxyEtyEntity{
+func NewProxyEtyClient(eid entity.EntityID) *ProxyEty {
+	t := &ProxyEty{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewProxyEtyEntity(c entity.Context) *proxyEtyEntity {
+func NewProxyEty(c entity.Context) *ProxyEty {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewProxyEtyEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewProxyEtyWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewProxyEtyEntityWithID(c entity.Context, id entity.EntityID) *proxyEtyEntity {
+func NewProxyEtyWithID(c entity.Context, id entity.EntityID) *ProxyEty {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, ProxyEtyEntityDesc.TypeName)
@@ -45,18 +45,18 @@ func NewProxyEtyEntityWithID(c entity.Context, id entity.EntityID) *proxyEtyEnti
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &proxyEtyEntity{
+	t := &ProxyEty{
 		EntityID: id,
 	}
 
 	return t
 }
 
-type proxyEtyEntity struct {
+type ProxyEty struct {
 	EntityID entity.EntityID
 }
 
-func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
+func (t *ProxyEty) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*RegisterProxyResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -78,6 +78,8 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -125,8 +127,6 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*RegisterProxyResponse); ok {
 		return rsp, nil
 	}
@@ -134,7 +134,7 @@ func (t *proxyEtyEntity) RegisterProxy(c entity.Context, req *RegisterProxyReque
 
 }
 
-func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error) {
+func (t *ProxyEty) SyncService(c entity.Context, req *SyncServiceRequest) (*SyncServiceResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -156,6 +156,8 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -203,8 +205,6 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*SyncServiceResponse); ok {
 		return rsp, nil
 	}
@@ -212,7 +212,7 @@ func (t *proxyEtyEntity) SyncService(c entity.Context, req *SyncServiceRequest) 
 
 }
 
-func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
+func (t *ProxyEty) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -234,6 +234,8 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -280,8 +282,6 @@ func (t *proxyEtyEntity) Ping(c entity.Context, req *PingPong) (*PingPong, error
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {
 		return rsp, nil
@@ -581,15 +581,15 @@ func RegisterProxySvcService(etyMgr *entity.EntityManager, impl ProxySvcService)
 	etyMgr.RegisterService(&ProxySvcServiceDesc, impl)
 }
 
-func NewProxySvcServiceClient() *proxySvcService {
-	t := &proxySvcService{}
+func NewProxySvcClient() *ProxySvc {
+	t := &ProxySvc{}
 	return t
 }
 
-type proxySvcService struct {
+type ProxySvc struct {
 }
 
-func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
+func (t *ProxySvc) RegisterInst(c entity.Context, req *RegisterInstRequest) (*RegisterInstResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -611,6 +611,8 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -658,8 +660,6 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*RegisterInstResponse); ok {
 		return rsp, nil
 	}
@@ -667,7 +667,7 @@ func (t *proxySvcService) RegisterInst(c entity.Context, req *RegisterInstReques
 
 }
 
-func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
+func (t *ProxySvc) RegisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -689,6 +689,8 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -736,8 +738,6 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*RegisterServiceResponse); ok {
 		return rsp, nil
 	}
@@ -745,7 +745,7 @@ func (t *proxySvcService) RegisterService(c entity.Context, req *RegisterService
 
 }
 
-func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
+func (t *ProxySvc) UnregisterService(c entity.Context, req *RegisterServiceRequest) (*RegisterServiceResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -767,6 +767,8 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -814,8 +816,6 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*RegisterServiceResponse); ok {
 		return rsp, nil
 	}
@@ -823,7 +823,7 @@ func (t *proxySvcService) UnregisterService(c entity.Context, req *RegisterServi
 
 }
 
-func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
+func (t *ProxySvc) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -845,6 +845,8 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -891,8 +893,6 @@ func (t *proxySvcService) Ping(c entity.Context, req *PingPong) (*PingPong, erro
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {
 		return rsp, nil

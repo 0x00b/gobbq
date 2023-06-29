@@ -69,7 +69,7 @@ func (p *ProxySvc) RegisterService(c entity.Context, req *proxypb.RegisterServic
 		_ = prw
 		entity.SetProxy(c, prw)
 		_, err := proxypb.
-			NewProxyEtyEntityClient(entity.FixedEntityID(id, 0, 0)).
+			NewProxyEtyClient(entity.FixedEntityID(id, 0, 0)).
 			SyncService(c, &proxypb.SyncServiceRequest{SvcName: req.ServiceName})
 		if err != nil {
 			xlog.Errorln("sync svc", err)

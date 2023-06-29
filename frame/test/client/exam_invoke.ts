@@ -3,6 +3,10 @@ import { FrameClientEntityDefinition, FrameSeverEntity, NewFrameSeverEntity } fr
 import { NewFrameService } from '../testpb/testpb.bbq'
 import { Client } from 'gobbq-ts/dist/src';
 import { Context } from 'gobbq-ts/dist/src/dispatcher/context';
+import Long from "long";
+
+let para=process.argv.slice(2)[0];
+let UID = Long.fromValue(para)
 
 class FrameClientEntity {
 
@@ -12,6 +16,7 @@ class FrameClientEntity {
     let y = 1
     setInterval(() => {
       let req = InputReq.create({
+        UID:UID,
         Input: {
           OPID: OPID.Move,
           Pos: {
@@ -48,6 +53,7 @@ class FrameClientEntity {
 
 let frameSvr: FrameSeverEntity
 
+
 async function test() {
 
   const remote = {
@@ -71,11 +77,11 @@ async function test() {
     frameSvr = NewFrameSeverEntity(client, response.FrameSvr)
   })
 
-  await frameSvr.Join({ CLientID: client.EntityID }).then(({ response }) => {
+  await frameSvr.Join({ UID: UID }).then(({ response }) => {
     console.log("succ rsp:", response)
   })
 
-  frameSvr.Ready({})
+  frameSvr.Ready({UID: UID})
 
 }
 

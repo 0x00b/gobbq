@@ -20,7 +20,7 @@ func (p *Gate) HandleClose(cn *nets.Conn) {
 			xlog.Traceln("watcher:", wc)
 
 			for id := range wc {
-				client := entity.NewBbqSysEntityClient(id)
+				client := entity.NewBbqSysClient(id)
 				client.SysNotify(p.Context(), &entity.WatchRequest{EntityID: uint64(eid)})
 			}
 			// do something

@@ -321,7 +321,7 @@ func (e *Entity) onDestroy() {
 		e.context.Entity().OnDestroy()
 
 		for id := range e.watchers {
-			client := NewBbqSysEntityClient(id)
+			client := NewBbqSysClient(id)
 			client.SysNotify(e.Context(), &WatchRequest{EntityID: uint64(e.EntityID())})
 		}
 

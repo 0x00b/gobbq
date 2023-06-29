@@ -239,7 +239,7 @@ func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
 
 	xlog.Println("RegisterProxy ing...")
 
-	other := proxypb.NewProxyEtyEntityClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
+	other := proxypb.NewProxyEtyClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
 
 	rsp, err := other.RegisterProxy(c, &proxypb.RegisterProxyRequest{
 		ProxyID: uint32(p.EntityID().ProxyID()),

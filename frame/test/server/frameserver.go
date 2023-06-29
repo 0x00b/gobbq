@@ -27,10 +27,10 @@ func (f *FrameService) StartFrame(c entity.Context, req *testpb.StartFrameReq) (
 		return &testpb.StartFrameRsp{FrameSvr: uint64(f.tempFrameSvr)}, nil
 	}
 
-	echoClient := frameproto.NewFrameSeverEntity(c)
+	echoClient := frameproto.NewFrameSever(c)
 
 	_, err := echoClient.Init(c, &frameproto.InitReq{
-		ClientNum: 2,
+		PlayerNum: 2,
 	})
 
 	if err != nil {

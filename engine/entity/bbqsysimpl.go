@@ -5,12 +5,12 @@ import "github.com/0x00b/gobbq/xlog"
 // entity 接口实现
 
 func (e *Entity) Watch(id EntityID) {
-	client := NewBbqSysEntityClient(id)
+	client := NewBbqSysClient(id)
 	client.SysWatch(e.Context(), &WatchRequest{EntityID: uint64(e.EntityID())})
 }
 
 func (e *Entity) Unwatch(id EntityID) {
-	client := NewBbqSysEntityClient(id)
+	client := NewBbqSysClient(id)
 	client.SysUnwatch(e.Context(), &WatchRequest{EntityID: uint64(e.EntityID())})
 }
 

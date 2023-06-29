@@ -1,10 +1,8 @@
 package entity
 
 import (
-	"math"
 	"strconv"
 	"sync/atomic"
-	"time"
 
 	"github.com/0x00b/gobbq/engine/nets"
 )
@@ -12,17 +10,19 @@ import (
 // EntityID proxyid + instid + id => (22bit + 10bit + 32bit)
 type EntityID uint64
 
-type ID uint32
+type ID uint64
 type InstID uint32
 type ProxyID uint32
 
 const (
-	proxyIDBitNum = 22
-	instIDBitNum  = 10
-	IdBitNum      = 32
-	proxyIDMask   = 1<<proxyIDBitNum - 1
-	instIDMask    = 1<<instIDBitNum - 1
-	idBitMask     = 1<<IdBitNum - 1
+	TotalBitLen   = 64 // (proxy+inst+id)
+	ProxyIDBitNum = 20
+	InstIDBitNum  = 8
+	IDBitNum      = 36
+
+	ProxyIDMask = 1<<ProxyIDBitNum - 1
+	InstIDMask  = 1<<InstIDBitNum - 1
+	IDBitMask   = 1<<IDBitNum - 1
 )
 
 type EntityIDGenerator interface {
@@ -30,11 +30,11 @@ type EntityIDGenerator interface {
 }
 
 func NewEntityID(pid ProxyID, iid InstID) EntityID {
-	return FixedEntityID(pid, iid, ID(GenIDU32()))
+	return FixedEntityID(pid, iid, GenID())
 }
 
 func FixedEntityID(pid ProxyID, iid InstID, id ID) EntityID {
-	eid := uint64(pid)<<(64-proxyIDBitNum) | uint64(iid&instIDMask)<<IdBitNum | uint64(id&idBitMask)
+	eid := uint64(pid)<<(TotalBitLen-ProxyIDBitNum) | uint64(iid&InstIDMask)<<IDBitNum | uint64(id&IDBitMask)
 	return EntityID(eid)
 }
 
@@ -55,23 +55,22 @@ func (eid EntityID) String() string {
 }
 
 func (eid EntityID) ProxyID() ProxyID {
-	return ProxyID((eid >> (64 - proxyIDBitNum)) & proxyIDMask)
+	return ProxyID((eid >> (TotalBitLen - ProxyIDBitNum)) & ProxyIDMask)
 }
 
 func (eid EntityID) InstID() InstID {
-	return InstID((eid >> IdBitNum) & instIDMask)
+	return InstID((eid >> IDBitNum) & InstIDMask)
 }
 
 func (eid EntityID) ID() ID {
-	return ID(eid & idBitMask)
+	return ID(eid & IDBitMask)
 }
 
-var u32IdCounter uint32
+var u64IdCounter uint64
 
-func GenIDU32() uint32 {
+func GenID() ID {
 
-	i := atomic.AddUint32(&u32IdCounter, 1)
-	n := uint32((time.Now().Unix()&math.MaxUint16)<<16) | uint32(i&math.MaxUint16)
+	n := atomic.AddUint64(&u64IdCounter, 1) & IDBitMask
 
-	return uint32(n)
+	return ID(n)
 }

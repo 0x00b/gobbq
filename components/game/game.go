@@ -27,7 +27,7 @@ func NewGame() *Game {
 	gm.EntityMgr.ProxyRegister = gm
 	gm.EntityMgr.EntityIDGenerator = gm
 
-	eid := uint16(entity.GenIDU32())
+	eid := uint16(entity.GenID())
 
 	desc := entity.EntityDesc{}
 	desc.EntityImpl = gm
@@ -51,7 +51,7 @@ func (g *Game) init(old entity.EntityID) {
 
 	g.EntityMgr.Proxy = ex.ProxyClient
 
-	client := proxypb.NewProxySvcServiceClient()
+	client := proxypb.NewProxySvcClient()
 
 	rsp, err := client.RegisterInst(g.Context(), &proxypb.RegisterInstRequest{})
 	if err != nil {
@@ -83,7 +83,7 @@ func (g *Game) init(old entity.EntityID) {
 
 func (g *Game) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcServiceClient()
+	client := proxypb.NewProxySvcClient()
 
 	_, err := client.RegisterService(g.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {

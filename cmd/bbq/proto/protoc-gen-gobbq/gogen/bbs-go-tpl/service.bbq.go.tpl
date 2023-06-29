@@ -40,13 +40,13 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterService(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client() *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{
+func New{{$sName}}Client() *{{$sName}} {
+	t := &{{$sName}}{
 	}
 	return t
 }
 
-type {{lowerCamelcase $typeName}} struct{
+type {{$sName}} struct{
 }
 
 {{else}}
@@ -55,19 +55,19 @@ func Register{{$typeName}}(etyMgr *entity.EntityManager, impl {{$typeName}}) {
 	etyMgr.RegisterEntityDesc(&{{$typeName}}Desc, impl)
 }
 
-func New{{$typeName}}Client(eid entity.EntityID) *{{lowerCamelcase $typeName}} {
-	t := &{{lowerCamelcase $typeName}}{
+func New{{$sName}}Client(eid entity.EntityID) *{{$sName}} {
+	t := &{{$sName}}{
 		EntityID:eid,
 	}
 	return t
 }
 
-func New{{$typeName}}(c entity.Context) *{{lowerCamelcase $typeName}}  {
+func New{{$sName}}(c entity.Context) *{{$sName}}  {
 	etyMgr := entity.GetEntityMgr(c)
-	return New{{$typeName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return New{{$sName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func New{{$typeName}}WithID(c entity.Context, id entity.EntityID) *{{lowerCamelcase $typeName}}  {
+func New{{$sName}}WithID(c entity.Context, id entity.EntityID) *{{$sName}}  {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, {{$typeName}}Desc.TypeName)
@@ -75,14 +75,14 @@ func New{{$typeName}}WithID(c entity.Context, id entity.EntityID) *{{lowerCamelc
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &{{lowerCamelcase $typeName}}{
+	t := &{{$sName}}{
 		EntityID: id,
 	}
 
 	return t
 }
 
-type {{lowerCamelcase $typeName}} struct{
+type {{$sName}} struct{
 	EntityID entity.EntityID
 }
 {{end -}}
@@ -93,7 +93,7 @@ type {{lowerCamelcase $typeName}} struct{
 {{- if $m.ClientStreaming}}
 {{else if $m.ServerStreaming}}
 {{else}}
-func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{else}}error{{end}}{
+func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.GoName}}) {{if $m.HasResponse}}(*{{$m.GoOutput.GoIdent.GoName}}, error){{else}}error{{end}}{
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()

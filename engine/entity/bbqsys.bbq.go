@@ -22,19 +22,19 @@ func RegisterBbqSysEntity(etyMgr *EntityManager, impl BbqSysEntity) {
 	etyMgr.RegisterEntityDesc(&BbqSysEntityDesc, impl)
 }
 
-func NewBbqSysEntityClient(eid EntityID) *bbqSysEntity {
-	t := &bbqSysEntity{
+func NewBbqSysClient(eid EntityID) *BbqSys {
+	t := &BbqSys{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewBbqSysEntity(c Context) *bbqSysEntity {
+func NewBbqSys(c Context) *BbqSys {
 	etyMgr := GetEntityMgr(c)
-	return NewBbqSysEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewBbqSysWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewBbqSysEntityWithID(c Context, id EntityID) *bbqSysEntity {
+func NewBbqSysWithID(c Context, id EntityID) *BbqSys {
 
 	etyMgr := GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, BbqSysEntityDesc.TypeName)
@@ -42,18 +42,18 @@ func NewBbqSysEntityWithID(c Context, id EntityID) *bbqSysEntity {
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &bbqSysEntity{
+	t := &BbqSys{
 		EntityID: id,
 	}
 
 	return t
 }
 
-type bbqSysEntity struct {
+type BbqSys struct {
 	EntityID EntityID
 }
 
-func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *BbqSys) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -131,7 +131,7 @@ func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, e
 
 }
 
-func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -153,6 +153,8 @@ func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse,
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -200,8 +202,6 @@ func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse,
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*WatchResponse); ok {
 		return rsp, nil
 	}
@@ -209,7 +209,7 @@ func (t *bbqSysEntity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse,
 
 }
 
-func (t *bbqSysEntity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (t *BbqSys) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -231,6 +231,8 @@ func (t *bbqSysEntity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, 
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -277,8 +279,6 @@ func (t *bbqSysEntity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, 
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*WatchResponse); ok {
 		return rsp, nil

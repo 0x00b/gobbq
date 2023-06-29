@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
@@ -109,7 +108,7 @@ func (s *EntityManager) NewEntity(c Context, id EntityID, typ string) (IEntity, 
 	}
 	// init
 
-	xlog.Infoln("register entity id:", unsafe.Pointer(s), id.String())
+	xlog.Infoln("register entity id:", id.String())
 
 	newDesc := *desc
 	newDesc.EntityImpl = e

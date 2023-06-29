@@ -40,9 +40,8 @@ type FrameSever struct {
 
 	status GameState
 
-	result map[entity.EntityID]uint64
-
-	players map[entity.EntityID]*Player
+	// key:UID
+	players map[uint64]*Player
 
 	logic *lockstep
 }
@@ -156,8 +155,7 @@ func (f *FrameSever) broadcastFrameData() {
 
 			// 如果是最后一帧或者达到这个消息包能装下的最大帧数，就发送
 			if i == (framesCount-1) || c >= kMaxFrameDataPerMsg {
-				client := frameproto.NewFrameClientEntityClient(p.clientID)
-				err := client.Frame(f.Context(), msg)
+				err := p.Frame(f.Context(), msg)
 				if err != nil {
 					xlog.Errorln(err)
 				}
@@ -174,18 +172,16 @@ func (f *FrameSever) broadcastFrameData() {
 
 func (f *FrameSever) OnNotify(wn entity.NotifyInfo) {
 	xlog.Infoln("receive watch client notify...", wn.EntityID)
+
 	// 断线了
-
-	p := f.players[wn.EntityID]
-
-	p.isOnline = false
 	for _, v := range f.players {
-		if v.IsOnline() {
-			return
+		if v.EntityID != wn.EntityID {
+			continue
 		}
+
+		v.isOnline = false
+		v.isReady = false
 	}
-	// stoped
-	f.status = GameOver
 }
 
 // Heartbeat
@@ -193,11 +189,11 @@ func (f *FrameSever) Heartbeat(c entity.Context, req *frameproto.HeartbeatReq) (
 
 	xlog.Info("recv heart beat")
 
-	id := c.SrcEntity()
+	p := f.players[req.UID]
 
-	p := f.players[id]
-
-	p.RefreshHeartbeatTime()
+	if p != nil {
+		p.RefreshHeartbeatTime()
+	}
 
 	return &frameproto.HeartbeatRsp{}, nil
 }
@@ -205,10 +201,10 @@ func (f *FrameSever) Heartbeat(c entity.Context, req *frameproto.HeartbeatReq) (
 // Init
 func (f *FrameSever) Init(c entity.Context, req *frameproto.InitReq) (*frameproto.InitRsp, error) {
 
-	xlog.Info(c, "Init entityNum:", req.ClientNum)
+	xlog.Info(c, "Init entityNum:", req.PlayerNum)
 
-	f.entityNum = int(req.GetClientNum())
-	f.players = make(map[entity.EntityID]*Player, f.entityNum)
+	f.entityNum = int(req.PlayerNum)
+	f.players = make(map[uint64]*Player, f.entityNum)
 	f.logic = newLockstep()
 	f.startTime = time.Now().UnixMilli()
 	f.status = GameReady
@@ -222,22 +218,20 @@ func (f *FrameSever) Join(c entity.Context, req *frameproto.JoinReq) (*frameprot
 	xlog.Info("recv join", req.String())
 
 	// 目前断线重连这个id会变
-	id := c.SrcEntity()
 
-	p, ok := f.players[id]
+	p, ok := f.players[req.UID]
 	if ok {
 		p.isOnline = true
-		// 重连
-
 		return &frameproto.JoinRsp{}, nil
 	}
 
+	id := c.SrcEntity()
 	f.Watch(id)
 
-	p = NewPlayer(id)
+	p = NewPlayer(id, req.UID)
 	p.isOnline = true
 
-	f.players[id] = p
+	f.players[req.UID] = p
 
 	return &frameproto.JoinRsp{}, nil
 }
@@ -246,12 +240,11 @@ func (f *FrameSever) Join(c entity.Context, req *frameproto.JoinReq) (*frameprot
 func (f *FrameSever) Progress(c entity.Context, req *frameproto.ProgressReq) error {
 
 	for _, v := range f.players {
-		if v.clientID == c.SrcEntity() {
+		if v.UID == req.UID {
 			continue
 		}
 
-		client := frameproto.NewFrameClientEntityClient(v.clientID)
-		err := client.Progress(f.Context(), req)
+		err := v.Progress(f.Context(), req)
 		if err != nil {
 			xlog.Errorln(err)
 			// return nil, err
@@ -270,12 +263,18 @@ func (f *FrameSever) doReady(p *Player) {
 
 // Ready
 func (f *FrameSever) Ready(c entity.Context, req *frameproto.ReadyReq) error {
-	p := f.players[c.SrcEntity()]
+
+	p := f.players[req.UID]
+	if p == nil {
+		return nil
+	}
 
 	f.doReady(p)
 
 	// 重连
 	if f.status == GamRuning {
+		p.EntityID = c.SrcEntity()
+		f.Watch(p.EntityID)
 		f.doReconnect(p)
 	}
 
@@ -285,11 +284,15 @@ func (f *FrameSever) Ready(c entity.Context, req *frameproto.ReadyReq) error {
 
 // Input
 func (f *FrameSever) Input(c entity.Context, req *frameproto.InputReq) error {
-	client := c.SrcEntity()
+
+	p := f.players[req.UID]
+	if p == nil {
+		return nil
+	}
 
 	d := &frameproto.FrameData{
-		CLientID: uint64(client),
-		Input:    req.Input,
+		UID:   uint64(req.UID),
+		Input: req.Input,
 	}
 
 	f.logic.pushCmd(d)
@@ -301,7 +304,12 @@ func (f *FrameSever) Input(c entity.Context, req *frameproto.InputReq) error {
 // GameOver 上报结束
 func (f *FrameSever) GameOver(c entity.Context, req *frameproto.GameOverReq) error {
 
-	f.result[c.SrcEntity()] = 1
+	p := f.players[req.UID]
+	if p == nil {
+		return nil
+	}
+
+	p.result = req.Result
 
 	return nil
 }
@@ -331,8 +339,8 @@ func (f *FrameSever) doStart() {
 	f.status = GamRuning
 
 	for _, v := range f.players {
-		client := frameproto.NewFrameClientEntityClient(v.clientID)
-		err := client.Start(f.Context(), &frameproto.StartReq{})
+
+		err := v.Start(f.Context(), &frameproto.StartReq{})
 		if err != nil {
 			xlog.Errorln(err)
 			// return nil, err
@@ -342,8 +350,8 @@ func (f *FrameSever) doStart() {
 
 func (f *FrameSever) doGameOver() {
 	for _, v := range f.players {
-		client := frameproto.NewFrameClientEntityClient(v.clientID)
-		err := client.GameOver(f.Context(), &frameproto.GameOverReq{})
+
+		err := v.GameOver(f.Context(), &frameproto.GameOverReq{})
 		if err != nil {
 			xlog.Errorln(err)
 			// return nil, err
@@ -371,7 +379,7 @@ func (f *FrameSever) checkOver() bool {
 			continue
 		}
 
-		if _, ok := f.result[v.clientID]; !ok {
+		if v.result == 0 {
 			return false
 		}
 	}
@@ -387,8 +395,7 @@ func (f *FrameSever) isTimeout() bool {
 func (f *FrameSever) doReconnect(p *Player) {
 
 	// 先start
-	client := frameproto.NewFrameClientEntityClient(p.clientID)
-	err := client.Start(f.Context(), &frameproto.StartReq{})
+	err := p.Start(f.Context(), &frameproto.StartReq{})
 	if err != nil {
 		xlog.Errorln(err)
 		// return nil, err
@@ -420,8 +427,7 @@ func (f *FrameSever) doReconnect(p *Player) {
 
 		// 如果是最后一帧或者达到这个消息包能装下的最大帧数，就发送
 		if i == (framesCount-1) || c >= kMaxFrameDataPerMsg {
-			client := frameproto.NewFrameClientEntityClient(p.clientID)
-			err := client.Frame(f.Context(), frameMsg)
+			err := p.Frame(f.Context(), frameMsg)
 			if err != nil {
 				xlog.Errorln(err)
 			}

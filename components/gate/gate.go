@@ -48,7 +48,7 @@ func (gt *Gate) init(old entity.EntityID) {
 
 	gt.EntityMgr.Proxy = ex.ProxyClient
 
-	client := proxypb.NewProxySvcServiceClient()
+	client := proxypb.NewProxySvcClient()
 
 	rsp, err := client.RegisterInst(gt.Context(), &proxypb.RegisterInstRequest{})
 	if err != nil {
@@ -136,7 +136,7 @@ func (gt *Gate) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, 
 
 func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcServiceClient()
+	client := proxypb.NewProxySvcClient()
 
 	_, err := client.RegisterService(gt.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {
@@ -149,16 +149,16 @@ func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 }
 
 const (
-	IdBitNum = entity.IdBitNum - 1
+	IdBitNum = entity.IDBitNum - 1
 )
 
 func (gt *Gate) NewEntityID() entity.EntityID {
-	id := entity.GenIDU32() | (1 << IdBitNum) //最高位是1代表是gate的entity， 为0代表client
+	id := entity.GenID() | (1 << IdBitNum) //最高位是1代表是gate的entity， 为0代表client
 	return entity.FixedEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID(), entity.ID(id))
 }
 
 func (gt *Gate) NewClientEntityID() entity.EntityID {
-	id := entity.GenIDU32() & (1<<IdBitNum - 1) //最高位是1代表是gate的entity， 为0代表client
+	id := entity.GenID() & (1<<IdBitNum - 1) //最高位是1代表是gate的entity， 为0代表client
 	return entity.FixedEntityID(gt.EntityID().ProxyID(), gt.EntityID().InstID(), entity.ID(id))
 }
 

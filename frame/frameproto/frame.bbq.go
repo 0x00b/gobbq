@@ -25,19 +25,19 @@ func RegisterFrameSeverEntity(etyMgr *entity.EntityManager, impl FrameSeverEntit
 	etyMgr.RegisterEntityDesc(&FrameSeverEntityDesc, impl)
 }
 
-func NewFrameSeverEntityClient(eid entity.EntityID) *frameSeverEntity {
-	t := &frameSeverEntity{
+func NewFrameSeverClient(eid entity.EntityID) *FrameSever {
+	t := &FrameSever{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewFrameSeverEntity(c entity.Context) *frameSeverEntity {
+func NewFrameSever(c entity.Context) *FrameSever {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewFrameSeverEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewFrameSeverWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewFrameSeverEntityWithID(c entity.Context, id entity.EntityID) *frameSeverEntity {
+func NewFrameSeverWithID(c entity.Context, id entity.EntityID) *FrameSever {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, FrameSeverEntityDesc.TypeName)
@@ -45,18 +45,18 @@ func NewFrameSeverEntityWithID(c entity.Context, id entity.EntityID) *frameSever
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &frameSeverEntity{
+	t := &FrameSever{
 		EntityID: id,
 	}
 
 	return t
 }
 
-type frameSeverEntity struct {
+type FrameSever struct {
 	EntityID entity.EntityID
 }
 
-func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) (*HeartbeatRsp, error) {
+func (t *FrameSever) Heartbeat(c entity.Context, req *HeartbeatReq) (*HeartbeatRsp, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -134,7 +134,7 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) (*Hear
 
 }
 
-func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error) {
+func (t *FrameSever) Init(c entity.Context, req *InitReq) (*InitRsp, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -212,7 +212,7 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 
 }
 
-func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error) {
+func (t *FrameSever) Join(c entity.Context, req *JoinReq) (*JoinRsp, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -290,7 +290,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 
 }
 
-func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) error {
+func (t *FrameSever) Progress(c entity.Context, req *ProgressReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -339,7 +339,7 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) error {
 
 }
 
-func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
+func (t *FrameSever) Ready(c entity.Context, req *ReadyReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -388,7 +388,7 @@ func (t *frameSeverEntity) Ready(c entity.Context, req *ReadyReq) error {
 
 }
 
-func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
+func (t *FrameSever) Input(c entity.Context, req *InputReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -437,7 +437,7 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 }
 
-func (t *frameSeverEntity) GameOver(c entity.Context, req *GameOverReq) error {
+func (t *FrameSever) GameOver(c entity.Context, req *GameOverReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -993,19 +993,19 @@ func RegisterFrameClientEntity(etyMgr *entity.EntityManager, impl FrameClientEnt
 	etyMgr.RegisterEntityDesc(&FrameClientEntityDesc, impl)
 }
 
-func NewFrameClientEntityClient(eid entity.EntityID) *frameClientEntity {
-	t := &frameClientEntity{
+func NewFrameClientClient(eid entity.EntityID) *FrameClient {
+	t := &FrameClient{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewFrameClientEntity(c entity.Context) *frameClientEntity {
+func NewFrameClient(c entity.Context) *FrameClient {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewFrameClientEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewFrameClientWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewFrameClientEntityWithID(c entity.Context, id entity.EntityID) *frameClientEntity {
+func NewFrameClientWithID(c entity.Context, id entity.EntityID) *FrameClient {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, FrameClientEntityDesc.TypeName)
@@ -1013,18 +1013,18 @@ func NewFrameClientEntityWithID(c entity.Context, id entity.EntityID) *frameClie
 		xlog.Errorln("new entity err")
 		return nil
 	}
-	t := &frameClientEntity{
+	t := &FrameClient{
 		EntityID: id,
 	}
 
 	return t
 }
 
-type frameClientEntity struct {
+type FrameClient struct {
 	EntityID entity.EntityID
 }
 
-func (t *frameClientEntity) Progress(c entity.Context, req *ProgressReq) error {
+func (t *FrameClient) Progress(c entity.Context, req *ProgressReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -1073,7 +1073,7 @@ func (t *frameClientEntity) Progress(c entity.Context, req *ProgressReq) error {
 
 }
 
-func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
+func (t *FrameClient) Start(c entity.Context, req *StartReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -1122,7 +1122,7 @@ func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
 
 }
 
-func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
+func (t *FrameClient) Frame(c entity.Context, req *FrameReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -1171,7 +1171,7 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 }
 
-func (t *frameClientEntity) GameOver(c entity.Context, req *GameOverReq) error {
+func (t *FrameClient) GameOver(c entity.Context, req *GameOverReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()

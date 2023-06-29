@@ -4,20 +4,27 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/entity"
+	"github.com/0x00b/gobbq/frame/frameproto"
 )
 
 type Player struct {
-	clientID          entity.EntityID
+	*frameproto.FrameClient
+
+	UID uint64
+
 	isReady           bool
 	isOnline          bool
 	loadingProgress   int32
 	lastHeartbeatTime int64
 	sendFrameCount    uint32
+
+	result int32
 }
 
-func NewPlayer(id entity.EntityID) *Player {
+func NewPlayer(eid entity.EntityID, uid uint64) *Player {
 	p := &Player{
-		clientID: id,
+		FrameClient: frameproto.NewFrameClientClient(eid),
+		UID:         uid,
 	}
 
 	return p

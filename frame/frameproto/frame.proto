@@ -50,12 +50,12 @@ enum OPID {
 }
 
 message InputData{
-    OPID OPID	 = 1;    //操作id
+    OPID OPID = 1;    //操作id
     Position Pos = 2;    //操作位置
 }
 
 message FrameData{
-	uint64 CLientID	= 1;
+	uint64 UID = 1;
 	InputData Input = 2;
 }
 
@@ -66,21 +66,23 @@ message Frame{
 
 // client input
 message InputReq{
-	InputData Input = 1;
+	uint64 UID = 1;
+	InputData Input = 2;
 }
 
 // server to client frame
 message FrameReq {
-	repeated Frame Frames 	= 2;
+	repeated Frame Frames 	= 1;
 }
 
 message HeartbeatReq{
+	uint64 UID = 1; 
 }
 message HeartbeatRsp{
 }
 
 message InitReq{
-	int32 ClientNum = 1;
+	int32 PlayerNum = 1;
 
 }
 
@@ -88,21 +90,25 @@ message InitRsp{
 }
 
 message JoinReq{
+	uint64 UID = 1; 
 }
 
 message JoinRsp{
 }
 
 message ProgressReq{
-	int32 LoadingProgress = 1;
+	uint64 UID = 1; 
+	int32 LoadingProgress = 2;
 }
 
 message ReadyReq{
+	uint64 UID = 1; 
 }
 
 message StartReq {
 }
 
 message GameOverReq {
-	
+	uint64 UID = 1;
+	int32 Result = 2;
 }

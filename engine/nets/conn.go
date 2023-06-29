@@ -236,7 +236,7 @@ func (cn *Conn) writeLoop() {
 			return
 
 		case p := <-cn.pktSendChan:
-			func() {
+			func(p *Packet) {
 				defer p.Release()
 				if cn.closed {
 					// 需要改写, 可能chan中还有pkt,需要pkt.Release
@@ -248,7 +248,7 @@ func (cn *Conn) writeLoop() {
 					xlog.Errorln(err)
 					return
 				}
-			}()
+			}(p)
 		}
 	}
 }

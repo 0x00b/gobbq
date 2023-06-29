@@ -25,15 +25,15 @@ func RegisterGateService(etyMgr *entity.EntityManager, impl GateService) {
 	etyMgr.RegisterService(&GateServiceDesc, impl)
 }
 
-func NewGateServiceClient() *gateService {
-	t := &gateService{}
+func NewGateClient() *Gate {
+	t := &Gate{}
 	return t
 }
 
-type gateService struct {
+type Gate struct {
 }
 
-func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
+func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*RegisterClientResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -111,7 +111,7 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 
 }
 
-func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequest) error {
+func (t *Gate) UnregisterClient(c entity.Context, req *RegisterClientRequest) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -160,7 +160,7 @@ func (t *gateService) UnregisterClient(c entity.Context, req *RegisterClientRequ
 
 }
 
-func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
+func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()

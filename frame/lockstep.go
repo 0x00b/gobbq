@@ -47,7 +47,7 @@ func (l *lockstep) pushCmd(cmd *frameproto.FrameData) bool {
 
 	// 检查是否同一帧发来两次同样的操作
 	for _, v := range f.cmds {
-		if v.CLientID == cmd.CLientID {
+		if v.UID == cmd.UID {
 			if v.Input == nil || v.Input.OPID == cmd.Input.OPID {
 				return false
 			}

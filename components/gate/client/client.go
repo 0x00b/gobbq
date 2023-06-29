@@ -35,7 +35,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	client.EntityMgr.RegisterEntityDesc(sd, ss)
 
 	// 临时的
-	eid := entity.FixedEntityID(0, 0, entity.ID(entity.GenIDU32()))
+	eid := entity.FixedEntityID(0, 0, entity.ID(entity.GenID()))
 
 	client.IEntity, err = client.EntityMgr.NewEntity(nil, eid, sd.TypeName)
 	if err != nil {
@@ -44,7 +44,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 
 	client.Gate = gate
 
-	gateSvc := gatepb.NewGateServiceClient()
+	gateSvc := gatepb.NewGateClient()
 	// secure.GO( func() {
 	// 	client.Run()
 
