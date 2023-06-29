@@ -75,6 +75,8 @@ func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, e
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -121,8 +123,6 @@ func (t *bbqSysEntity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, e
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*WatchResponse); ok {
 		return rsp, nil

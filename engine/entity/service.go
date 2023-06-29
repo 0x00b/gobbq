@@ -61,6 +61,7 @@ func (e *Service) run(ch chan bool) {
 	})
 	if done {
 		ch <- true
+		close(ch)
 		return
 	}
 
@@ -68,15 +69,16 @@ func (e *Service) run(ch chan bool) {
 
 	wg := sync.WaitGroup{}
 
+	tempch := make(chan bool)
 	defer func() {
 		wg.Wait()
 		// todo unregister service, and svcentity
 
 		e.onDestroy()
 
+		close(ch)
+		close(tempch)
 	}()
-
-	tempch := make(chan bool)
 	// response
 	secure.GO(func() {
 		for {

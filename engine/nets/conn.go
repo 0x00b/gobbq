@@ -80,6 +80,7 @@ func (cn *Conn) Close(closeChan chan struct{}) (e error) {
 	e = cn.close()
 	if closeChan != nil {
 		closeChan <- struct{}{}
+		close(closeChan)
 	}
 	return e
 }

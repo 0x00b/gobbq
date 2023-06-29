@@ -114,7 +114,10 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 	pkt.Header.ErrCode=      0
 	pkt.Header.ErrMsg=       "" 
 
-	{{if $m.HasResponse}}var chanRsp chan any= make(chan any){{end}}
+	{{if $m.HasResponse}}
+	var chanRsp chan any= make(chan any)
+	defer close(chanRsp)
+	{{end}}
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil{
 		return {{if $m.HasResponse}}nil,{{end}} errors.New("bad context")
@@ -165,8 +168,6 @@ func (t *{{lowerCamelcase $typeName}}){{$m.GoName}}(c entity.Context, req *{{$m.
 			return nil, errors.New("time out")
 		case rsp = <-chanRsp:
 		}
-
-		close(chanRsp)
 
 		if rsp, ok := rsp.(*{{$m.GoOutput.GoIdent.GoName}}); ok {
 			return rsp, nil

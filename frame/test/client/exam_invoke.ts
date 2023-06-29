@@ -1,4 +1,4 @@
-import { ClientResultReq, CloseReq, FrameReq, InputData, InputReq, OPID, StartReq } from '../../frameproto/frame';
+import { FrameReq, GameOverReq, InputData, InputReq, OPID, ProgressReq, StartReq } from '../../frameproto/frame';
 import { FrameClientEntityDefinition, FrameSeverEntity, NewFrameSeverEntity } from '../../frameproto/frame.bbq'
 import { NewFrameService } from '../testpb/testpb.bbq'
 import { Client } from 'gobbq-ts/dist/src';
@@ -8,21 +8,21 @@ class FrameClientEntity {
 
   // Start
   Start(ctx: Context, request: StartReq): void {
-    // let x = 1
-    // let y = 1
-    // setInterval(() => {
-    //   let req = InputReq.create({
-    //     Input: {
-    //       OPID: OPID.Move,
-    //       Pos: {
-    //         x: x++,
-    //         y: y++,
-    //         z: 0,
-    //       }
-    //     }
-    //   })
-    //   frameSvr.Input(req)
-    // }, 200)
+    let x = 1
+    let y = 1
+    setInterval(() => {
+      let req = InputReq.create({
+        Input: {
+          OPID: OPID.Move,
+          Pos: {
+            x: x++,
+            y: y++,
+            z: 0,
+          }
+        }
+      })
+      frameSvr.Input(req)
+    }, 50)
 
   }
 
@@ -33,15 +33,16 @@ class FrameClientEntity {
 
   }
 
-  // Result
-  Result(ctx: Context, request: ClientResultReq): void {
+  // Progress 通知客户端其他人加载进度
+  Progress(request: ProgressReq): void { 
 
   }
 
-  // Close
-  Close(ctx: Context, request: CloseReq): void {
+  // GameOver 游戏结束
+  GameOver(request: GameOverReq): void {
 
   }
+
 }
 
 
@@ -73,7 +74,7 @@ async function test() {
   await frameSvr.Join({ CLientID: client.EntityID }).then(({ response }) => {
     console.log("succ rsp:", response)
   })
-  
+
   frameSvr.Ready({})
 
 }

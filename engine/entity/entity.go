@@ -159,6 +159,7 @@ func (e *Entity) run(ch chan bool) {
 	})
 	if done {
 		ch <- true
+		close(ch)
 		return
 	}
 
@@ -166,6 +167,7 @@ func (e *Entity) run(ch chan bool) {
 
 	wg := sync.WaitGroup{}
 
+	tempch := make(chan bool)
 	defer func() {
 		wg.Wait()
 
@@ -173,8 +175,11 @@ func (e *Entity) run(ch chan bool) {
 		// todo unregister entity
 
 		e.onDestroy()
+
+		close(tempch)
+		close(ch)
 	}()
-	tempch := make(chan bool)
+
 	// response
 	secure.GO(func() {
 		for {

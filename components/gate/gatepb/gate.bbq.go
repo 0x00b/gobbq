@@ -55,6 +55,8 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -101,8 +103,6 @@ func (t *gateService) RegisterClient(c entity.Context, req *RegisterClientReques
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*RegisterClientResponse); ok {
 		return rsp, nil
@@ -182,6 +182,8 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -228,8 +230,6 @@ func (t *gateService) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 		return nil, errors.New("time out")
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*PingPong); ok {
 		return rsp, nil

@@ -56,7 +56,7 @@ type frameSeverEntity struct {
 	EntityID entity.EntityID
 }
 
-func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error {
+func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) (*HeartbeatRsp, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -77,31 +77,60 @@ func (t *frameSeverEntity) Heartbeat(c entity.Context, req *HeartbeatReq) error 
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return errors.New("bad context")
+		return nil, errors.New("bad context")
 	}
-	err := etyMgr.LocalCall(pkt, req, nil)
+	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
-			return err
+			return nil, err
 		}
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
 			xlog.Errorln(err)
-			return err
+			return nil, err
 		}
 
 		pkt.WriteBody(hdrBytes)
 
+		// register callback first, than SendPacket
+		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			rsp := new(HeartbeatRsp)
+			reqbuf := pkt.PacketBody()
+			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
+			if err != nil {
+				chanRsp <- err
+				return
+			}
+			chanRsp <- rsp
+		})
+
 		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	var rsp any
+	select {
+	case <-c.Done():
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("context done")
+	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
+		entity.PopCallback(c, pkt.Header.RequestId)
+		return nil, errors.New("time out")
+	case rsp = <-chanRsp:
+	}
+
+	if rsp, ok := rsp.(*HeartbeatRsp); ok {
+		return rsp, nil
+	}
+	return nil, rsp.(error)
 
 }
 
@@ -127,6 +156,8 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -174,8 +205,6 @@ func (t *frameSeverEntity) Init(c entity.Context, req *InitReq) (*InitRsp, error
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*InitRsp); ok {
 		return rsp, nil
 	}
@@ -205,6 +234,8 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, errors.New("bad context")
@@ -252,8 +283,6 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 	case rsp = <-chanRsp:
 	}
 
-	close(chanRsp)
-
 	if rsp, ok := rsp.(*JoinRsp); ok {
 		return rsp, nil
 	}
@@ -261,7 +290,7 @@ func (t *frameSeverEntity) Join(c entity.Context, req *JoinReq) (*JoinRsp, error
 
 }
 
-func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*ProgressRsp, error) {
+func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -282,60 +311,31 @@ func (t *frameSeverEntity) Progress(c entity.Context, req *ProgressReq) (*Progre
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
-	var chanRsp chan any = make(chan any)
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return errors.New("bad context")
 	}
-	err := etyMgr.LocalCall(pkt, req, chanRsp)
+	err := etyMgr.LocalCall(pkt, req, nil)
 	if err != nil {
 		if !entity.NotMyMethod(err) {
-			return nil, err
+			return err
 		}
 
 		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
 		if err != nil {
 			xlog.Errorln(err)
-			return nil, err
+			return err
 		}
 
 		pkt.WriteBody(hdrBytes)
 
-		// register callback first, than SendPacket
-		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
-			rsp := new(ProgressRsp)
-			reqbuf := pkt.PacketBody()
-			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
-			if err != nil {
-				chanRsp <- err
-				return
-			}
-			chanRsp <- rsp
-		})
-
 		err = entity.GetProxy(c).SendPacket(pkt)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	var rsp any
-	select {
-	case <-c.Done():
-		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
-	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
-		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
-	case rsp = <-chanRsp:
-	}
-
-	close(chanRsp)
-
-	if rsp, ok := rsp.(*ProgressRsp); ok {
-		return rsp, nil
-	}
-	return nil, rsp.(error)
+	return nil
 
 }
 
@@ -437,7 +437,7 @@ func (t *frameSeverEntity) Input(c entity.Context, req *InputReq) error {
 
 }
 
-func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
+func (t *frameSeverEntity) GameOver(c entity.Context, req *GameOverReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -450,7 +450,7 @@ func (t *frameSeverEntity) Result(c entity.Context, req *ResultReq) error {
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
 	pkt.Header.Type = FrameSeverEntityDesc.TypeName
-	pkt.Header.Method = "Result"
+	pkt.Header.Method = "GameOver"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
 	pkt.Header.CheckFlags = 0
@@ -491,28 +491,28 @@ type FrameSeverEntity interface {
 	entity.IEntity
 
 	// Heartbeat
-	Heartbeat(c entity.Context, req *HeartbeatReq) error
+	Heartbeat(c entity.Context, req *HeartbeatReq) (*HeartbeatRsp, error)
 
 	// Init
 	Init(c entity.Context, req *InitReq) (*InitRsp, error)
 
-	// Join
+	// Join 客户端加入
 	Join(c entity.Context, req *JoinReq) (*JoinRsp, error)
 
-	// Progress
-	Progress(c entity.Context, req *ProgressReq) (*ProgressRsp, error)
+	// Progress 客户端上报加载进度
+	Progress(c entity.Context, req *ProgressReq) error
 
-	// Ready
+	// Ready 客户端准备好
 	Ready(c entity.Context, req *ReadyReq) error
 
-	// Input
+	// Input 客户端的操作
 	Input(c entity.Context, req *InputReq) error
 
-	// Result
-	Result(c entity.Context, req *ResultReq) error
+	// GameOver 上报结束
+	GameOver(c entity.Context, req *GameOverReq) error
 }
 
-func _FrameSeverEntity_Heartbeat_Handler(svc any, ctx entity.Context, in *HeartbeatReq, interceptor entity.ServerInterceptor) error {
+func _FrameSeverEntity_Heartbeat_Handler(svc any, ctx entity.Context, in *HeartbeatReq, interceptor entity.ServerInterceptor) (*HeartbeatRsp, error) {
 	if interceptor == nil {
 		return svc.(FrameSeverEntity).Heartbeat(ctx, in)
 	}
@@ -524,20 +524,20 @@ func _FrameSeverEntity_Heartbeat_Handler(svc any, ctx entity.Context, in *Heartb
 
 	handler := func(ctx entity.Context, rsp any) (any, error) {
 
-		return nil, svc.(FrameSeverEntity).Heartbeat(ctx, in)
+		return svc.(FrameSeverEntity).Heartbeat(ctx, in)
 
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
 	_ = rsp
 
-	return err
+	return rsp.(*HeartbeatRsp), err
 
 }
 
 func _FrameSeverEntity_Heartbeat_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
 
-	return nil, _FrameSeverEntity_Heartbeat_Handler(svc, ctx, in.(*HeartbeatReq), interceptor)
+	return _FrameSeverEntity_Heartbeat_Handler(svc, ctx, in.(*HeartbeatReq), interceptor)
 
 }
 
@@ -549,11 +549,48 @@ func _FrameSeverEntity_Heartbeat_Remote_Handler(svc any, ctx entity.Context, pkt
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		// err
+		// nil,err
 		return
 	}
 
-	_FrameSeverEntity_Heartbeat_Handler(svc, ctx, in, interceptor)
+	rsp, err := _FrameSeverEntity_Heartbeat_Handler(svc, ctx, in, interceptor)
+
+	npkt := nets.NewPacket()
+	defer npkt.Release()
+
+	npkt.Header.Version = hdr.Version
+	npkt.Header.RequestId = hdr.RequestId
+	npkt.Header.Timeout = hdr.Timeout
+	npkt.Header.RequestType = bbq.RequestType_RequestRespone
+	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.SrcEntity = hdr.DstEntity
+	npkt.Header.DstEntity = hdr.SrcEntity
+	npkt.Header.Type = hdr.Type
+	npkt.Header.Method = hdr.Method
+	npkt.Header.ContentType = hdr.ContentType
+	npkt.Header.CompressType = hdr.CompressType
+	npkt.Header.CheckFlags = 0
+	npkt.Header.TransInfo = hdr.TransInfo
+
+	if err != nil {
+		npkt.Header.ErrCode = 1
+		npkt.Header.ErrMsg = err.Error()
+
+		npkt.WriteBody(nil)
+	} else {
+		rb, err := codec.DefaultCodec.Marshal(rsp)
+		if err != nil {
+			xlog.Errorln("Marshal(rsp)", err)
+			return
+		}
+
+		npkt.WriteBody(rb)
+	}
+	err = pkt.Src.SendPacket(npkt)
+	if err != nil {
+		xlog.Errorln("SendPacket", err)
+		return
+	}
 
 }
 
@@ -721,7 +758,7 @@ func _FrameSeverEntity_Join_Remote_Handler(svc any, ctx entity.Context, pkt *net
 
 }
 
-func _FrameSeverEntity_Progress_Handler(svc any, ctx entity.Context, in *ProgressReq, interceptor entity.ServerInterceptor) (*ProgressRsp, error) {
+func _FrameSeverEntity_Progress_Handler(svc any, ctx entity.Context, in *ProgressReq, interceptor entity.ServerInterceptor) error {
 	if interceptor == nil {
 		return svc.(FrameSeverEntity).Progress(ctx, in)
 	}
@@ -733,20 +770,20 @@ func _FrameSeverEntity_Progress_Handler(svc any, ctx entity.Context, in *Progres
 
 	handler := func(ctx entity.Context, rsp any) (any, error) {
 
-		return svc.(FrameSeverEntity).Progress(ctx, in)
+		return nil, svc.(FrameSeverEntity).Progress(ctx, in)
 
 	}
 
 	rsp, err := interceptor(ctx, in, info, handler)
 	_ = rsp
 
-	return rsp.(*ProgressRsp), err
+	return err
 
 }
 
 func _FrameSeverEntity_Progress_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
 
-	return _FrameSeverEntity_Progress_Handler(svc, ctx, in.(*ProgressReq), interceptor)
+	return nil, _FrameSeverEntity_Progress_Handler(svc, ctx, in.(*ProgressReq), interceptor)
 
 }
 
@@ -758,48 +795,11 @@ func _FrameSeverEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt 
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
-		// nil,err
+		// err
 		return
 	}
 
-	rsp, err := _FrameSeverEntity_Progress_Handler(svc, ctx, in, interceptor)
-
-	npkt := nets.NewPacket()
-	defer npkt.Release()
-
-	npkt.Header.Version = hdr.Version
-	npkt.Header.RequestId = hdr.RequestId
-	npkt.Header.Timeout = hdr.Timeout
-	npkt.Header.RequestType = bbq.RequestType_RequestRespone
-	npkt.Header.ServiceType = hdr.ServiceType
-	npkt.Header.SrcEntity = hdr.DstEntity
-	npkt.Header.DstEntity = hdr.SrcEntity
-	npkt.Header.Type = hdr.Type
-	npkt.Header.Method = hdr.Method
-	npkt.Header.ContentType = hdr.ContentType
-	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
-	npkt.Header.TransInfo = hdr.TransInfo
-
-	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
-		npkt.WriteBody(nil)
-	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
-		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
-		}
-
-		npkt.WriteBody(rb)
-	}
-	err = pkt.Src.SendPacket(npkt)
-	if err != nil {
-		xlog.Errorln("SendPacket", err)
-		return
-	}
+	_FrameSeverEntity_Progress_Handler(svc, ctx, in, interceptor)
 
 }
 
@@ -893,19 +893,19 @@ func _FrameSeverEntity_Input_Remote_Handler(svc any, ctx entity.Context, pkt *ne
 
 }
 
-func _FrameSeverEntity_Result_Handler(svc any, ctx entity.Context, in *ResultReq, interceptor entity.ServerInterceptor) error {
+func _FrameSeverEntity_GameOver_Handler(svc any, ctx entity.Context, in *GameOverReq, interceptor entity.ServerInterceptor) error {
 	if interceptor == nil {
-		return svc.(FrameSeverEntity).Result(ctx, in)
+		return svc.(FrameSeverEntity).GameOver(ctx, in)
 	}
 
 	info := &entity.ServerInfo{
 		Server:     svc,
-		FullMethod: "/frameproto.FrameSeverEntity/Result",
+		FullMethod: "/frameproto.FrameSeverEntity/GameOver",
 	}
 
 	handler := func(ctx entity.Context, rsp any) (any, error) {
 
-		return nil, svc.(FrameSeverEntity).Result(ctx, in)
+		return nil, svc.(FrameSeverEntity).GameOver(ctx, in)
 
 	}
 
@@ -916,17 +916,17 @@ func _FrameSeverEntity_Result_Handler(svc any, ctx entity.Context, in *ResultReq
 
 }
 
-func _FrameSeverEntity_Result_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+func _FrameSeverEntity_GameOver_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
 
-	return nil, _FrameSeverEntity_Result_Handler(svc, ctx, in.(*ResultReq), interceptor)
+	return nil, _FrameSeverEntity_GameOver_Handler(svc, ctx, in.(*GameOverReq), interceptor)
 
 }
 
-func _FrameSeverEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+func _FrameSeverEntity_GameOver_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	in := new(ResultReq)
+	in := new(GameOverReq)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
@@ -934,7 +934,7 @@ func _FrameSeverEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *n
 		return
 	}
 
-	_FrameSeverEntity_Result_Handler(svc, ctx, in, interceptor)
+	_FrameSeverEntity_GameOver_Handler(svc, ctx, in, interceptor)
 
 }
 
@@ -979,10 +979,10 @@ var FrameSeverEntityDesc = entity.EntityDesc{
 			LocalHandler: _FrameSeverEntity_Input_Local_Handler,
 		},
 
-		"Result": {
-			MethodName:   "Result",
-			Handler:      _FrameSeverEntity_Result_Remote_Handler,
-			LocalHandler: _FrameSeverEntity_Result_Local_Handler,
+		"GameOver": {
+			MethodName:   "GameOver",
+			Handler:      _FrameSeverEntity_GameOver_Remote_Handler,
+			LocalHandler: _FrameSeverEntity_GameOver_Local_Handler,
 		},
 	},
 
@@ -1022,6 +1022,55 @@ func NewFrameClientEntityWithID(c entity.Context, id entity.EntityID) *frameClie
 
 type frameClientEntity struct {
 	EntityID entity.EntityID
+}
+
+func (t *frameClientEntity) Progress(c entity.Context, req *ProgressReq) error {
+
+	pkt := nets.NewPacket()
+	defer pkt.Release()
+
+	pkt.Header.Version = 1
+	pkt.Header.RequestId = snowflake.GenUUID()
+	pkt.Header.Timeout = 10
+	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.ServiceType = bbq.ServiceType_Entity
+	pkt.Header.SrcEntity = uint64(c.EntityID())
+	pkt.Header.DstEntity = uint64(t.EntityID)
+	pkt.Header.Type = FrameClientEntityDesc.TypeName
+	pkt.Header.Method = "Progress"
+	pkt.Header.ContentType = bbq.ContentType_Proto
+	pkt.Header.CompressType = bbq.CompressType_None
+	pkt.Header.CheckFlags = 0
+	pkt.Header.TransInfo = map[string][]byte{}
+	pkt.Header.ErrCode = 0
+	pkt.Header.ErrMsg = ""
+
+	etyMgr := entity.GetEntityMgr(c)
+	if etyMgr == nil {
+		return errors.New("bad context")
+	}
+	err := etyMgr.LocalCall(pkt, req, nil)
+	if err != nil {
+		if !entity.NotMyMethod(err) {
+			return err
+		}
+
+		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
+		if err != nil {
+			xlog.Errorln(err)
+			return err
+		}
+
+		pkt.WriteBody(hdrBytes)
+
+		err = entity.GetProxy(c).SendPacket(pkt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func (t *frameClientEntity) Start(c entity.Context, req *StartReq) error {
@@ -1122,7 +1171,7 @@ func (t *frameClientEntity) Frame(c entity.Context, req *FrameReq) error {
 
 }
 
-func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error {
+func (t *frameClientEntity) GameOver(c entity.Context, req *GameOverReq) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -1135,56 +1184,7 @@ func (t *frameClientEntity) Result(c entity.Context, req *ClientResultReq) error
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
 	pkt.Header.Type = FrameClientEntityDesc.TypeName
-	pkt.Header.Method = "Result"
-	pkt.Header.ContentType = bbq.ContentType_Proto
-	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
-	pkt.Header.TransInfo = map[string][]byte{}
-	pkt.Header.ErrCode = 0
-	pkt.Header.ErrMsg = ""
-
-	etyMgr := entity.GetEntityMgr(c)
-	if etyMgr == nil {
-		return errors.New("bad context")
-	}
-	err := etyMgr.LocalCall(pkt, req, nil)
-	if err != nil {
-		if !entity.NotMyMethod(err) {
-			return err
-		}
-
-		hdrBytes, err := codec.GetCodec(bbq.ContentType_Proto).Marshal(req)
-		if err != nil {
-			xlog.Errorln(err)
-			return err
-		}
-
-		pkt.WriteBody(hdrBytes)
-
-		err = entity.GetProxy(c).SendPacket(pkt)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-
-}
-
-func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
-
-	pkt := nets.NewPacket()
-	defer pkt.Release()
-
-	pkt.Header.Version = 1
-	pkt.Header.RequestId = snowflake.GenUUID()
-	pkt.Header.Timeout = 10
-	pkt.Header.RequestType = bbq.RequestType_RequestRequest
-	pkt.Header.ServiceType = bbq.ServiceType_Entity
-	pkt.Header.SrcEntity = uint64(c.EntityID())
-	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = FrameClientEntityDesc.TypeName
-	pkt.Header.Method = "Close"
+	pkt.Header.Method = "GameOver"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
 	pkt.Header.CheckFlags = 0
@@ -1224,17 +1224,62 @@ func (t *frameClientEntity) Close(c entity.Context, req *CloseReq) error {
 type FrameClientEntity interface {
 	entity.IEntity
 
-	// Start
+	// Progress 通知客户端其他人加载进度
+	Progress(c entity.Context, req *ProgressReq) error
+
+	// Start 通知客户端开始
 	Start(c entity.Context, req *StartReq) error
 
-	// Frame
+	// Frame 帧下发
 	Frame(c entity.Context, req *FrameReq) error
 
-	// Result
-	Result(c entity.Context, req *ClientResultReq) error
+	// GameOver 游戏结束
+	GameOver(c entity.Context, req *GameOverReq) error
+}
 
-	// Close
-	Close(c entity.Context, req *CloseReq) error
+func _FrameClientEntity_Progress_Handler(svc any, ctx entity.Context, in *ProgressReq, interceptor entity.ServerInterceptor) error {
+	if interceptor == nil {
+		return svc.(FrameClientEntity).Progress(ctx, in)
+	}
+
+	info := &entity.ServerInfo{
+		Server:     svc,
+		FullMethod: "/frameproto.FrameClientEntity/Progress",
+	}
+
+	handler := func(ctx entity.Context, rsp any) (any, error) {
+
+		return nil, svc.(FrameClientEntity).Progress(ctx, in)
+
+	}
+
+	rsp, err := interceptor(ctx, in, info, handler)
+	_ = rsp
+
+	return err
+
+}
+
+func _FrameClientEntity_Progress_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+
+	return nil, _FrameClientEntity_Progress_Handler(svc, ctx, in.(*ProgressReq), interceptor)
+
+}
+
+func _FrameClientEntity_Progress_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+
+	hdr := pkt.Header
+
+	in := new(ProgressReq)
+	reqbuf := pkt.PacketBody()
+	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+	if err != nil {
+		// err
+		return
+	}
+
+	_FrameClientEntity_Progress_Handler(svc, ctx, in, interceptor)
+
 }
 
 func _FrameClientEntity_Start_Handler(svc any, ctx entity.Context, in *StartReq, interceptor entity.ServerInterceptor) error {
@@ -1327,19 +1372,19 @@ func _FrameClientEntity_Frame_Remote_Handler(svc any, ctx entity.Context, pkt *n
 
 }
 
-func _FrameClientEntity_Result_Handler(svc any, ctx entity.Context, in *ClientResultReq, interceptor entity.ServerInterceptor) error {
+func _FrameClientEntity_GameOver_Handler(svc any, ctx entity.Context, in *GameOverReq, interceptor entity.ServerInterceptor) error {
 	if interceptor == nil {
-		return svc.(FrameClientEntity).Result(ctx, in)
+		return svc.(FrameClientEntity).GameOver(ctx, in)
 	}
 
 	info := &entity.ServerInfo{
 		Server:     svc,
-		FullMethod: "/frameproto.FrameClientEntity/Result",
+		FullMethod: "/frameproto.FrameClientEntity/GameOver",
 	}
 
 	handler := func(ctx entity.Context, rsp any) (any, error) {
 
-		return nil, svc.(FrameClientEntity).Result(ctx, in)
+		return nil, svc.(FrameClientEntity).GameOver(ctx, in)
 
 	}
 
@@ -1350,17 +1395,17 @@ func _FrameClientEntity_Result_Handler(svc any, ctx entity.Context, in *ClientRe
 
 }
 
-func _FrameClientEntity_Result_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
+func _FrameClientEntity_GameOver_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
 
-	return nil, _FrameClientEntity_Result_Handler(svc, ctx, in.(*ClientResultReq), interceptor)
+	return nil, _FrameClientEntity_GameOver_Handler(svc, ctx, in.(*GameOverReq), interceptor)
 
 }
 
-func _FrameClientEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
+func _FrameClientEntity_GameOver_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
 
 	hdr := pkt.Header
 
-	in := new(ClientResultReq)
+	in := new(GameOverReq)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
 	if err != nil {
@@ -1368,52 +1413,7 @@ func _FrameClientEntity_Result_Remote_Handler(svc any, ctx entity.Context, pkt *
 		return
 	}
 
-	_FrameClientEntity_Result_Handler(svc, ctx, in, interceptor)
-
-}
-
-func _FrameClientEntity_Close_Handler(svc any, ctx entity.Context, in *CloseReq, interceptor entity.ServerInterceptor) error {
-	if interceptor == nil {
-		return svc.(FrameClientEntity).Close(ctx, in)
-	}
-
-	info := &entity.ServerInfo{
-		Server:     svc,
-		FullMethod: "/frameproto.FrameClientEntity/Close",
-	}
-
-	handler := func(ctx entity.Context, rsp any) (any, error) {
-
-		return nil, svc.(FrameClientEntity).Close(ctx, in)
-
-	}
-
-	rsp, err := interceptor(ctx, in, info, handler)
-	_ = rsp
-
-	return err
-
-}
-
-func _FrameClientEntity_Close_Local_Handler(svc any, ctx entity.Context, in any, interceptor entity.ServerInterceptor) (any, error) {
-
-	return nil, _FrameClientEntity_Close_Handler(svc, ctx, in.(*CloseReq), interceptor)
-
-}
-
-func _FrameClientEntity_Close_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Packet, interceptor entity.ServerInterceptor) {
-
-	hdr := pkt.Header
-
-	in := new(CloseReq)
-	reqbuf := pkt.PacketBody()
-	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// err
-		return
-	}
-
-	_FrameClientEntity_Close_Handler(svc, ctx, in, interceptor)
+	_FrameClientEntity_GameOver_Handler(svc, ctx, in, interceptor)
 
 }
 
@@ -1421,6 +1421,12 @@ var FrameClientEntityDesc = entity.EntityDesc{
 	TypeName:    "frameproto.FrameClientEntity",
 	HandlerType: (*FrameClientEntity)(nil),
 	Methods: map[string]entity.MethodDesc{
+
+		"Progress": {
+			MethodName:   "Progress",
+			Handler:      _FrameClientEntity_Progress_Remote_Handler,
+			LocalHandler: _FrameClientEntity_Progress_Local_Handler,
+		},
 
 		"Start": {
 			MethodName:   "Start",
@@ -1434,16 +1440,10 @@ var FrameClientEntityDesc = entity.EntityDesc{
 			LocalHandler: _FrameClientEntity_Frame_Local_Handler,
 		},
 
-		"Result": {
-			MethodName:   "Result",
-			Handler:      _FrameClientEntity_Result_Remote_Handler,
-			LocalHandler: _FrameClientEntity_Result_Local_Handler,
-		},
-
-		"Close": {
-			MethodName:   "Close",
-			Handler:      _FrameClientEntity_Close_Remote_Handler,
-			LocalHandler: _FrameClientEntity_Close_Local_Handler,
+		"GameOver": {
+			MethodName:   "GameOver",
+			Handler:      _FrameClientEntity_GameOver_Remote_Handler,
+			LocalHandler: _FrameClientEntity_GameOver_Local_Handler,
 		},
 	},
 

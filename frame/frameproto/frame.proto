@@ -9,23 +9,32 @@ import "google/protobuf/empty.proto";
 service FrameSever {
 	option (bbq.service_type) = Entity;
 
-	rpc Heartbeat(HeartbeatReq) returns(google.protobuf.Empty) {}
+	rpc Heartbeat(HeartbeatReq) returns(HeartbeatRsp) {}
 
 	rpc Init(InitReq) returns(InitRsp) {}
+	// 客户端加入
 	rpc Join(JoinReq) returns(JoinRsp) {}
-	rpc Progress(ProgressReq) returns(ProgressRsp) {}
+	// 客户端上报加载进度
+	rpc Progress(ProgressReq) returns(google.protobuf.Empty) {}
+	// 客户端准备好
 	rpc Ready(ReadyReq) returns(google.protobuf.Empty) {}
+	// 客户端的操作
 	rpc Input(InputReq) returns(google.protobuf.Empty) {}
-	rpc Result(ResultReq) returns(google.protobuf.Empty) {}
+	// 上报结束
+	rpc GameOver(GameOverReq) returns(google.protobuf.Empty) {}
 }
  
 service FrameClient {
 	option (bbq.service_type) = Entity;
 
+	// 通知客户端其他人加载进度
+	rpc Progress(ProgressReq) returns(google.protobuf.Empty) {}
+	// 通知客户端开始
 	rpc Start(StartReq) returns(google.protobuf.Empty) {}
+	// 帧下发
 	rpc Frame(FrameReq) returns(google.protobuf.Empty) {}
-	rpc Result(ClientResultReq) returns(google.protobuf.Empty) {}
-	rpc Close(CloseReq) returns(google.protobuf.Empty) {}
+	// 游戏结束
+	rpc GameOver(GameOverReq) returns(google.protobuf.Empty) {}
 
 }
 
@@ -67,6 +76,8 @@ message FrameReq {
 
 message HeartbeatReq{
 }
+message HeartbeatRsp{
+}
 
 message InitReq{
 	int32 ClientNum = 1;
@@ -83,25 +94,15 @@ message JoinRsp{
 }
 
 message ProgressReq{
-}
-
-message ProgressRsp{
+	int32 LoadingProgress = 1;
 }
 
 message ReadyReq{
 }
 
-message ResultReq{
-}
-
 message StartReq {
-
 }
 
-message ClientResultReq {
-	
-}
-
-message CloseReq {
+message GameOverReq {
 	
 }

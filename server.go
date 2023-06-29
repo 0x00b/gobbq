@@ -98,9 +98,12 @@ func (s *Server) tryClose() {
 		wg.Add(1)
 		// close entity manager
 		secure.GO(func() {
-			defer wg.Done()
-
 			c := make(chan struct{}, 1)
+			defer func() {
+				wg.Done()
+				close(c)
+			}()
+
 			s.EntityMgr.Close(c)
 
 			select {
@@ -114,9 +117,13 @@ func (s *Server) tryClose() {
 			wg.Add(1)
 			srv := service
 			secure.GO(func() {
-				defer wg.Done()
-
 				c := make(chan struct{}, 1)
+
+				defer func() {
+					wg.Done()
+					close(c)
+				}()
+
 				secure.GO(func() {
 					srv.Close(c)
 				})
