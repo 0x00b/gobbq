@@ -46,6 +46,7 @@ class FrameClientEntity {
   // GameOver 游戏结束
   GameOver(ctx: Context, request: GameOverReq): void {
 
+    console.log("recv GameOver")
   }
 
 }

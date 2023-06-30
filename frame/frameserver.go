@@ -9,25 +9,26 @@ import (
 )
 
 const (
-	MaxReadyTime        int64  = 20          // second,准备阶段最长时间，如果超过这个时间没人连进来直接关闭游戏
-	MaxGameFrame        uint32 = 30*60 + 100 // 每局最大帧数
-	MaxFrameDataPerMsg         = 60          // 每个消息包最多包含多少个帧数据
-	BadNetworkThreshold        = 2           // 这个时间段没有收到心跳包认为他网络很差，不再持续给发包(网络层的读写时间设置的比较长，客户端要求的方案)
-)
-const (
 	BroadcastFrameCnt = 3                      // 每秒45帧， 3帧一次下发, 也就是1秒15次下发，大概66毫秒一次
 	FrameFrequency    = 15 * BroadcastFrameCnt // 每秒45帧， 3帧一次下发, 也就是1秒15次下发，大概66毫秒一次
 	FrameTimer        = 1000 / FrameFrequency  // 心跳Timer
+
+	MaxReadyTime        int64  = 20                         // second,准备阶段最长时间，如果超过这个时间没人连进来直接关闭游戏
+	MaxGameFrame        uint32 = 30*60*FrameFrequency + 100 // 每局最大帧数(30分钟)
+	MaxFrameDataPerMsg         = 60                         // 每个消息包最多包含多少个帧数据
+	BadNetworkThreshold        = 2                          // 这个时间段没有收到心跳包认为他网络很差，不再持续给发包(网络层的读写时间设置的比较长，客户端要求的方案)
+
 )
 
 // GameState 游戏状态
 type GameState int
 
 const (
-	GameStop  GameState = 0 // 准备阶段
+	GameNone  GameState = 0 // 准备阶段
 	GameReady GameState = 1 // 准备阶段
 	GamRuning GameState = 2 // 战斗中阶段
 	GameOver  GameState = 3 // 结束阶段
+	GameStop  GameState = 4 // 准备阶段
 )
 
 // FrameSever
@@ -49,7 +50,7 @@ type FrameSever struct {
 }
 
 func (f *FrameSever) OnTick() {
-	if f.status == GameStop {
+	if f.status == GameNone {
 		return
 	}
 
@@ -106,6 +107,7 @@ func (f *FrameSever) OnTick() {
 		xlog.Info("[game(%d)] do game over", f.EntityID())
 		return
 	case GameStop:
+		f.Stop()
 		return
 	}
 

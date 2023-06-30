@@ -170,8 +170,8 @@ func (e *Entity) run(ch chan bool) {
 	tempch := make(chan bool)
 	defer func() {
 		wg.Wait()
-
 		xlog.Debugln("stop message loop", e.EntityID())
+
 		// todo unregister entity
 
 		e.onDestroy()
@@ -241,6 +241,7 @@ func (e *Entity) run(ch chan bool) {
 
 func (e *Entity) Stop() {
 	e.cancel()
+	e.getEntityMgr().removeEntity(e.EntityID())
 }
 
 //  for inner

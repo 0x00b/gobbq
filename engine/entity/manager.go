@@ -269,6 +269,16 @@ func (s *EntityManager) GetEntity(eid EntityID) (IEntity, bool) {
 	return e, ok
 }
 
+// 需要优化, gate的id再拆分,不要直接用这个来判断是不是自己的entity
+func (s *EntityManager) removeEntity(eid EntityID) bool {
+	s.entityMtx.Lock()
+	defer s.entityMtx.Unlock()
+
+	delete(s.Entities, eid)
+
+	return true
+}
+
 func (s *EntityManager) GetService(typ string) (IService, bool) {
 	svc, ok := s.Services[typ]
 	return svc, ok
