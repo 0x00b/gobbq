@@ -5,18 +5,16 @@
 package gatepb
 
 import (
-	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -59,7 +57,7 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -97,10 +95,10 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -134,7 +132,7 @@ func (t *Gate) UnregisterClient(c entity.Context, req *RegisterClientRequest) er
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return errors.New("bad context")
+		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
 	if err != nil {
@@ -186,7 +184,7 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -224,10 +222,10 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -288,12 +286,6 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 	in := new(RegisterClientRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _GateService_RegisterClient_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -312,23 +304,33 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _GateService_RegisterClient_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -370,12 +372,13 @@ func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, p
 	in := new(RegisterClientRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+
 	if err != nil {
-		// err
+		// report
 		return
 	}
-
-	_GateService_UnregisterClient_Handler(svc, ctx, in, interceptor)
+	err = _GateService_UnregisterClient_Handler(svc, ctx, in, interceptor)
+	// report err
 
 }
 
@@ -415,12 +418,6 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Pac
 	in := new(PingPong)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _GateService_Ping_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -439,23 +436,33 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Pac
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _GateService_Ping_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 

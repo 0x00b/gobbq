@@ -1,12 +1,12 @@
 package entity
 
 import (
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/engine/timer"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
@@ -365,7 +365,7 @@ func (e *Entity) dispatchLocalCall(pkt *nets.Packet, req any, respChan chan any)
 		return nil
 	}
 
-	return ErrBadRequest
+	return erro.ErrBadRequest
 }
 
 func (e *Entity) initContext(c Context, pkt *nets.Packet) {
@@ -381,12 +381,10 @@ func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
 		cb, ok := e.popCallback(pkt.Header.RequestId)
 		if ok {
-			// xlog.Debugln("callback:", pkt.Header.RequestId)
 			cb(pkt)
 			return nil
 		}
-		xlog.Errorln("unknown response:", pkt.Header.RequestId)
-		return errors.New("unknown response")
+		return erro.ErrBadResponse.WithMessage("unknown response for request:" + pkt.Header.RequestId)
 	}
 
 	return nil
@@ -401,7 +399,7 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
-		return ErrMethodNotFound
+		return erro.ErrMethodNotFound
 	}
 
 	xlog.Traceln("LocalHandler 1", e.EntityID(), hdr.String())
@@ -429,7 +427,7 @@ func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) e
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
-		return ErrMethodNotFound
+		return erro.ErrMethodNotFound
 	}
 
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))

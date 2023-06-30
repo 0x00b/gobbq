@@ -1,10 +1,9 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -46,7 +45,7 @@ func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
 	rw, ok := gt.GetClient(dstEty)
 	if !ok {
-		return errors.New("unknown client")
+		return erro.ErrUnknownClient
 	}
 
 	// todo 需要处理一下kcp的断开连接，否则会阻塞在这里，以及read也会阻塞，导致goroutine得不到释放

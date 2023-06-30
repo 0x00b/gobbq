@@ -11,14 +11,14 @@ import (
 	{{- $path.Alias}} "{{$path.ImportPath -}}"
 	{{end}}
 {{else}}
-	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 
 	// {{$.GoPackageName}} "{{$.GoImportPath}}"
@@ -62,24 +62,24 @@ func New{{$sName}}Client(eid entity.EntityID) *{{$sName}} {
 	return t
 }
 
-func New{{$sName}}(c entity.Context) *{{$sName}}  {
+func New{{$sName}}(c entity.Context) (*{{$sName}}, error) {
 	etyMgr := entity.GetEntityMgr(c)
 	return New{{$sName}}WithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func New{{$sName}}WithID(c entity.Context, id entity.EntityID) *{{$sName}}  {
+func New{{$sName}}WithID(c entity.Context, id entity.EntityID) (*{{$sName}}, error) {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, {{$typeName}}Desc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
-		return nil
+		return nil, err
 	}
 	t := &{{$sName}}{
 		EntityID: id,
 	}
 
-	return t
+	return t, nil
 }
 
 type {{$sName}} struct{
@@ -120,7 +120,7 @@ func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.Go
 	{{end}}
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil{
-		return {{if $m.HasResponse}}nil,{{end}} errors.New("bad context")
+		return {{if $m.HasResponse}}nil,{{end}} erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
 	if err != nil {
@@ -162,10 +162,10 @@ func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.Go
 		select {
 		case <-c.Done():
 			entity.PopCallback(c, pkt.Header.RequestId)
-			return nil, errors.New("context done")
+			return nil, erro.ErrContextDone
 		case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 			entity.PopCallback(c, pkt.Header.RequestId)
-			return nil, errors.New("time out")
+			return nil, erro.ErrTimeOut
 		case rsp = <-chanRsp:
 		}
 
@@ -241,15 +241,8 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 	in := new({{$m.GoInput.GoIdent.GoName}})
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// {{if $m.HasResponse}}nil,{{end}}err
-		return
-	}
-
-
+	
 {{if $m.HasResponse}}
-	rsp, err := _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
-
 	npkt := nets.NewPacket()
 	defer npkt.Release()
 
@@ -267,27 +260,42 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 	npkt.Header.CheckFlags=   0
 	npkt.Header.TransInfo=    hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil{
-		npkt.Header.ErrCode= 1
-		npkt.Header.ErrMsg=  err.Error() 
-		
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	}else{
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 {{else}}
-	_{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+	if err != nil {
+		// report 
+		return
+	}
+	err = _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+	// report err
 {{end}}
 
 }

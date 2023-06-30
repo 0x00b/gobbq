@@ -2,13 +2,13 @@ package bbq
 
 import (
 	"context"
-	"errors"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/tool/secure"
 )
 
@@ -40,13 +40,9 @@ type Server struct {
 	EntityMgr *entity.EntityManager
 }
 
-var ErrServerStopped = errors.New("gobbq: the server has been stopped")
-var ErrNoServive = errors.New("gobbq: no register service")
-var ErrServerUnknown = errors.New("gobbq: the network is unknown")
-
 func (s *Server) ListenAndServe() error {
 	if s.netsvc == nil {
-		return ErrNoServive
+		return erro.ErrNoServive
 	}
 	for _, ns := range s.netsvc {
 		err := ns.ListenAndServe()

@@ -2,23 +2,15 @@ package entity
 
 import (
 	"errors"
-	"unsafe"
 
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
 
-var ErrMethodNameError = errors.New("mothod name error")
-var ErrMethodNotFound = errors.New("mothod not found")
-var ErrServiceNotFound = errors.New("service not found")
-var ErrEntityNotFound = errors.New("entity not found")
-var ErrUnknownCallType = errors.New("unknown call type")
-var ErrEmptyEntityID = errors.New("bad call, empty dst entity")
-var ErrBadRequest = errors.New("bad call, nil parameters")
-
 func NotMyMethod(err error) bool {
-	return errors.Is(err, ErrServiceNotFound) || errors.Is(err, ErrEntityNotFound)
+	return errors.Is(err, erro.ErrServiceNotFound) || errors.Is(err, erro.ErrEntityNotFound)
 }
 
 func (st *EntityManager) HandlePacket(pkt *nets.Packet) error {
@@ -39,8 +31,7 @@ func (st *EntityManager) handleCallService(pkt *nets.Packet) error {
 
 	svc, ok := st.GetService(service)
 	if !ok {
-		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
-		return ErrServiceNotFound
+		return erro.ErrServiceNotFound
 	}
 
 	DispatchPkt(svc, pkt)
@@ -52,19 +43,15 @@ func (st *EntityManager) handleCallEntity(pkt *nets.Packet) error {
 
 	eid := DstEntity(pkt)
 	if eid.Invalid() {
-		xlog.Traceln("recv:", pkt.Header.RequestId, ErrEmptyEntityID)
-		return ErrEmptyEntityID
+		return erro.ErrEmptyEntityID
 	}
 
 	// xlog.Traceln("start find entity")
 
 	entity, ok := st.GetEntity(eid)
 	if !ok {
-		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid)
-		return ErrEntityNotFound
+		return erro.ErrEntityNotFound
 	}
-
-	// xlog.Traceln("dispatchPkt send:", pkt.Header.RequestId)
 
 	DispatchPkt(entity, pkt)
 
@@ -92,8 +79,8 @@ func (st *EntityManager) handleLocalCallService(pkt *nets.Packet, in any, respCh
 
 	ss, ok := st.GetService(service)
 	if !ok {
-		xlog.Traceln("service not found in local", unsafe.Pointer(st), service)
-		return ErrServiceNotFound
+		xlog.Traceln("service not found in local", service)
+		return erro.ErrServiceNotFound
 	}
 
 	xlog.Traceln("handleLocalCallService", pkt.Header.String())
@@ -107,13 +94,13 @@ func (st *EntityManager) handleLocalCallEntity(pkt *nets.Packet, in any, respCha
 
 	eid := DstEntity(pkt)
 	if eid.Invalid() {
-		return ErrEmptyEntityID
+		return erro.ErrEmptyEntityID
 	}
 
 	entity, ok := st.GetEntity(eid)
 	if !ok {
-		xlog.Traceln("entity not found in local", unsafe.Pointer(st), eid.ID())
-		return ErrEntityNotFound
+		xlog.Traceln("entity not found in local", eid.ID())
+		return erro.ErrEntityNotFound
 	}
 	// xlog.Traceln("handleLocalCallEntity 2", pkt.Header.String())
 

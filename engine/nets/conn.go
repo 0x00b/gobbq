@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -181,11 +182,11 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 	xlog.Traceln("start send:", p.String())
 
 	if cn.closed {
-		return errors.New("conn closed")
+		return erro.ErrConClosed
 	}
 	defer func() {
 		if err != nil {
-			xlog.Traceln("close conn...")
+			xlog.Traceln(err)
 			cn.close()
 			return
 		}
@@ -205,7 +206,7 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 			return nil
 
 		default:
-			return errors.New("conn blocking")
+			return erro.ErrConBlocking
 		}
 
 	} else {
@@ -219,7 +220,7 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 			return nil
 
 		case <-time.After(timeout):
-			return errors.New("conn timeount blocking")
+			return erro.ErrTimeOut
 		}
 	}
 }

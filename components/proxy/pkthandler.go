@@ -1,10 +1,9 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -38,7 +37,7 @@ func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
 
 	if hdr.GetServiceType() == bbq.ServiceType_Entity && dstEty.Invalid() {
 		xlog.Errorln("bad req header:", hdr.String())
-		return errors.New("bad call, call entity but no dst entity")
+		return erro.ErrBadCall
 	}
 
 	if p.isMyPacket(pkt) {
