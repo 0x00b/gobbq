@@ -10,7 +10,7 @@ import (
 type Player struct {
 	*frameproto.FrameClient
 
-	UID uint64
+	Id uint64
 
 	isReady           bool
 	isOnline          bool
@@ -21,10 +21,10 @@ type Player struct {
 	result int32
 }
 
-func NewPlayer(eid entity.EntityID, uid uint64) *Player {
+func NewPlayer(eid entity.EntityID, id uint64) *Player {
 	p := &Player{
 		FrameClient: frameproto.NewFrameClientClient(eid),
-		UID:         uid,
+		Id:          id,
 	}
 
 	return p

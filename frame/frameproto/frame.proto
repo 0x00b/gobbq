@@ -55,7 +55,7 @@ message InputData{
 }
 
 message FrameData{
-	uint64 UID = 1;
+	uint64 Id = 1; // id可以是座位编号，uid，序号等，只要能区分就行
 	InputData Input = 2;
 }
 
@@ -66,7 +66,7 @@ message Frame{
 
 // client input
 message InputReq{
-	uint64 UID = 1;
+	uint64 Id = 1;
 	InputData Input = 2;
 }
 
@@ -76,7 +76,7 @@ message FrameReq {
 }
 
 message HeartbeatReq{
-	uint64 UID = 1; 
+	uint64 Id = 1; 
 }
 message HeartbeatRsp{
 }
@@ -90,25 +90,25 @@ message InitRsp{
 }
 
 message JoinReq{
-	uint64 UID = 1; 
+	uint64 Id = 1; 
 }
 
 message JoinRsp{
 }
 
 message ProgressReq{
-	uint64 UID = 1; 
+	uint64 Id = 1; 
 	int32 LoadingProgress = 2;
 }
 
 message ReadyReq{
-	uint64 UID = 1; 
+	uint64 Id = 1; 
 }
 
 message StartReq {
 }
 
 message GameOverReq {
-	uint64 UID = 1;
+	uint64 Id = 1;
 	int32 Result = 2;
 }

@@ -10,7 +10,7 @@ import (
 // EntityID proxyid + instid + id => (22bit + 10bit + 32bit)
 type EntityID uint64
 
-type ID uint64
+type ID uint64 // 最长IDBitNum = 36Bit
 type InstID uint32
 type ProxyID uint32
 

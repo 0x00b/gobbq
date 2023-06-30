@@ -14,27 +14,39 @@ import (
 type Game struct {
 	entity.Entity
 
+	// 可以重写这个接口，自己规划EntityID中的ID部分，比如用来承载UID等
+	IDGenerator
+
 	EntityMgr *entity.EntityManager
 }
 
-func NewGame() *Game {
+type IDGenerator interface {
+	GenID() entity.ID
+}
+
+func NewGame(opts ...Option) *Game {
 
 	conf.Init("game.yaml")
 
 	gm := &Game{
-		EntityMgr: entity.NewEntityManager(),
+		EntityMgr:   entity.NewEntityManager(),
+		IDGenerator: &defaultIDGener{},
 	}
 	gm.EntityMgr.ProxyRegister = gm
 	gm.EntityMgr.EntityIDGenerator = gm
 
-	eid := uint16(entity.GenID())
+	for _, opt := range opts {
+		opt(gm)
+	}
+
+	eid := gm.IDGenerator.GenID()
 
 	desc := entity.EntityDesc{}
 	desc.EntityImpl = gm
 	desc.EntityMgr = gm.EntityMgr
 	entity.SetEntityDesc(gm, &desc)
 
-	temp := entity.FixedEntityID(0, 0, entity.ID(eid))
+	temp := entity.FixedEntityID(0, 0, eid)
 
 	gm.EntityMgr.RegisterEntity(nil, temp, gm)
 
@@ -95,8 +107,9 @@ func (g *Game) RegisterServiceToProxy(svcName string) error {
 	return nil
 }
 
+// NewEntityID 如果没有特殊规划，可以使用这个生成entity id
 func (g *Game) NewEntityID() entity.EntityID {
-	return entity.NewEntityID(g.EntityID().ProxyID(), g.EntityID().InstID())
+	return entity.FixedEntityID(g.EntityID().ProxyID(), g.EntityID().InstID(), g.IDGenerator.GenID())
 }
 
 func (g *Game) Serve() {

@@ -1,11 +1,11 @@
 import { FrameReq, GameOverReq, InputData, InputReq, OPID, ProgressReq, StartReq } from '../../frameproto/frame';
-import { FrameClientEntityDefinition, FrameSeverEntity, NewFrameSeverEntity } from '../../frameproto/frame.bbq'
+import { FrameClientEntityDefinition, FrameSeverEntity, NewFrameSeverEntity, RegisterFrameClientEntityService } from '../../frameproto/frame.bbq'
 import { NewFrameService } from '../testpb/testpb.bbq'
 import { Client } from 'gobbq-ts/dist/src';
 import { Context } from 'gobbq-ts/dist/src/dispatcher/context';
 import Long from "long";
 
-let para=process.argv.slice(2)[0];
+let para = process.argv.slice(2)[0];
 let UID = Long.fromValue(para)
 
 class FrameClientEntity {
@@ -16,7 +16,7 @@ class FrameClientEntity {
     let y = 1
     setInterval(() => {
       let req = InputReq.create({
-        UID:UID,
+        Id: UID,
         Input: {
           OPID: OPID.Move,
           Pos: {
@@ -39,12 +39,12 @@ class FrameClientEntity {
   }
 
   // Progress 通知客户端其他人加载进度
-  Progress(request: ProgressReq): void { 
+  Progress(ctx: Context, request: ProgressReq): void {
 
   }
 
   // GameOver 游戏结束
-  GameOver(request: GameOverReq): void {
+  GameOver(ctx: Context, request: GameOverReq): void {
 
   }
 
@@ -63,7 +63,8 @@ async function test() {
     protocol: 'kcp',
   } as const;
 
-  let client = await Client.create(FrameClientEntityDefinition, new FrameClientEntity(), { remote })
+  let client = await Client.create( { remote })
+  RegisterFrameClientEntityService(client, new FrameClientEntity())
 
   let startSvc = NewFrameService(client)
 
@@ -77,11 +78,15 @@ async function test() {
     frameSvr = NewFrameSeverEntity(client, response.FrameSvr)
   })
 
-  await frameSvr.Join({ UID: UID }).then(({ response }) => {
+  await frameSvr.Join({ Id: UID }).then(({ response }) => {
     console.log("succ rsp:", response)
   })
 
-  frameSvr.Ready({UID: UID})
+  frameSvr.Ready({ Id: UID })
+
+  setInterval(() => {
+    frameSvr.Heartbeat({ Id: UID })
+  }, 1000)
 
 }
 

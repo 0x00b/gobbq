@@ -3,7 +3,7 @@
 //  请勿添加其他内容，包括函数，结构体，变量等等，否则重新生成时会丢失。
 
 import { UnaryResponse } from "gobbq-ts/dist/src/context/unary";
-import { Client } from "gobbq-ts/dist/src";
+import { Client, Context } from "gobbq-ts/dist/src";
 import { makeClientConstructor } from "gobbq-ts/dist/src/bbq/bbq";
 import { ServiceType } from "gobbq-ts/dist/proto/bbq";
 import Long from "long";
@@ -52,6 +52,17 @@ export interface {{$typeName}} {
 	// {{goComments $m.GoName $m.Comments}}
 	{{$m.GoName}}(request: {{$m.GoInput.GoIdent.GoName}}){{if $m.HasResponse}}:UnaryResponse<{{$m.GoOutput.GoIdent.GoName}}>{{else}}:void{{end}}
 {{end -}}
+}
+
+export interface {{$typeName}}Service {
+{{range $midx, $m := $s.Methods}}
+	// {{goComments $m.GoName $m.Comments}}
+	{{$m.GoName}}(c: Context, request: {{$m.GoInput.GoIdent.GoName}}){{if $m.HasResponse}}:UnaryResponse<{{$m.GoOutput.GoIdent.GoName}}>{{else}}:void{{end}}
+{{end -}}
+}
+
+export function Register{{$typeName}}Service(client: Client<any>, svc: {{$typeName}}Service){
+  client.register({{$typeName}}Definition, svc)
 }
 
 export function New{{$typeName}}(client: Client<any> {{- if $isSvc}}{{else}}, entityID: Long{{end -}}): {{$typeName}} {
