@@ -10,8 +10,8 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.9.0
 	github.com/xtaci/kcp-go v5.4.19+incompatible
-	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+	golang.org/x/net v0.11.0
+	golang.org/x/sys v0.9.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -34,9 +34,9 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/crypto v0.10.0 // indirect
+	golang.org/x/term v0.9.0 // indirect
+	golang.org/x/text v0.10.0 // indirect
 )
 
 require (
@@ -55,8 +55,8 @@ require (
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/tools v0.1.12
+	golang.org/x/mod v0.8.0
+	golang.org/x/tools v0.6.0
 	google.golang.org/genproto v0.0.0-20221205194025-8222ab48f5fc
 	google.golang.org/protobuf v1.28.1
 )
