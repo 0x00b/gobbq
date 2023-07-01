@@ -14,7 +14,9 @@ import (
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// proxypb "github.com/0x00b/gobbq/components/proxy/proxypb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -98,6 +100,10 @@ func (t *ProxyEty) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(RegisterProxyResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -176,6 +182,10 @@ func (t *ProxyEty) SyncService(c entity.Context, req *SyncServiceRequest) (*Sync
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(SyncServiceResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -254,6 +264,10 @@ func (t *ProxyEty) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -643,6 +657,10 @@ func (t *ProxySvc) RegisterInst(c entity.Context, req *RegisterInstRequest) (*Re
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(RegisterInstResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -721,6 +739,10 @@ func (t *ProxySvc) RegisterService(c entity.Context, req *RegisterServiceRequest
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -799,6 +821,10 @@ func (t *ProxySvc) UnregisterService(c entity.Context, req *RegisterServiceReque
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(RegisterServiceResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -877,6 +903,10 @@ func (t *ProxySvc) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)

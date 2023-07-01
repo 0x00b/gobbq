@@ -1,7 +1,6 @@
 package nets
 
 import (
-	"context"
 	"encoding/binary"
 	"fmt"
 	"sync"
@@ -29,9 +28,6 @@ type Packet struct {
 
 	// data(header + body)
 	bytes *bytespool.Bytes
-
-	// 管理pkt的生命周期
-	ctx context.Context
 }
 
 const (
@@ -88,10 +84,6 @@ func NewPacket() *Packet {
 	// xlog.Printf("pkt pool get: %d", unsafe.Pointer(pkt))
 
 	return pkt
-}
-
-func (p *Packet) Context() context.Context {
-	return p.ctx
 }
 
 func (p *Packet) String() string {

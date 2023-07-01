@@ -75,6 +75,10 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(RegisterClientResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -202,6 +206,10 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(PingPong)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)

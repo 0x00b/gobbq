@@ -140,6 +140,10 @@ func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.Go
 		{{if $m.HasResponse}}
 			// register callback first, than SendPacket
 			entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+				if pkt.Header.ErrCode != 0 {
+					chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+					return
+				}
 				rsp := new({{$m.GoOutput.GoIdent.GoName}})
 				reqbuf := pkt.PacketBody()
 				err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)

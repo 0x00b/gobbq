@@ -5,11 +5,12 @@
 package entity
 
 import (
-	"errors"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
+
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
@@ -29,24 +30,24 @@ func NewBbqSysClient(eid EntityID) *BbqSys {
 	return t
 }
 
-func NewBbqSys(c Context) *BbqSys {
+func NewBbqSys(c Context) (*BbqSys, error) {
 	etyMgr := GetEntityMgr(c)
 	return NewBbqSysWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewBbqSysWithID(c Context, id EntityID) *BbqSys {
+func NewBbqSysWithID(c Context, id EntityID) (*BbqSys, error) {
 
 	etyMgr := GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, BbqSysEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
-		return nil
+		return nil, err
 	}
 	t := &BbqSys{
 		EntityID: id,
 	}
 
-	return t
+	return t, nil
 }
 
 type BbqSys struct {
@@ -79,7 +80,7 @@ func (t *BbqSys) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) 
 
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -97,6 +98,10 @@ func (t *BbqSys) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) 
 
 		// register callback first, than SendPacket
 		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -117,10 +122,10 @@ func (t *BbqSys) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) 
 	select {
 	case <-c.Done():
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -157,7 +162,7 @@ func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error
 
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -175,6 +180,10 @@ func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error
 
 		// register callback first, than SendPacket
 		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -195,10 +204,10 @@ func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error
 	select {
 	case <-c.Done():
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -235,7 +244,7 @@ func (t *BbqSys) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error)
 
 	etyMgr := GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -253,6 +262,10 @@ func (t *BbqSys) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error)
 
 		// register callback first, than SendPacket
 		RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(WatchResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -273,10 +286,10 @@ func (t *BbqSys) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error)
 	select {
 	case <-c.Done():
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -337,12 +350,6 @@ func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packe
 	in := new(WatchRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _BbqSysEntity_SysWatch_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -361,23 +368,33 @@ func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packe
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _BbqSysEntity_SysWatch_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -419,12 +436,6 @@ func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx Context, pkt *nets.Pac
 	in := new(WatchRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _BbqSysEntity_SysUnwatch_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -443,23 +454,33 @@ func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx Context, pkt *nets.Pac
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _BbqSysEntity_SysUnwatch_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -501,12 +522,6 @@ func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx Context, pkt *nets.Pack
 	in := new(WatchRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _BbqSysEntity_SysNotify_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -525,23 +540,33 @@ func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx Context, pkt *nets.Pack
 	npkt.Header.CheckFlags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _BbqSysEntity_SysNotify_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
