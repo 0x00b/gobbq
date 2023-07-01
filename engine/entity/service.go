@@ -2,7 +2,6 @@ package entity
 
 import (
 	"sync"
-	"time"
 
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/tool/secure"
@@ -38,19 +37,12 @@ func (e *Service) serviceType() {}
 
 func (e *Service) onInit(c Context, cancel func(), id EntityID) {
 	e.initOnce.Do(func() {
-		e.context = c
-		e.cancel = cancel
-		e.entityID = id
 		e.callChan = make(chan *nets.Packet, 10000)
 		e.localCallChan = make(chan *localCall, 10000)
 		e.callback = make(map[string]Callback, 10000)
 		e.respChan = make(chan *nets.Packet, 10000)
-		e.watchers = make(map[EntityID]bool)
 
-		e.timer.Init()
-		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
-
-		e.OnInit()
+		e.defaultInit(c, cancel, id)
 	})
 }
 

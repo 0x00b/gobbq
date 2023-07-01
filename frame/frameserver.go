@@ -49,6 +49,10 @@ type FrameSever struct {
 	logic *lockstep
 }
 
+func (f *FrameSever) OnInit() {
+	f.SetTickIntervel(1 * time.Millisecond)
+}
+
 func (f *FrameSever) OnTick() {
 	if f.status == GameNone {
 		return
@@ -145,41 +149,47 @@ func (f *FrameSever) broadcastFrameData() {
 
 		// 获得这个玩家已经发到哪一帧
 		i := p.GetSendFrameCount()
-		c := 0
 
-		msg := &frameproto.FrameReq{}
-		// i < framesCount 所以最后一帧是不会发出去的
-		for ; i < framesCount; i++ {
-			frameData := f.logic.getFrame(i)
-			if nil == frameData && i != (framesCount-1) {
-				continue
-			}
+		f.sendFrame(p, i, framesCount)
+	}
+}
 
-			fd := &frameproto.Frame{
-				FrameID: i,
-			}
+func (f *FrameSever) sendFrame(p *Player, start, end uint32) {
 
-			if nil != frameData {
-				fd.Data = frameData.cmds
-			}
+	c := 0
 
-			msg.Frames = append(msg.Frames, fd)
-			c++
+	msg := &frameproto.FrameReq{}
 
-			// 如果是最后一帧或者达到这个消息包能装下的最大帧数，就发送
-			if i == (framesCount-1) || c >= MaxFrameDataPerMsg {
-				err := p.Frame(f.Context(), msg)
-				if err != nil {
-					xlog.Errorln(err)
-				}
-				c = 0
-				msg = &frameproto.FrameReq{}
-			}
+	for i := start; i < end; i++ {
+
+		frameData := f.logic.getFrame(i)
+		if nil == frameData && i != (end-1) {
+			continue
 		}
 
-		p.SetSendFrameCount(framesCount)
+		fd := &frameproto.Frame{
+			FrameID: i,
+		}
 
+		if nil != frameData {
+			fd.Data = frameData.cmds
+		}
+
+		msg.Frames = append(msg.Frames, fd)
+		c++
+
+		// 如果是最后一帧或者达到这个消息包能装下的最大帧数，就发送
+		if i == (end-1) || c >= MaxFrameDataPerMsg {
+			err := p.Frame(f.Context(), msg)
+			if err != nil {
+				xlog.Errorln(err)
+			}
+			c = 0
+			msg = &frameproto.FrameReq{}
+		}
 	}
+
+	p.SetSendFrameCount(end)
 
 }
 
@@ -410,44 +420,8 @@ func (f *FrameSever) doReconnect(p *Player) {
 	err := p.Start(f.Context(), &frameproto.StartReq{})
 	if err != nil {
 		xlog.Errorln(err)
-		// return nil, err
+		// return
 	}
 
-	framesCount := f.clientFrameCnt
-	var i uint32 = 0
-	c := 0
-
-	frameMsg := &frameproto.FrameReq{}
-
-	for ; i < framesCount; i++ {
-
-		frameData := f.logic.getFrame(i)
-		if nil == frameData && i != (framesCount-1) {
-			continue
-		}
-
-		fd := &frameproto.Frame{
-			FrameID: i,
-		}
-
-		if nil != frameData {
-			fd.Data = frameData.cmds
-		}
-
-		frameMsg.Frames = append(frameMsg.Frames, fd)
-		c++
-
-		// 如果是最后一帧或者达到这个消息包能装下的最大帧数，就发送
-		if i == (framesCount-1) || c >= MaxFrameDataPerMsg {
-			err := p.Frame(f.Context(), frameMsg)
-			if err != nil {
-				xlog.Errorln(err)
-			}
-			c = 0
-			frameMsg = &frameproto.FrameReq{}
-		}
-	}
-
-	p.SetSendFrameCount(framesCount)
-
+	f.sendFrame(p, 0, f.clientFrameCnt)
 }

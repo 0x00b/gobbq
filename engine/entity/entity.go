@@ -34,17 +34,24 @@ type IEntity interface {
 	AddCallback(d time.Duration, callback timer.CallbackFunc)
 	// AddTimer 直接用，不需要重写，除非有特殊需求
 	AddTimer(d time.Duration, callback timer.CallbackFunc)
-	// OnTick 实时性很高要求的可以通过tick实现，service最低tick时间5ms， entity执行过一次事件之后执行一次OnTick
+	// OnTick entity执行过一次事件之后执行一次OnTick, 实时性很高要求的可以通过tick实现
+	// 如果没有事件发生，则定时调用，默认5ms，可以重写OnInit()调用SetTickIntervel()自定义间隔时间
 	OnTick()
+	// SetTickIntervel 自定义OnTick()的间隔时间，只能在OnInit()中调用
+	SetTickIntervel(t time.Duration)
 
 	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
 	Watch(id EntityID)
 	Unwatch(id EntityID)
 	OnNotify(NotifyInfo)
 
-	// 主动结束
+	// 主动结束, 主动调用结束entity的生命周期
 	Stop()
 
+	innerEntity
+}
+
+type innerEntity interface {
 	// === for inner ===
 	getEntityMgr() *EntityManager
 
@@ -67,8 +74,6 @@ type IEntity interface {
 
 	run(ch chan bool)
 }
-
-type State int
 
 type NotifyInfo struct {
 	EntityID EntityID
@@ -139,6 +144,7 @@ type Entity struct {
 
 	runOnce     sync.Once
 	initOnce    sync.Once
+	inited      bool
 	destroyOnce sync.Once
 
 	watchers map[EntityID]bool
@@ -301,21 +307,37 @@ func (e *Entity) setEntityID(id EntityID) {
 	e.entityID = id
 }
 
+func (e *Entity) defaultInit(c Context, cancel func(), id EntityID) {
+
+	e.setEntityID(id)
+
+	e.context = c
+	e.cancel = cancel
+	e.entityID = id
+
+	e.watchers = make(map[EntityID]bool)
+
+	e.timer.Init()
+
+	c.Entity().OnInit()
+
+	// 没有自定义ticker，则默认5ms
+	if e.ticker == nil {
+		e.SetTickIntervel(GAME_SERVICE_TICK_INTERVAL)
+	}
+
+	// 最后初始化完成
+	e.inited = true
+}
+
 func (e *Entity) onInit(c Context, cancel func(), id EntityID) {
 	e.initOnce.Do(func() {
-		e.setEntityID(id)
-
-		e.context = c
-		e.cancel = cancel
-		e.callChan = make(chan *nets.Packet, 1000)
-		e.localCallChan = make(chan *localCall, 1000)
+		e.callChan = make(chan *nets.Packet, 500)
+		e.localCallChan = make(chan *localCall, 500)
 		e.callback = make(map[string]Callback, 1)
 		e.respChan = make(chan *nets.Packet, 1)
-		e.timer.Init()
-		e.ticker = time.NewTicker(GAME_SERVICE_TICK_INTERVAL)
-		e.watchers = make(map[EntityID]bool)
 
-		c.Entity().OnInit()
+		e.defaultInit(c, cancel, id)
 	})
 }
 
@@ -460,6 +482,16 @@ func (e *Entity) AddCallback(d time.Duration, callback timer.CallbackFunc) {
 // AddRepeatTimer 直接用，不需要重写，除非有特殊需求
 func (e *Entity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
 	e.timer.AddTimer(d, callback)
+}
+
+func (e *Entity) SetTickIntervel(t time.Duration) {
+	if e.inited {
+		return
+	}
+	if t < 1*time.Millisecond {
+		t = 1 * time.Millisecond
+	}
+	e.ticker = time.NewTicker(t)
 }
 
 // empty/default implement
