@@ -15,11 +15,11 @@ type TestPacket struct {
 
 func (tp *TestPacket) HandlePacket(pkt *nets.Packet) error {
 
-	pkt.Src.SendPacket(pkt)
+	err := pkt.Src.SendPacket(pkt)
 
 	fmt.Println(pkt.String())
 
-	return nil
+	return err
 }
 
 func TestKcpServer(m *testing.T) {

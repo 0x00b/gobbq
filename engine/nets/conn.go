@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/erro"
+	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -142,7 +143,39 @@ func (cn *Conn) handle(pkt *Packet) error {
 
 	// todo report
 
-	return cn.PacketHandler.HandlePacket(pkt)
+	err := cn.PacketHandler.HandlePacket(pkt)
+	if err != nil {
+		ReplayError(pkt, err)
+	}
+	return err
+}
+
+func ReplayError(pkt *Packet, e error) {
+	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
+		// 本身已经是回包，没有必要再处理了
+		// report err
+		xlog.Error(e)
+		return
+	}
+
+	// 回复错误
+	hdr := pkt.Header
+	tdst := hdr.DstEntity
+	hdr.DstEntity = hdr.SrcEntity
+	hdr.SrcEntity = tdst
+	hdr.RequestType = bbq.RequestType_RequestRespone
+
+	if x, ok := e.(erro.CodeError); ok {
+		hdr.ErrCode = x.Code()
+		hdr.ErrMsg = x.Message()
+	} else {
+		hdr.ErrCode = erro.ErrInvalid.Code()
+		hdr.ErrMsg = e.Error()
+	}
+	pkt.WriteBody(nil)
+	if err := pkt.Src.SendPacket(pkt); err != nil {
+		// report
+	}
 }
 
 func (cn *Conn) handleEOF(err error) {
@@ -179,7 +212,7 @@ func (cn *Conn) registerConErrHandler(ConnCallback ConnCallback) {
 
 // AsyncWritePacket async writes a packet, this method will never block
 func (cn *Conn) SendPacket(p *Packet) (err error) {
-	xlog.Traceln("start send:", p.String())
+	xlog.Traceln("send:", p.String())
 
 	if cn.closed {
 		return erro.ErrConClosed
@@ -198,8 +231,7 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 	if timeout == 0 {
 		select {
 		case <-cn.ctx.Done():
-			xlog.Trace("context done...")
-			return
+			return erro.ErrContextDone
 
 		case cn.pktSendChan <- p:
 			p.Retain()
@@ -212,8 +244,7 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 	} else {
 		select {
 		case <-cn.ctx.Done():
-			xlog.Trace("context done...")
-			return
+			return erro.ErrContextDone
 
 		case cn.pktSendChan <- p:
 			p.Retain()
@@ -228,6 +259,9 @@ func (cn *Conn) SendPacket(p *Packet) (err error) {
 func (cn *Conn) writeLoop() {
 	defer func() {
 		cn.close()
+		for v := range cn.pktSendChan {
+			v.Release()
+		}
 	}()
 
 	for {
@@ -240,7 +274,6 @@ func (cn *Conn) writeLoop() {
 			func(p *Packet) {
 				defer p.Release()
 				if cn.closed {
-					// 需要改写, 可能chan中还有pkt,需要pkt.Release
 					return
 				}
 				cn.rwc.SetWriteDeadline(time.Now().Add(5 * time.Second))
@@ -257,6 +290,9 @@ func (cn *Conn) writeLoop() {
 func (cn *Conn) handleLoop() {
 	defer func() {
 		cn.close()
+		for v := range cn.pktRecvChan {
+			v.Release()
+		}
 	}()
 
 	for {
@@ -267,10 +303,10 @@ func (cn *Conn) handleLoop() {
 
 		case pkt := <-cn.pktRecvChan:
 			if cn.closed {
-				// 需要改写, 可能chan中还有pkt,需要pkt.Release
 				return
 			}
 
+			xlog.Traceln("handle:", pkt.String())
 			err := cn.handle(pkt)
 			if err != nil {
 				xlog.Errorln("handle failed", err)

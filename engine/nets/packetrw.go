@@ -9,7 +9,6 @@ import (
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/erro"
-	"github.com/0x00b/gobbq/xlog"
 	"github.com/pkg/errors"
 )
 
@@ -108,7 +107,7 @@ func (pc *PacketReadWriter) ReadPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	xlog.Traceln("recv raw:", packet.String())
+	// xlog.Traceln("recv raw:", packet.String())
 
 	// receive checksum (uint32)
 	// if HasFlags(packet.Header.CheckFlags, FlagDataChecksumIEEE) {

@@ -102,7 +102,7 @@ func (g *Game) RegisterServiceToProxy(svcName string) error {
 		return err
 	}
 
-	xlog.Debug("register proxy service resp")
+	xlog.Debug("register proxy service succ:", svcName)
 
 	return nil
 }

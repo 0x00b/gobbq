@@ -98,8 +98,8 @@ func (e *Service) run(ch chan bool) {
 				ctx, release := e.context.Copy()
 				npkt := pkt
 				secure.GO(func() {
-					defer release()
 					defer wg.Done()
+					defer release()
 					e.handleMethodRsp(ctx, npkt)
 				})
 			}
@@ -119,21 +119,16 @@ func (e *Service) run(ch chan bool) {
 			return
 
 		case pkt := <-e.callChan:
-			xlog.Tracef("handle: %s", pkt.String())
-
 			wg.Add(1)
 
 			// 异步
 			ctx, release := e.context.Copy()
 			npkt := pkt
 			secure.GO(func() {
-				defer release()
 				defer wg.Done()
+				defer release()
 
-				err := e.handleCallMethod(ctx, npkt, e.ServiceDesc())
-				if err != nil {
-					xlog.Errorln(err)
-				}
+				e.handleCallMethod(ctx, npkt, e.ServiceDesc())
 			})
 
 		case lc := <-e.localCallChan:
@@ -143,18 +138,17 @@ func (e *Service) run(ch chan bool) {
 			ctx, release := e.context.Copy()
 			tlc := lc
 			secure.GO(func() {
-				defer release()
 				defer wg.Done()
+				defer release()
 
-				err := e.handleLocalCallMethod(ctx, tlc, e.ServiceDesc())
-				if err != nil {
-					xlog.Errorln(err)
-				}
+				e.handleLocalCallMethod(ctx, tlc, e.ServiceDesc())
 			})
 
 		case <-e.ticker.C:
-			e.timer.Tick()
-			e.context.Entity().OnTick()
+			secure.DO(func() {
+				e.timer.Tick()
+				e.context.Entity().OnTick()
+			})
 		}
 	}
 }

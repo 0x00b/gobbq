@@ -5,7 +5,6 @@ import (
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/xlog"
 )
 
 var _ nets.PacketHandler = &Gate{}
@@ -28,11 +27,7 @@ func (gt *Gate) isMyPacket(pkt *nets.Packet) bool {
 func (gt *Gate) HandlePacket(pkt *nets.Packet) error {
 
 	if gt.isMyPacket(pkt) {
-		err := gt.Server.EntityMgr.HandlePacket(pkt)
-		if err != nil {
-			xlog.Errorln("bad req handle:", pkt.Header.String(), err)
-		}
-		return err
+		return gt.Server.EntityMgr.HandlePacket(pkt)
 	}
 
 	hdr := pkt.Header

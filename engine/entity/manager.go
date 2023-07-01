@@ -218,28 +218,28 @@ func (s *EntityManager) registerService(sd *EntityDesc, ss IService, intercepter
 	sd.interceptors = intercepter
 	SetServiceDesc(ss, sd)
 
-	xlog.Tracef("gobbq: registerService 111 eid:%d", ss.EntityID())
+	// xlog.Tracef("gobbq: registerService 111 eid:%d", ss.EntityID())
 
 	s.registerServiceEntity(sd, ss)
 
-	xlog.Tracef("gobbq: registerService 222 eid:%d", ss.EntityID())
+	// xlog.Tracef("gobbq: registerService 222 eid:%d", ss.EntityID())
 
 	// start msg loop
 	Run(ss)
 
-	xlog.Tracef("gobbq: registerService 333 eid:%d", ss.EntityID())
+	// xlog.Tracef("gobbq: registerService 333 eid:%d", ss.EntityID())
 
 	if s.ProxyRegister != nil {
 		s.ProxyRegister.RegisterServiceToProxy(sd.TypeName)
 		// s.ProxyRegister.RegisterEntityToProxy(ss.EntityID())
 	}
-	xlog.Tracef("gobbq: registerService xxxxxx eid:%d", ss.EntityID())
+	// xlog.Tracef("gobbq: registerService xxxxxx eid:%d", ss.EntityID())
 
 }
 
 func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) error {
 
-	xlog.Tracef("gobbq: registerService 444 eid")
+	// xlog.Tracef("gobbq: registerService 444 eid")
 
 	// eid := entity.EntityID()
 	// if eid.Invalid() {
@@ -249,13 +249,13 @@ func (s *EntityManager) registerServiceEntity(sd *EntityDesc, entity IService) e
 	eid := s.EntityIDGenerator.NewEntityID()
 	// }
 
-	xlog.Tracef("gobbq: registerService 555 eid")
+	// xlog.Tracef("gobbq: registerService 555 eid")
 	s.RegisterEntity(nil, eid, entity)
-	xlog.Tracef("gobbq: registerService 666 eid")
+	// xlog.Tracef("gobbq: registerService 666 eid")
 
 	s.Services[sd.TypeName] = entity
 
-	xlog.Tracef("gobbq: registerService 777 eid")
+	// xlog.Tracef("gobbq: registerService 777 eid")
 
 	return nil
 }

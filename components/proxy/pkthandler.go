@@ -5,7 +5,6 @@ import (
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
-	"github.com/0x00b/gobbq/xlog"
 )
 
 var _ nets.PacketHandler = &Proxy{}
@@ -36,16 +35,12 @@ func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
 	dstEty := entity.DstEntity(pkt)
 
 	if hdr.GetServiceType() == bbq.ServiceType_Entity && dstEty.Invalid() {
-		xlog.Errorln("bad req header:", hdr.String())
+		// xlog.Errorln("bad req header:", hdr.String())
 		return erro.ErrBadCall
 	}
 
 	if p.isMyPacket(pkt) {
-		err := p.Server.EntityMgr.HandlePacket(pkt)
-		if err != nil {
-			xlog.Errorln("bad req handle:", hdr.String(), err)
-		}
-		return err
+		return p.Server.EntityMgr.HandlePacket(pkt)
 	}
 
 	// xlog.Debugln("proxy 2")
@@ -53,12 +48,10 @@ func (p *Proxy) HandlePacket(pkt *nets.Packet) error {
 	// send to game or gate
 	switch hdr.ServiceType {
 	case bbq.ServiceType_Entity:
-		p.ProxyToEntity(dstEty, pkt)
+		return p.ProxyToEntity(dstEty, pkt)
 	case bbq.ServiceType_Service:
-		p.ProxyToService(hdr, pkt)
+		return p.ProxyToService(hdr, pkt)
 	default:
-		xlog.Errorln("unknown service type")
+		return erro.ErrNoServiveType
 	}
-
-	return nil
 }

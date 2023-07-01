@@ -163,14 +163,14 @@ func (e *Entity) run(ch chan bool) {
 		return
 	}
 
-	xlog.Debugln("start message loop", e.EntityID())
+	// xlog.Debugln("start message loop", e.EntityID())
 
 	wg := sync.WaitGroup{}
 
 	tempch := make(chan bool)
 	defer func() {
 		wg.Wait()
-		xlog.Debugln("stop message loop", e.EntityID())
+		// xlog.Debugln("stop message loop", e.EntityID())
 
 		// todo unregister entity
 
@@ -187,13 +187,16 @@ func (e *Entity) run(ch chan bool) {
 			case tempch <- true:
 
 			case <-e.context.Done():
-				xlog.Debugln("ctx done", e)
+				// xlog.Debugln("ctx done", e)
 				return
 			case pkt := <-e.respChan:
-				wg.Add(1)
-				xlog.Tracef("handle: %s", pkt.String())
-				e.handleMethodRsp(e.context, pkt)
-				wg.Done()
+				npkt := pkt
+				secure.DO(func() {
+					wg.Add(1)
+					defer wg.Done()
+					// xlog.Tracef("handle: %s", pkt.String())
+					e.handleMethodRsp(e.context, npkt)
+				})
 			}
 		}
 	})
@@ -207,35 +210,35 @@ func (e *Entity) run(ch chan bool) {
 		case ch <- true:
 
 		case <-e.context.Done():
-			xlog.Debugln("ctx done", e)
+			xlog.Traceln("ctx done", e)
 			return
 
 		case pkt := <-e.callChan:
-			wg.Add(1)
-			xlog.Tracef("handle: %s", pkt.String())
-			err := e.handleCallMethod(e.context, pkt, e.EntityDesc())
-			if err != nil {
-				xlog.Errorln(err)
-			}
-			xlog.Tracef("handle done: %s", pkt.String())
-			wg.Done()
+			npkt := pkt
+			secure.DO(func() {
+				wg.Add(1)
+				defer wg.Done()
+				e.handleCallMethod(e.context, npkt, e.EntityDesc())
+			})
 
 		case lc := <-e.localCallChan:
-			wg.Add(1)
-			xlog.Tracef("handle local call: %s", lc.pkt.String())
-			err := e.handleLocalCallMethod(e.context, lc, e.EntityDesc())
-			if err != nil {
-				xlog.Errorln(err)
-			}
-			xlog.Tracef("handle local call done: %s", lc.pkt.String())
-			wg.Done()
+			tlc := lc
+			secure.DO(func() {
+				wg.Add(1)
+				defer wg.Done()
+				e.handleLocalCallMethod(e.context, tlc, e.EntityDesc())
+			})
 
 		case <-e.ticker.C:
-			e.timer.Tick()
+			secure.DO(func() {
+				e.timer.Tick()
+			})
 		}
 
 		// 实时性很高要求的可以通过tick实现
-		e.context.Entity().OnTick()
+		secure.DO(func() {
+			e.context.Entity().OnTick()
+		})
 	}
 }
 
@@ -332,6 +335,16 @@ func (e *Entity) onDestroy() {
 		close(e.respChan)
 		close(e.localCallChan)
 
+		for v := range e.respChan {
+			v.Release()
+		}
+		for v := range e.callChan {
+			v.Release()
+		}
+		for v := range e.localCallChan {
+			v.pkt.Release()
+		}
+
 		releaseContext(e.context)
 	})
 }
@@ -373,7 +386,7 @@ func (e *Entity) initContext(c Context, pkt *nets.Packet) {
 	// SetEntityMgr(c, e.desc.EntityMgr)
 }
 
-func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) error {
+func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
@@ -382,15 +395,16 @@ func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) error {
 		cb, ok := e.popCallback(pkt.Header.RequestId)
 		if ok {
 			cb(pkt)
-			return nil
+			return
 		}
-		return erro.ErrBadResponse.WithMessage("unknown response for request:" + pkt.Header.RequestId)
+		// report
+		panic(erro.ErrBadResponse.WithMessage("unknown response for request:" + pkt.Header.RequestId))
 	}
 
-	return nil
+	return
 }
 
-func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) error {
+func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) {
 	defer lc.pkt.Release()
 
 	e.initContext(c, lc.pkt)
@@ -399,14 +413,17 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
-		return erro.ErrMethodNotFound
+		if lc.respChan != nil {
+			lc.respChan <- erro.ErrMethodNotFound
+		}
+		return
 	}
 
-	xlog.Traceln("LocalHandler 1", e.EntityID(), hdr.String())
+	// xlog.Traceln("LocalHandler 1", e.EntityID(), hdr.String())
 
 	rsp, err := mt.LocalHandler(sd.EntityImpl, c, lc.in, chainServerInterceptors(sd.interceptors))
 
-	xlog.Traceln("LocalHandler 2", hdr.String())
+	// xlog.Traceln("LocalHandler 2", hdr.String())
 
 	if lc.respChan != nil {
 		if rsp != nil {
@@ -416,10 +433,10 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 		}
 	}
 
-	return err
+	return
 }
 
-func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) error {
+func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
@@ -427,12 +444,12 @@ func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) e
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
 	if !ok {
-		return erro.ErrMethodNotFound
+		nets.ReplayError(pkt, erro.ErrMethodNotFound)
 	}
 
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))
 
-	return nil
+	return
 }
 
 // AddOnceTimer 直接用，不需要重写，除非有特殊需求

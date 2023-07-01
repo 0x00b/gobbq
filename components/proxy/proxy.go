@@ -10,6 +10,7 @@ import (
 	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
 )
@@ -89,9 +90,9 @@ func (p *Proxy) registerInst(instID entity.InstID, prw *nets.Conn) {
 	p.instMtx.Lock()
 	defer p.instMtx.Unlock()
 	if _, ok := p.instMaps[instID]; ok {
-		xlog.Errorln("already has entity", instID)
+		xlog.Traceln("already has entity", instID)
 	}
-	xlog.Debugln("register entity id:", instID)
+	xlog.Traceln("register entity id:", instID)
 	p.instMaps[instID] = prw
 }
 
@@ -111,64 +112,53 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
 	p.proxySvcMtx.Lock()
 	defer p.proxySvcMtx.Unlock()
 	if _, ok := p.proxySvcMap[svcName]; ok {
-		xlog.Errorln("already has svc")
+		xlog.Traceln("already has svc")
 	}
 
 	p.proxySvcMap[svcName] = append(p.proxySvcMap[svcName], prw)
 }
 
-func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) {
+func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) (err error) {
 
-	// xlog.Debugln("proxy 11")
 	// proxy to inst
 	sendInst := func() bool {
-		xlog.Debugln("local proxy to id:", eid)
 		if eid.ProxyID() != p.EntityID().ProxyID() {
-			xlog.Debugln("not my inst", eid)
 			return false
 		}
 		p.instMtx.RLock()
 		defer p.instMtx.RUnlock()
 		prw, ok := p.instMaps[eid.InstID()]
 		if ok {
-			xlog.Debugln("proxy to id:", eid)
-			prw.SendPacket(pkt)
-			// xlog.Debugln("proxy 22")
-			return true
+			err = prw.SendPacket(pkt)
+		} else {
+			err = erro.ErrProxyInstNotFound
 		}
-		return false
+		return true
 	}()
 
-	// xlog.Debugln("proxy 33")
 	if sendInst {
 		return
 	}
 
 	// proxy to other proxy
-	sendProxy := func() bool {
+	func() bool {
 		proxyID := entity.DstEntity(pkt).ProxyID()
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
-			prw.SendPacket(pkt)
-			// xlog.Debugln("proxy 44")
+			err = prw.SendPacket(pkt)
 			return true
 		}
-		xlog.Errorln("unknown proxyid", proxyID)
+		err = erro.ErrProxyNotFound
 		return false
 	}()
 
-	// xlog.Debugln("proxy 55")
-
-	if !sendProxy {
-		xlog.Errorln("unknown entity", eid)
-	}
+	return err
 }
 
-func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
+func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) (err error) {
 
 	if hdr.RequestType == bbq.RequestType_RequestRespone {
-		p.ProxyToEntity(entity.DstEntity(pkt), pkt)
-		return
+		return p.ProxyToEntity(entity.DstEntity(pkt), pkt)
 	}
 
 	svcType := hdr.Type
@@ -181,9 +171,8 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 		if !ok || len(prws) == 0 {
 			return false
 		}
-		xlog.Debugln("proxy to svc", prws)
 		sid := hdr.GetSrcEntity()
-		prws[sid%uint64(len(prws))].SendPacket(pkt)
+		err = prws[sid%uint64(len(prws))].SendPacket(pkt)
 		return true
 	}()
 
@@ -192,20 +181,19 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) {
 	}
 
 	// proxy to other proxy
-	sendProxy := func() bool {
+	func() bool {
 		typ := pkt.Header.Type
 		prws, ok := p.proxySvcMap[typ]
 		if !ok || len(prws) == 0 {
+			err = erro.ErrProxyServiceNotFound
 			return false
 		}
 		sid := hdr.GetSrcEntity()
-		prws[sid%uint64(len(prws))].SendPacket(pkt)
+		err = prws[sid%uint64(len(prws))].SendPacket(pkt)
 		return true
 	}()
 
-	if !sendProxy {
-		xlog.Errorln("unknown svc", svcType)
-	}
+	return
 }
 
 func (p *Proxy) ConnOtherProxys(ops ...nets.Option) {
@@ -237,7 +225,7 @@ func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
 
 	entity.SetProxy(c, prxy)
 
-	xlog.Println("RegisterProxy ing...")
+	// xlog.Println("RegisterProxy ing...")
 
 	other := proxypb.NewProxyEtyClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
 
@@ -247,7 +235,7 @@ func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
 	if err != nil {
 		panic(err)
 	}
-	xlog.Println("RegisterProxy done...")
+	// xlog.Println("RegisterProxy done...")
 
 	p.proxyMap[entity.ProxyID(pcfg.ID)] = prxy.GetConn()
 	for _, v := range rsp.ServiceNames {

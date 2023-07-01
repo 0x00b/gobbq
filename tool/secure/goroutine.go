@@ -55,3 +55,16 @@ func GO(f func()) {
 		f()
 	}()
 }
+
+// SecureGO 带recover的go.
+func DO(f func()) {
+	// 函数封装
+	// nolint:securego
+	defer func() {
+		if err := recover(); err != nil {
+			GOErrHandler(err)
+		}
+	}()
+	// 真正的调用
+	f()
+}
