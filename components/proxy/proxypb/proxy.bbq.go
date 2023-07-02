@@ -65,14 +65,15 @@ func (t *ProxyEty) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "RegisterProxy"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -147,14 +148,15 @@ func (t *ProxyEty) SyncService(c entity.Context, req *SyncServiceRequest) (*Sync
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SyncService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -229,14 +231,15 @@ func (t *ProxyEty) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = ProxyEtyEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -361,13 +364,14 @@ func _ProxyEtyEntity_RegisterProxy_Remote_Handler(svc any, ctx entity.Context, p
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -447,13 +451,14 @@ func _ProxyEtyEntity_SyncService_Remote_Handler(svc any, ctx entity.Context, pkt
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -533,13 +538,14 @@ func _ProxyEtyEntity_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -622,6 +628,7 @@ func (t *ProxySvc) RegisterInst(c entity.Context, req *RegisterInstRequest) (*Re
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -629,7 +636,7 @@ func (t *ProxySvc) RegisterInst(c entity.Context, req *RegisterInstRequest) (*Re
 	pkt.Header.Method = "RegisterInst"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -704,6 +711,7 @@ func (t *ProxySvc) RegisterService(c entity.Context, req *RegisterServiceRequest
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -711,7 +719,7 @@ func (t *ProxySvc) RegisterService(c entity.Context, req *RegisterServiceRequest
 	pkt.Header.Method = "RegisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -786,6 +794,7 @@ func (t *ProxySvc) UnregisterService(c entity.Context, req *RegisterServiceReque
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -793,7 +802,7 @@ func (t *ProxySvc) UnregisterService(c entity.Context, req *RegisterServiceReque
 	pkt.Header.Method = "UnregisterService"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -868,6 +877,7 @@ func (t *ProxySvc) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -875,7 +885,7 @@ func (t *ProxySvc) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -1003,13 +1013,14 @@ func _ProxySvcService_RegisterInst_Remote_Handler(svc any, ctx entity.Context, p
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -1089,13 +1100,14 @@ func _ProxySvcService_RegisterService_Remote_Handler(svc any, ctx entity.Context
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -1175,13 +1187,14 @@ func _ProxySvcService_UnregisterService_Remote_Handler(svc any, ctx entity.Conte
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -1261,13 +1274,14 @@ func _ProxySvcService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any

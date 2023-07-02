@@ -102,14 +102,15 @@ func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.Go
 	pkt.Header.RequestId=    snowflake.GenUUID()
 	pkt.Header.Timeout=      10
 	pkt.Header.RequestType=  bbq.RequestType_RequestRequest 
+	pkt.Header.CallType=  	 {{if $m.HasResponse}}bbq.CallType_Unary{{else}}bbq.CallType_OneWay{{end}}
 	pkt.Header.ServiceType=  {{if $isSvc}}bbq.ServiceType_Service{{else}}bbq.ServiceType_Entity{{end}} 
 	pkt.Header.SrcEntity =   uint64(c.EntityID())
 	pkt.Header.DstEntity =   {{if $isSvc}}0{{else}}uint64(t.EntityID){{end}}
-	pkt.Header.Type = 		 {{$typeName}}Desc.TypeName
+	pkt.Header.Type = 		 {{if $isSvc}}{{$typeName}}Desc.TypeName{{else}}""{{end}}
 	pkt.Header.Method=       "{{$m.GoName}}" 
 	pkt.Header.ContentType=  bbq.ContentType_Proto
 	pkt.Header.CompressType= bbq.CompressType_None
-	pkt.Header.CheckFlags=   0
+	pkt.Header.Flags =   	 0
 	pkt.Header.TransInfo=    map[string][]byte{}
 	pkt.Header.ErrCode=      0
 	pkt.Header.ErrMsg=       "" 
@@ -255,13 +256,14 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 	npkt.Header.Timeout=      hdr.Timeout
 	npkt.Header.RequestType=  bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType=  hdr.ServiceType
+	npkt.Header.CallType=     hdr.CallType
 	npkt.Header.SrcEntity=    hdr.DstEntity
 	npkt.Header.DstEntity=    hdr.SrcEntity
 	npkt.Header.Type=         hdr.Type
 	npkt.Header.Method=       hdr.Method
 	npkt.Header.ContentType=  hdr.ContentType
 	npkt.Header.CompressType= hdr.CompressType
-	npkt.Header.CheckFlags=   0
+	npkt.Header.Flags=  	  0
 	npkt.Header.TransInfo=    hdr.TransInfo
 
 	var rsp any

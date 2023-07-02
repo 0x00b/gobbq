@@ -3,7 +3,7 @@
 //  请勿添加其他内容，包括函数，结构体，变量等等，否则重新生成时会丢失。
 
 import { UnaryResponse } from "gobbq-ts/dist/src/context/unary";
-import { Client } from "gobbq-ts/dist/src";
+import { Client, Context } from "gobbq-ts/dist/src";
 import { makeClientConstructor } from "gobbq-ts/dist/src/bbq/bbq";
 import { ServiceType } from "gobbq-ts/dist/proto/bbq";
 import Long from "long";
@@ -42,6 +42,16 @@ export interface EchoService {
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
 }
 
+export interface EchoServiceService {
+
+	// SayHello
+	SayHello(c: Context, request: SayHelloRequest):UnaryResponse<SayHelloResponse>
+}
+
+export function RegisterEchoServiceService(client: Client<any>, svc: EchoServiceService){
+  client.register(EchoServiceDefinition, svc)
+}
+
 export function NewEchoService(client: Client<any>): EchoService {
   return makeClientConstructor(client, EchoServiceDefinition) as unknown as EchoService
 }
@@ -75,6 +85,16 @@ export interface EchoEtyEntity {
 
 	// SayHello
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
+}
+
+export interface EchoEtyEntityService {
+
+	// SayHello
+	SayHello(c: Context, request: SayHelloRequest):UnaryResponse<SayHelloResponse>
+}
+
+export function RegisterEchoEtyEntityService(client: Client<any>, svc: EchoEtyEntityService){
+  client.register(EchoEtyEntityDefinition, svc)
 }
 
 export function NewEchoEtyEntity(client: Client<any>, entityID: Long): EchoEtyEntity {
@@ -114,6 +134,16 @@ export interface EchoSvc2Service {
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
 }
 
+export interface EchoSvc2ServiceService {
+
+	// SayHello
+	SayHello(c: Context, request: SayHelloRequest):UnaryResponse<SayHelloResponse>
+}
+
+export function RegisterEchoSvc2ServiceService(client: Client<any>, svc: EchoSvc2ServiceService){
+  client.register(EchoSvc2ServiceDefinition, svc)
+}
+
 export function NewEchoSvc2Service(client: Client<any>): EchoSvc2Service {
   return makeClientConstructor(client, EchoSvc2ServiceDefinition) as unknown as EchoSvc2Service
 }
@@ -149,6 +179,16 @@ export interface ClientEntity {
 	SayHello(request: SayHelloRequest):UnaryResponse<SayHelloResponse>
 }
 
+export interface ClientEntityService {
+
+	// SayHello
+	SayHello(c: Context, request: SayHelloRequest):UnaryResponse<SayHelloResponse>
+}
+
+export function RegisterClientEntityService(client: Client<any>, svc: ClientEntityService){
+  client.register(ClientEntityDefinition, svc)
+}
+
 export function NewClientEntity(client: Client<any>, entityID: Long): ClientEntity {
   return makeClientConstructor(client, ClientEntityDefinition, entityID) as unknown as ClientEntity
 }
@@ -182,6 +222,16 @@ export interface NoRespEntity {
 
 	// SayHello
 	SayHello(request: SayHelloRequest):void
+}
+
+export interface NoRespEntityService {
+
+	// SayHello
+	SayHello(c: Context, request: SayHelloRequest):void
+}
+
+export function RegisterNoRespEntityService(client: Client<any>, svc: NoRespEntityService){
+  client.register(NoRespEntityDefinition, svc)
 }
 
 export function NewNoRespEntity(client: Client<any>, entityID: Long): NoRespEntity {

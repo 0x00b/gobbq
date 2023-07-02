@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
-
+	
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// entity "github.com/0x00b/gobbq/proto/entity"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -63,14 +65,15 @@ func (t *BbqSys) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) 
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = BbqSysEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SysWatch"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -145,14 +148,15 @@ func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = BbqSysEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SysUnwatch"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -227,14 +231,15 @@ func (t *BbqSys) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error)
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = BbqSysEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SysNotify"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -359,13 +364,14 @@ func _BbqSysEntity_SysWatch_Remote_Handler(svc any, ctx Context, pkt *nets.Packe
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -445,13 +451,14 @@ func _BbqSysEntity_SysUnwatch_Remote_Handler(svc any, ctx Context, pkt *nets.Pac
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -531,13 +538,14 @@ func _BbqSysEntity_SysNotify_Remote_Handler(svc any, ctx Context, pkt *nets.Pack
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any

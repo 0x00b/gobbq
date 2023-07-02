@@ -42,7 +42,10 @@ func (e *EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*
 
 	xlog.Println("service", c.Packet().Header.String(), req.String())
 
-	echoClient := exampb.NewEchoEtyEntity(c)
+	echoClient, err := exampb.NewEchoEty(c)
+	if err != nil {
+		return nil, err
+	}
 
 	xlog.Println("watch starting")
 	e.Watch(echoClient.EntityID)
@@ -77,7 +80,7 @@ func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*e
 
 	xlog.Println("entity req", c.Packet().Header.String(), req.String())
 
-	client := exampb.NewClientEntityClient(entity.EntityID(req.GetCLientID()))
+	client := exampb.NewClientClient(entity.EntityID(req.GetCLientID()))
 	rsp, err := client.SayHello(c, req)
 	if err != nil {
 		return nil, err

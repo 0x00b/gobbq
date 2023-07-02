@@ -97,6 +97,39 @@ export function requestTypeToJSON(object: RequestType): string {
   }
 }
 
+export enum CallType {
+  Unary = 0,
+  OneWay = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function callTypeFromJSON(object: any): CallType {
+  switch (object) {
+    case 0:
+    case "Unary":
+      return CallType.Unary;
+    case 1:
+    case "OneWay":
+      return CallType.OneWay;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return CallType.UNRECOGNIZED;
+  }
+}
+
+export function callTypeToJSON(object: CallType): string {
+  switch (object) {
+    case CallType.Unary:
+      return "Unary";
+    case CallType.OneWay:
+      return "OneWay";
+    case CallType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export enum ServiceType {
   /** Entity - 请求entity，需要提供entity id， entity是有ID的service, entity可以创建很多 */
   Entity = 0,
@@ -144,6 +177,8 @@ export interface Header {
   RequestType: RequestType;
   /** sverice or entity */
   ServiceType: ServiceType;
+  /** Unary or OneWay, OneWay no response, just notify */
+  CallType: CallType;
   /** 调用的原EntityID */
   SrcEntity: Long;
   /** 调用的目的EntityID */
@@ -165,7 +200,7 @@ export interface Header {
    */
   CompressType: CompressType;
   /** 是否检查包是否正确 */
-  CheckFlags: number;
+  Flags: number;
   /** 附加信息 */
   TransInfo: { [key: string]: Uint8Array };
   /** 返回值 */
@@ -185,13 +220,14 @@ function createBaseHeader(): Header {
     Timeout: 0,
     RequestType: 0,
     ServiceType: 0,
+    CallType: 0,
     SrcEntity: Long.UZERO,
     DstEntity: Long.UZERO,
     Type: "",
     Method: "",
     ContentType: 0,
     CompressType: 0,
-    CheckFlags: 0,
+    Flags: 0,
     TransInfo: {},
     ErrCode: 0,
     ErrMsg: "",
@@ -215,35 +251,38 @@ export const Header = {
     if (message.ServiceType !== 0) {
       writer.uint32(40).int32(message.ServiceType);
     }
+    if (message.CallType !== 0) {
+      writer.uint32(48).int32(message.CallType);
+    }
     if (!message.SrcEntity.isZero()) {
-      writer.uint32(48).uint64(message.SrcEntity);
+      writer.uint32(56).uint64(message.SrcEntity);
     }
     if (!message.DstEntity.isZero()) {
-      writer.uint32(56).uint64(message.DstEntity);
+      writer.uint32(64).uint64(message.DstEntity);
     }
     if (message.Type !== "") {
-      writer.uint32(66).string(message.Type);
+      writer.uint32(74).string(message.Type);
     }
     if (message.Method !== "") {
-      writer.uint32(74).string(message.Method);
+      writer.uint32(82).string(message.Method);
     }
     if (message.ContentType !== 0) {
-      writer.uint32(80).int32(message.ContentType);
+      writer.uint32(88).int32(message.ContentType);
     }
     if (message.CompressType !== 0) {
-      writer.uint32(88).int32(message.CompressType);
+      writer.uint32(96).int32(message.CompressType);
     }
-    if (message.CheckFlags !== 0) {
-      writer.uint32(96).uint32(message.CheckFlags);
+    if (message.Flags !== 0) {
+      writer.uint32(104).uint32(message.Flags);
     }
     Object.entries(message.TransInfo).forEach(([key, value]) => {
-      Header_TransInfoEntry.encode({ key: key as any, value }, writer.uint32(106).fork()).ldelim();
+      Header_TransInfoEntry.encode({ key: key as any, value }, writer.uint32(114).fork()).ldelim();
     });
     if (message.ErrCode !== 0) {
-      writer.uint32(112).int32(message.ErrCode);
+      writer.uint32(120).int32(message.ErrCode);
     }
     if (message.ErrMsg !== "") {
-      writer.uint32(122).string(message.ErrMsg);
+      writer.uint32(130).string(message.ErrMsg);
     }
     return writer;
   },
@@ -271,36 +310,39 @@ export const Header = {
           message.ServiceType = reader.int32() as any;
           break;
         case 6:
-          message.SrcEntity = reader.uint64() as Long;
+          message.CallType = reader.int32() as any;
           break;
         case 7:
-          message.DstEntity = reader.uint64() as Long;
+          message.SrcEntity = reader.uint64() as Long;
           break;
         case 8:
-          message.Type = reader.string();
+          message.DstEntity = reader.uint64() as Long;
           break;
         case 9:
-          message.Method = reader.string();
+          message.Type = reader.string();
           break;
         case 10:
-          message.ContentType = reader.int32() as any;
+          message.Method = reader.string();
           break;
         case 11:
-          message.CompressType = reader.int32() as any;
+          message.ContentType = reader.int32() as any;
           break;
         case 12:
-          message.CheckFlags = reader.uint32();
+          message.CompressType = reader.int32() as any;
           break;
         case 13:
-          const entry13 = Header_TransInfoEntry.decode(reader, reader.uint32());
-          if (entry13.value !== undefined) {
-            message.TransInfo[entry13.key] = entry13.value;
-          }
+          message.Flags = reader.uint32();
           break;
         case 14:
-          message.ErrCode = reader.int32();
+          const entry14 = Header_TransInfoEntry.decode(reader, reader.uint32());
+          if (entry14.value !== undefined) {
+            message.TransInfo[entry14.key] = entry14.value;
+          }
           break;
         case 15:
+          message.ErrCode = reader.int32();
+          break;
+        case 16:
           message.ErrMsg = reader.string();
           break;
         default:
@@ -318,13 +360,14 @@ export const Header = {
       Timeout: isSet(object.Timeout) ? Number(object.Timeout) : 0,
       RequestType: isSet(object.RequestType) ? requestTypeFromJSON(object.RequestType) : 0,
       ServiceType: isSet(object.ServiceType) ? serviceTypeFromJSON(object.ServiceType) : 0,
+      CallType: isSet(object.CallType) ? callTypeFromJSON(object.CallType) : 0,
       SrcEntity: isSet(object.SrcEntity) ? Long.fromValue(object.SrcEntity) : Long.UZERO,
       DstEntity: isSet(object.DstEntity) ? Long.fromValue(object.DstEntity) : Long.UZERO,
       Type: isSet(object.Type) ? String(object.Type) : "",
       Method: isSet(object.Method) ? String(object.Method) : "",
       ContentType: isSet(object.ContentType) ? contentTypeFromJSON(object.ContentType) : 0,
       CompressType: isSet(object.CompressType) ? compressTypeFromJSON(object.CompressType) : 0,
-      CheckFlags: isSet(object.CheckFlags) ? Number(object.CheckFlags) : 0,
+      Flags: isSet(object.Flags) ? Number(object.Flags) : 0,
       TransInfo: isObject(object.TransInfo)
         ? Object.entries(object.TransInfo).reduce<{ [key: string]: Uint8Array }>((acc, [key, value]) => {
           acc[key] = bytesFromBase64(value as string);
@@ -343,13 +386,14 @@ export const Header = {
     message.Timeout !== undefined && (obj.Timeout = Math.round(message.Timeout));
     message.RequestType !== undefined && (obj.RequestType = requestTypeToJSON(message.RequestType));
     message.ServiceType !== undefined && (obj.ServiceType = serviceTypeToJSON(message.ServiceType));
+    message.CallType !== undefined && (obj.CallType = callTypeToJSON(message.CallType));
     message.SrcEntity !== undefined && (obj.SrcEntity = (message.SrcEntity || Long.UZERO).toString());
     message.DstEntity !== undefined && (obj.DstEntity = (message.DstEntity || Long.UZERO).toString());
     message.Type !== undefined && (obj.Type = message.Type);
     message.Method !== undefined && (obj.Method = message.Method);
     message.ContentType !== undefined && (obj.ContentType = contentTypeToJSON(message.ContentType));
     message.CompressType !== undefined && (obj.CompressType = compressTypeToJSON(message.CompressType));
-    message.CheckFlags !== undefined && (obj.CheckFlags = Math.round(message.CheckFlags));
+    message.Flags !== undefined && (obj.Flags = Math.round(message.Flags));
     obj.TransInfo = {};
     if (message.TransInfo) {
       Object.entries(message.TransInfo).forEach(([k, v]) => {
@@ -372,6 +416,7 @@ export const Header = {
     message.Timeout = object.Timeout ?? 0;
     message.RequestType = object.RequestType ?? 0;
     message.ServiceType = object.ServiceType ?? 0;
+    message.CallType = object.CallType ?? 0;
     message.SrcEntity = (object.SrcEntity !== undefined && object.SrcEntity !== null)
       ? Long.fromValue(object.SrcEntity)
       : Long.UZERO;
@@ -382,7 +427,7 @@ export const Header = {
     message.Method = object.Method ?? "";
     message.ContentType = object.ContentType ?? 0;
     message.CompressType = object.CompressType ?? 0;
-    message.CheckFlags = object.CheckFlags ?? 0;
+    message.Flags = object.Flags ?? 0;
     message.TransInfo = Object.entries(object.TransInfo ?? {}).reduce<{ [key: string]: Uint8Array }>(
       (acc, [key, value]) => {
         if (value !== undefined) {

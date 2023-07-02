@@ -5,14 +5,14 @@
 package exampb
 
 import (
-	"errors"
 	"time"
 
-	"github.com/0x00b/gobbq/engine/entity"
-	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/engine/codec"
+	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
+	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
 
 	// exampb "github.com/0x00b/gobbq/example/exampb"
@@ -25,15 +25,15 @@ func RegisterEchoService(etyMgr *entity.EntityManager, impl EchoService) {
 	etyMgr.RegisterService(&EchoServiceDesc, impl)
 }
 
-func NewEchoServiceClient() *echoService {
-	t := &echoService{}
+func NewEchoClient() *Echo {
+	t := &Echo{}
 	return t
 }
 
-type echoService struct {
+type Echo struct {
 }
 
-func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
+func (t *Echo) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -42,6 +42,7 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -49,15 +50,17 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -75,6 +78,10 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -95,14 +102,12 @@ func (t *echoService) SayHello(c entity.Context, req *SayHelloRequest) (*SayHell
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
@@ -155,12 +160,6 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _EchoService_SayHello_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -170,32 +169,43 @@ func _EchoService_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *nets
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _EchoService_SayHello_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -220,38 +230,38 @@ func RegisterEchoEtyEntity(etyMgr *entity.EntityManager, impl EchoEtyEntity) {
 	etyMgr.RegisterEntityDesc(&EchoEtyEntityDesc, impl)
 }
 
-func NewEchoEtyEntityClient(eid entity.EntityID) *echoEtyEntity {
-	t := &echoEtyEntity{
+func NewEchoEtyClient(eid entity.EntityID) *EchoEty {
+	t := &EchoEty{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewEchoEtyEntity(c entity.Context) *echoEtyEntity {
+func NewEchoEty(c entity.Context) (*EchoEty, error) {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewEchoEtyEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewEchoEtyWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewEchoEtyEntityWithID(c entity.Context, id entity.EntityID) *echoEtyEntity {
+func NewEchoEtyWithID(c entity.Context, id entity.EntityID) (*EchoEty, error) {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, EchoEtyEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
-		return nil
+		return nil, err
 	}
-	t := &echoEtyEntity{
+	t := &EchoEty{
 		EntityID: id,
 	}
 
-	return t
+	return t, nil
 }
 
-type echoEtyEntity struct {
+type EchoEty struct {
 	EntityID entity.EntityID
 }
 
-func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
+func (t *EchoEty) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -260,22 +270,25 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = EchoEtyEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -293,6 +306,10 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -313,14 +330,12 @@ func (t *echoEtyEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHe
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
@@ -373,12 +388,6 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *ne
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _EchoEtyEntity_SayHello_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -388,32 +397,43 @@ func _EchoEtyEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *ne
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _EchoEtyEntity_SayHello_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -438,15 +458,15 @@ func RegisterEchoSvc2Service(etyMgr *entity.EntityManager, impl EchoSvc2Service)
 	etyMgr.RegisterService(&EchoSvc2ServiceDesc, impl)
 }
 
-func NewEchoSvc2ServiceClient() *echoSvc2Service {
-	t := &echoSvc2Service{}
+func NewEchoSvc2Client() *EchoSvc2 {
+	t := &EchoSvc2{}
 	return t
 }
 
-type echoSvc2Service struct {
+type EchoSvc2 struct {
 }
 
-func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
+func (t *EchoSvc2) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -455,6 +475,7 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -462,15 +483,17 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -488,6 +511,10 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -508,14 +535,12 @@ func (t *echoSvc2Service) SayHello(c entity.Context, req *SayHelloRequest) (*Say
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
@@ -568,12 +593,6 @@ func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _EchoSvc2Service_SayHello_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -583,32 +602,43 @@ func _EchoSvc2Service_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _EchoSvc2Service_SayHello_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -633,38 +663,38 @@ func RegisterClientEntity(etyMgr *entity.EntityManager, impl ClientEntity) {
 	etyMgr.RegisterEntityDesc(&ClientEntityDesc, impl)
 }
 
-func NewClientEntityClient(eid entity.EntityID) *clientEntity {
-	t := &clientEntity{
+func NewClientClient(eid entity.EntityID) *Client {
+	t := &Client{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewClientEntity(c entity.Context) *clientEntity {
+func NewClient(c entity.Context) (*Client, error) {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewClientEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewClientWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewClientEntityWithID(c entity.Context, id entity.EntityID) *clientEntity {
+func NewClientWithID(c entity.Context, id entity.EntityID) (*Client, error) {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, ClientEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
-		return nil
+		return nil, err
 	}
-	t := &clientEntity{
+	t := &Client{
 		EntityID: id,
 	}
 
-	return t
+	return t, nil
 }
 
-type clientEntity struct {
+type Client struct {
 	EntityID entity.EntityID
 }
 
-func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
+func (t *Client) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResponse, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -673,22 +703,25 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = ClientEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
 	var chanRsp chan any = make(chan any)
+	defer close(chanRsp)
+
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -706,6 +739,10 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(SayHelloResponse)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -726,14 +763,12 @@ func (t *clientEntity) SayHello(c entity.Context, req *SayHelloRequest) (*SayHel
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
-
-	close(chanRsp)
 
 	if rsp, ok := rsp.(*SayHelloResponse); ok {
 		return rsp, nil
@@ -786,12 +821,6 @@ func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *net
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _ClientEntity_SayHello_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -801,32 +830,43 @@ func _ClientEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *net
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _ClientEntity_SayHello_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 
@@ -851,38 +891,38 @@ func RegisterNoRespEntity(etyMgr *entity.EntityManager, impl NoRespEntity) {
 	etyMgr.RegisterEntityDesc(&NoRespEntityDesc, impl)
 }
 
-func NewNoRespEntityClient(eid entity.EntityID) *noRespEntity {
-	t := &noRespEntity{
+func NewNoRespClient(eid entity.EntityID) *NoResp {
+	t := &NoResp{
 		EntityID: eid,
 	}
 	return t
 }
 
-func NewNoRespEntity(c entity.Context) *noRespEntity {
+func NewNoResp(c entity.Context) (*NoResp, error) {
 	etyMgr := entity.GetEntityMgr(c)
-	return NewNoRespEntityWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
+	return NewNoRespWithID(c, etyMgr.EntityIDGenerator.NewEntityID())
 }
 
-func NewNoRespEntityWithID(c entity.Context, id entity.EntityID) *noRespEntity {
+func NewNoRespWithID(c entity.Context, id entity.EntityID) (*NoResp, error) {
 
 	etyMgr := entity.GetEntityMgr(c)
 	_, err := etyMgr.NewEntity(c, id, NoRespEntityDesc.TypeName)
 	if err != nil {
 		xlog.Errorln("new entity err")
-		return nil
+		return nil, err
 	}
-	t := &noRespEntity{
+	t := &NoResp{
 		EntityID: id,
 	}
 
-	return t
+	return t, nil
 }
 
-type noRespEntity struct {
+type NoResp struct {
 	EntityID entity.EntityID
 }
 
-func (t *noRespEntity) SayHello(c entity.Context, req *SayHelloRequest) error {
+func (t *NoResp) SayHello(c entity.Context, req *SayHelloRequest) error {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -891,21 +931,22 @@ func (t *noRespEntity) SayHello(c entity.Context, req *SayHelloRequest) error {
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_OneWay
 	pkt.Header.ServiceType = bbq.ServiceType_Entity
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = uint64(t.EntityID)
-	pkt.Header.Type = NoRespEntityDesc.TypeName
+	pkt.Header.Type = ""
 	pkt.Header.Method = "SayHello"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return errors.New("bad context")
+		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
 	if err != nil {
@@ -975,12 +1016,13 @@ func _NoRespEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *net
 	in := new(SayHelloRequest)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
+
 	if err != nil {
-		// err
+		// report
 		return
 	}
-
-	_NoRespEntity_SayHello_Handler(svc, ctx, in, interceptor)
+	err = _NoRespEntity_SayHello_Handler(svc, ctx, in, interceptor)
+	// report err
 
 }
 

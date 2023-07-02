@@ -45,7 +45,7 @@ func TestWSClient(m *testing.T) {
 
 			// client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
-			es := exampb.NewEchoSvc2ServiceClient()
+			es := exampb.NewEchoSvc2Client()
 			cc, _ := client.Context().Copy()
 			rsp, err := es.SayHello(cc, &exampb.SayHelloRequest{
 				Text: fmt.Sprintf("%d", i),

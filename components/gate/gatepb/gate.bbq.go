@@ -14,7 +14,9 @@ import (
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -40,6 +42,7 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -47,7 +50,7 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 	pkt.Header.Method = "RegisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -122,6 +125,7 @@ func (t *Gate) UnregisterClient(c entity.Context, req *RegisterClientRequest) er
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_OneWay
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -129,7 +133,7 @@ func (t *Gate) UnregisterClient(c entity.Context, req *RegisterClientRequest) er
 	pkt.Header.Method = "UnregisterClient"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -171,6 +175,7 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -178,7 +183,7 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.Method = "Ping"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -303,13 +308,14 @@ func _GateService_RegisterClient_Remote_Handler(svc any, ctx entity.Context, pkt
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any
@@ -435,13 +441,14 @@ func _GateService_Ping_Remote_Handler(svc any, ctx entity.Context, pkt *nets.Pac
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
 	var rsp any

@@ -151,8 +151,9 @@ func (cn *Conn) handle(pkt *Packet) error {
 }
 
 func ReplayError(pkt *Packet, e error) {
-	if pkt.Header.RequestType == bbq.RequestType_RequestRespone {
-		// 本身已经是回包，没有必要再处理了
+	if pkt.Header.RequestType == bbq.RequestType_RequestRespone ||
+		pkt.Header.CallType == bbq.CallType_OneWay {
+		// 本身已经是回包, 或者不需要回包，没有必要再处理了，只能记录一下
 		// report err
 		xlog.Error(e)
 		return

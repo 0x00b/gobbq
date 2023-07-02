@@ -5,16 +5,18 @@
 package testpb
 
 import (
-	"errors"
 	"time"
 
 	"github.com/0x00b/gobbq/engine/codec"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
+	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
+
 	// testpb "github.com/0x00b/gobbq/example/exampb"
+
 )
 
 var _ = snowflake.GenUUID()
@@ -23,15 +25,15 @@ func RegisterFrameService(etyMgr *entity.EntityManager, impl FrameService) {
 	etyMgr.RegisterService(&FrameServiceDesc, impl)
 }
 
-func NewFrameServiceClient() *frameService {
-	t := &frameService{}
+func NewFrameClient() *Frame {
+	t := &Frame{}
 	return t
 }
 
-type frameService struct {
+type Frame struct {
 }
 
-func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartFrameRsp, error) {
+func (t *Frame) StartFrame(c entity.Context, req *StartFrameReq) (*StartFrameRsp, error) {
 
 	pkt := nets.NewPacket()
 	defer pkt.Release()
@@ -40,6 +42,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 	pkt.Header.RequestId = snowflake.GenUUID()
 	pkt.Header.Timeout = 10
 	pkt.Header.RequestType = bbq.RequestType_RequestRequest
+	pkt.Header.CallType = bbq.CallType_Unary
 	pkt.Header.ServiceType = bbq.ServiceType_Service
 	pkt.Header.SrcEntity = uint64(c.EntityID())
 	pkt.Header.DstEntity = 0
@@ -47,7 +50,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 	pkt.Header.Method = "StartFrame"
 	pkt.Header.ContentType = bbq.ContentType_Proto
 	pkt.Header.CompressType = bbq.CompressType_None
-	pkt.Header.CheckFlags = 0
+	pkt.Header.Flags = 0
 	pkt.Header.TransInfo = map[string][]byte{}
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
@@ -57,7 +60,7 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
-		return nil, errors.New("bad context")
+		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
 	if err != nil {
@@ -75,6 +78,10 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 
 		// register callback first, than SendPacket
 		entity.RegisterCallback(c, pkt.Header.RequestId, func(pkt *nets.Packet) {
+			if pkt.Header.ErrCode != 0 {
+				chanRsp <- error(erro.NewError(erro.ErrBadCall.ErrCode, pkt.Header.ErrMsg))
+				return
+			}
 			rsp := new(StartFrameRsp)
 			reqbuf := pkt.PacketBody()
 			err := codec.GetCodec(pkt.Header.GetContentType()).Unmarshal(reqbuf, rsp)
@@ -95,10 +102,10 @@ func (t *frameService) StartFrame(c entity.Context, req *StartFrameReq) (*StartF
 	select {
 	case <-c.Done():
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("context done")
+		return nil, erro.ErrContextDone
 	case <-time.After(time.Duration(pkt.Header.Timeout) * time.Second):
 		entity.PopCallback(c, pkt.Header.RequestId)
-		return nil, errors.New("time out")
+		return nil, erro.ErrTimeOut
 	case rsp = <-chanRsp:
 	}
 
@@ -153,12 +160,6 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *n
 	in := new(StartFrameReq)
 	reqbuf := pkt.PacketBody()
 	err := codec.GetCodec(hdr.GetContentType()).Unmarshal(reqbuf, in)
-	if err != nil {
-		// nil,err
-		return
-	}
-
-	rsp, err := _FrameService_StartFrame_Handler(svc, ctx, in, interceptor)
 
 	npkt := nets.NewPacket()
 	defer npkt.Release()
@@ -168,32 +169,43 @@ func _FrameService_StartFrame_Remote_Handler(svc any, ctx entity.Context, pkt *n
 	npkt.Header.Timeout = hdr.Timeout
 	npkt.Header.RequestType = bbq.RequestType_RequestRespone
 	npkt.Header.ServiceType = hdr.ServiceType
+	npkt.Header.CallType = hdr.CallType
 	npkt.Header.SrcEntity = hdr.DstEntity
 	npkt.Header.DstEntity = hdr.SrcEntity
 	npkt.Header.Type = hdr.Type
 	npkt.Header.Method = hdr.Method
 	npkt.Header.ContentType = hdr.ContentType
 	npkt.Header.CompressType = hdr.CompressType
-	npkt.Header.CheckFlags = 0
+	npkt.Header.Flags = 0
 	npkt.Header.TransInfo = hdr.TransInfo
 
+	var rsp any
+	if err == nil {
+		rsp, err = _FrameService_StartFrame_Handler(svc, ctx, in, interceptor)
+	}
 	if err != nil {
-		npkt.Header.ErrCode = 1
-		npkt.Header.ErrMsg = err.Error()
-
+		if x, ok := err.(erro.CodeError); ok {
+			npkt.Header.ErrCode = x.Code()
+			npkt.Header.ErrMsg = x.Message()
+		} else {
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		}
 		npkt.WriteBody(nil)
 	} else {
-		rb, err := codec.DefaultCodec.Marshal(rsp)
+		var rb []byte
+		rb, err = codec.DefaultCodec.Marshal(rsp)
 		if err != nil {
-			xlog.Errorln("Marshal(rsp)", err)
-			return
+			npkt.Header.ErrCode = -1
+			npkt.Header.ErrMsg = err.Error()
+		} else {
+			npkt.WriteBody(rb)
 		}
-
-		npkt.WriteBody(rb)
 	}
 	err = pkt.Src.SendPacket(npkt)
 	if err != nil {
-		xlog.Errorln("SendPacket", err)
+		// report
+		_ = err
 		return
 	}
 

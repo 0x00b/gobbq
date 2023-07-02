@@ -53,7 +53,7 @@ func (e *EchoService2) SayHello(c entity.Context, req *exampb.SayHelloRequest) (
 
 	xlog.Println("service2222 req", c.Packet().Header.String(), req.String())
 
-	echoClient := exampb.NewEchoServiceClient()
+	echoClient := exampb.NewEchoClient()
 	rsp, err := echoClient.SayHello(c, req)
 	if err != nil {
 		return nil, err
