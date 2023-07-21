@@ -83,23 +83,51 @@ message Header {
 
 // ===========options===========
 
+enum MySQL {
+	MYSQL_FIELD = 0;		// 普通db字段
+	MYSQL_NONE = 1; 		// 非db字段，不持久化，其他类型都是db字段，持久化存储
+	MYSQL_PRIMARY_KEY = 2;	// 主键
+	MYSQL_UNIQUE = 3;		// 唯一索引
+	MYSQL_INDEX = 4;		// 普通索引
+}
+
+// mongodb
+enum MONGO {
+	MGO_FIELD = 0;		// 普通db字段
+	MGO_NONE = 1; 		// 非db字段，不持久化，其他类型都是db字段，持久化存储
+	MGO_ID = 2;			// 主键
+}
+
+message Field {
+	// 自定义tag，可以自己针对不同的tag实现不同的逻辑
+	string tag = 1;
+	// mysql
+	MySQL mysql = 2;
+	// mongo
+	MONGO mgo = 3;
+}
+
 // message FooOptions {
-// 	optional int32 opt1 = 1;
-// 	optional string opt2 = 2;
+// 	int32 opt1 = 1;
+// 	string opt2 = 2;
 // }
-//   extend google.protobuf.FieldOptions {
-// 		optional FooOptions foo_options = 1234;
-//   }
-// usage:
+
+extend google.protobuf.FieldOptions {
+	// FooOptions foo_options = 1234;
+	Field field = 1100;
+}
+
+// // usage:
 // message Bar {
-// 	optional int32 a = 1 [(foo_options).opt1 = 123, (foo_options).opt2 = "baz"];
+// 	int32 a = 1 [(foo_options).opt1 = 123, (foo_options).opt2 = "baz"];
 // 	// alternative aggregate syntax (uses TextFormat):
-// 	optional int32 b = 2 [(foo_options) = { opt1: 123 opt2: "baz" }];
-//   }
+// 	int32 b = 2 [(foo_options) = { opt1: 123 opt2: "baz" }];
+// }
 
 // extend google.protobuf.MessageOptions {
-//   optional string type = 51234;
+// 	string primary_key = 51234;
 // }
+
 // usage
 // message MyMessage {
 //   option (type) = "service";

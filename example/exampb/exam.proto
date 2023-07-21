@@ -14,7 +14,25 @@ message SayHelloRequest{
 message SayHelloResponse{
 	string text = 1;
 }
- 
+
+enum Enum{
+	XXX =0;
+	XXX2 = 1;
+}
+
+message EchoProperty{
+	string Text = 1 [(bbq.field) = {tag:"Key" mgo:MGO_ID}];
+	SayHelloRequest test=2;
+	repeated google.protobuf.Empty test2 = 3; //先不支持import类型
+	map<int32, string> test3 = 4;
+	bytes test4 = 5;
+	sfixed64 test5 = 6;
+	sfixed32 test6 = 7;
+	Enum TEST7 = 8;
+	sint32 test8 = 9;
+	repeated sint32 test9 = 10;
+}
+
 service Echo {
 	option (bbq.service_type) = Service;
 

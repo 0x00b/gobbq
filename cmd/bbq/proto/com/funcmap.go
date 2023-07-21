@@ -2,6 +2,7 @@ package com
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -10,7 +11,9 @@ import (
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	pb "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // FuncMap 模版中使用的函数列表
@@ -28,6 +31,8 @@ var FuncMap = template.FuncMap{
 	"export":             GoExport,
 	"simplify":           PBSimplifyGoType,
 	"FileName":           FileName,
+	"FieldType":          FieldType,
+	"HasBBQFieldTag":     HasBBQFieldTag,
 
 	// comm func
 	"camelcase":      Camelcase,
@@ -421,5 +426,85 @@ func AStringContains(s []string, n string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+func getGoType(GoImportPath, myGoImportPath, name string) string {
+
+	pathPkg := (GoImportPath)
+	pkg := filepath.Base(pathPkg)
+
+	if GoImportPath == myGoImportPath {
+		return name
+	}
+	return pkg + "." + name
+}
+
+func getGoPODType(desc protoreflect.FieldDescriptor) string {
+
+	typ := ""
+	switch desc.Kind() {
+	case protoreflect.BytesKind:
+		typ = "[]byte"
+
+	case protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sint32Kind:
+		typ = "int32"
+	case protoreflect.Sfixed64Kind, protoreflect.Fixed64Kind, protoreflect.Sint64Kind:
+		typ = "int64"
+
+	// case protoreflect.BoolKind:
+	// case protoreflect.Int32Kind:
+	// case protoreflect.Uint32Kind:
+	// case protoreflect.Int64Kind:
+	// case protoreflect.Uint64Kind:
+	// case protoreflect.FloatKind:
+	// case protoreflect.DoubleKind:
+	// case protoreflect.StringKind:
+	// case protoreflect.GroupKind:
+	default:
+		typ = desc.Kind().String()
+	}
+
+	if desc.IsList() {
+		typ = "[]" + typ
+	}
+	return typ
+}
+
+func FieldType(f *protogen.Field, myGoImportPath string) string {
+
+	typ := ""
+	switch f.Desc.Kind() {
+	case protoreflect.MessageKind:
+		if f.Desc.IsMap() {
+			typ = "map[" + getGoPODType(f.Desc.MapKey()) + "]" + getGoPODType(f.Desc.MapValue())
+			typ = getGoType(string(f.Message.GoIdent.GoImportPath), myGoImportPath, typ)
+		} else {
+			typ = "*" + getGoType(string(f.Message.GoIdent.GoImportPath), myGoImportPath, f.Message.GoIdent.GoName)
+		}
+	case protoreflect.EnumKind:
+		typ = getGoType(string(f.Enum.GoIdent.GoImportPath), myGoImportPath, f.Enum.GoIdent.GoName)
+
+	default:
+		return getGoPODType(f.Desc)
+	}
+
+	if f.Desc.IsList() {
+		typ = "[]" + typ
+	}
+
+	return typ
+}
+
+func HasBBQFieldTag(m *protogen.Message) bool {
+
+	for _, f := range m.Fields {
+		v, ok := proto.GetExtension(f.Desc.Options(), bbq.E_Field).(*bbq.Field)
+		if !ok || v == nil {
+			continue
+		}
+		return true
+	}
+
 	return false
 }

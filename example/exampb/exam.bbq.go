@@ -1022,6 +1022,7 @@ func _NoRespEntity_SayHello_Remote_Handler(svc any, ctx entity.Context, pkt *net
 		return
 	}
 	err = _NoRespEntity_SayHello_Handler(svc, ctx, in, interceptor)
+	_ = err
 	// report err
 
 }

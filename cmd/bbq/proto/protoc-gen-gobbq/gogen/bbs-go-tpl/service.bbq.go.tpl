@@ -301,6 +301,7 @@ func _{{$typeName}}_{{$m.GoName}}_Remote_Handler(svc any, ctx entity.Context, pk
 		return
 	}
 	err = _{{$typeName}}_{{$m.GoName}}_Handler(svc, ctx, in, interceptor)
+	_ = err
 	// report err
 {{end}}
 

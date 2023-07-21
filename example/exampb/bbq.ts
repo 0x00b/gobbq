@@ -165,6 +165,105 @@ export function serviceTypeToJSON(object: ServiceType): string {
   }
 }
 
+export enum MySQL {
+  /** MYSQL_FIELD - 普通db字段 */
+  MYSQL_FIELD = 0,
+  /** MYSQL_NONE - 非db字段，不持久化，其他类型都是db字段，持久化存储 */
+  MYSQL_NONE = 1,
+  /** MYSQL_PRIMARY_KEY - 主键 */
+  MYSQL_PRIMARY_KEY = 2,
+  /** MYSQL_UNIQUE - 唯一索引 */
+  MYSQL_UNIQUE = 3,
+  /** MYSQL_INDEX - 普通索引 */
+  MYSQL_INDEX = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function mySQLFromJSON(object: any): MySQL {
+  switch (object) {
+    case 0:
+    case "MYSQL_FIELD":
+      return MySQL.MYSQL_FIELD;
+    case 1:
+    case "MYSQL_NONE":
+      return MySQL.MYSQL_NONE;
+    case 2:
+    case "MYSQL_PRIMARY_KEY":
+      return MySQL.MYSQL_PRIMARY_KEY;
+    case 3:
+    case "MYSQL_UNIQUE":
+      return MySQL.MYSQL_UNIQUE;
+    case 4:
+    case "MYSQL_INDEX":
+      return MySQL.MYSQL_INDEX;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return MySQL.UNRECOGNIZED;
+  }
+}
+
+export function mySQLToJSON(object: MySQL): string {
+  switch (object) {
+    case MySQL.MYSQL_FIELD:
+      return "MYSQL_FIELD";
+    case MySQL.MYSQL_NONE:
+      return "MYSQL_NONE";
+    case MySQL.MYSQL_PRIMARY_KEY:
+      return "MYSQL_PRIMARY_KEY";
+    case MySQL.MYSQL_UNIQUE:
+      return "MYSQL_UNIQUE";
+    case MySQL.MYSQL_INDEX:
+      return "MYSQL_INDEX";
+    case MySQL.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
+/** mongodb */
+export enum MONGO {
+  /** MGO_FIELD - 普通db字段 */
+  MGO_FIELD = 0,
+  /** MGO_NONE - 非db字段，不持久化，其他类型都是db字段，持久化存储 */
+  MGO_NONE = 1,
+  /** MGO_ID - 主键 */
+  MGO_ID = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function mONGOFromJSON(object: any): MONGO {
+  switch (object) {
+    case 0:
+    case "MGO_FIELD":
+      return MONGO.MGO_FIELD;
+    case 1:
+    case "MGO_NONE":
+      return MONGO.MGO_NONE;
+    case 2:
+    case "MGO_ID":
+      return MONGO.MGO_ID;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return MONGO.UNRECOGNIZED;
+  }
+}
+
+export function mONGOToJSON(object: MONGO): string {
+  switch (object) {
+    case MONGO.MGO_FIELD:
+      return "MGO_FIELD";
+    case MONGO.MGO_NONE:
+      return "MGO_NONE";
+    case MONGO.MGO_ID:
+      return "MGO_ID";
+    case MONGO.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 /** 请求协议头 */
 export interface Header {
   /** 协议版本 */
@@ -211,6 +310,15 @@ export interface Header {
 export interface Header_TransInfoEntry {
   key: string;
   value: Uint8Array;
+}
+
+export interface Field {
+  /** 自定义tag，可以自己针对不同的tag实现不同的逻辑 */
+  tag: string;
+  /** mysql */
+  mysql: MySQL;
+  /** mongo */
+  mgo: MONGO;
 }
 
 function createBaseHeader(): Header {
@@ -502,6 +610,77 @@ export const Header_TransInfoEntry = {
     const message = createBaseHeader_TransInfoEntry();
     message.key = object.key ?? "";
     message.value = object.value ?? new Uint8Array();
+    return message;
+  },
+};
+
+function createBaseField(): Field {
+  return { tag: "", mysql: 0, mgo: 0 };
+}
+
+export const Field = {
+  encode(message: Field, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.tag !== "") {
+      writer.uint32(10).string(message.tag);
+    }
+    if (message.mysql !== 0) {
+      writer.uint32(16).int32(message.mysql);
+    }
+    if (message.mgo !== 0) {
+      writer.uint32(24).int32(message.mgo);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Field {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseField();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.tag = reader.string();
+          break;
+        case 2:
+          message.mysql = reader.int32() as any;
+          break;
+        case 3:
+          message.mgo = reader.int32() as any;
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Field {
+    return {
+      tag: isSet(object.tag) ? String(object.tag) : "",
+      mysql: isSet(object.mysql) ? mySQLFromJSON(object.mysql) : 0,
+      mgo: isSet(object.mgo) ? mONGOFromJSON(object.mgo) : 0,
+    };
+  },
+
+  toJSON(message: Field): unknown {
+    const obj: any = {};
+    message.tag !== undefined && (obj.tag = message.tag);
+    message.mysql !== undefined && (obj.mysql = mySQLToJSON(message.mysql));
+    message.mgo !== undefined && (obj.mgo = mONGOToJSON(message.mgo));
+    return obj;
+  },
+
+  create(base?: DeepPartial<Field>): Field {
+    return Field.fromPartial(base ?? {});
+  },
+
+  fromPartial(object: DeepPartial<Field>): Field {
+    const message = createBaseField();
+    message.tag = object.tag ?? "";
+    message.mysql = object.mysql ?? 0;
+    message.mgo = object.mgo ?? 0;
     return message;
   },
 };

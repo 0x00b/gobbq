@@ -61,12 +61,16 @@ func (g *GoGenerator) Generate(tplRoot string, proto *com.Proto) error {
 				if !com.AStringContains(proto.Plugin.Request.FileToGenerate, *f.Name) {
 					continue
 				}
+				f.GoImplImportPaths = f.GoImplImportPaths[:0]
 				//需要通过go.mod找到文件路径
 				name, _ := initGenerateDir(tplRoot, path, f)
 				// fmt.Printf("filename:[%s]\n", name)
 
 				// no rewrit
 				// _ = g.setFileImpl(name, f)
+
+				// get import paths
+				g.fillGoImplImportPaths(path, f)
 
 				var b bytes.Buffer
 				err = tplInstance.Execute(&b, f)
@@ -105,17 +109,68 @@ func (g *GoGenerator) Generate(tplRoot string, proto *com.Proto) error {
 	// 	}
 	// 	return nil
 	// })
+
+	// rewrite field tag
+	for _, f := range proto.Files {
+		if !com.AStringContains(proto.Plugin.Request.FileToGenerate, *f.Name) {
+			continue
+		}
+
+		fileName := filepath.Base(*f.Name)
+		pbName := com.TrimRight(fileName, filepath.Ext(fileName)) + ".pb.go"
+
+		areas, err := parseFile(pbName, f, nil, nil)
+
+		if err != nil {
+			panic(err)
+		}
+		if err = writeFile(pbName, areas); err != nil {
+			panic(err)
+		}
+	}
 	return nil
 }
 
-func (g *GoGenerator) setFileImpl(name string, f *com.File) error {
+func (g *GoGenerator) fillGoImplImportPaths(path string, file *com.File) error {
+
+	if !strings.Contains(path, ".bbqm.go.tpl") {
+		return nil
+	}
+
+	for _, m := range file.Messages {
+		for _, f := range m.Fields {
+			if f.Message != nil {
+				gopath := string(f.Message.GoIdent.GoImportPath)
+				if gopath != file.GoImportPath {
+					file.GoImplImportPaths = append(file.GoImplImportPaths, rewrite.Import{
+						Alias:      filepath.Base(gopath),
+						ImportPath: gopath,
+					})
+				}
+			}
+			if f.Enum != nil {
+				gopath := string(f.Enum.GoIdent.GoImportPath)
+				if gopath != file.GoImportPath {
+					file.GoImplImportPaths = append(file.GoImplImportPaths, rewrite.Import{
+						Alias:      filepath.Base(gopath),
+						ImportPath: gopath,
+					})
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (g *GoGenerator) SetFileImpl(name string, f *com.File) error {
 	var err error
 	f.GoRewriter, err = rewrite.New(filepath.Dir(name))
 	if err != nil {
 		return err
 	}
 
-	f.GoImplImportPaths = f.GoRewriter.ExistingImports(name)
+	f.GoImplImportPaths = append(f.GoImplImportPaths, f.GoRewriter.ExistingImports(name)...)
 
 	return nil
 }

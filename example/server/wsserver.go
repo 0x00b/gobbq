@@ -6,6 +6,7 @@ import (
 
 	"github.com/0x00b/gobbq/components/game"
 	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/engine/db"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/example/exampb"
 	"github.com/0x00b/gobbq/xlog"
@@ -62,10 +63,32 @@ func (e *EchoService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*
 
 type EchoEntity struct {
 	entity.Entity
+
+	exampb.EchoPropertyModel
+}
+
+func (e *EchoEntity) OnInit() {
+	var db db.IDatabase
+
+	e.Text = "xxx" // _id
+
+	e.ModelInit(e.Context(), db)
+
+	e.SetText("xxxx")
+
+	_ = e.Text
 }
 
 func (e *EchoEntity) OnTick() {
 	// xlog.Infoln("tick...")
+}
+
+func (e *EchoEntity) OnDestroy() {
+
+	e.Destroy(e.Context())
+
+	// xlog.Infoln("tick...")
+	// e.Save()
 }
 
 func (e *EchoEntity) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*exampb.SayHelloResponse, error) {

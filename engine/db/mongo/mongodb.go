@@ -1,101 +1,192 @@
-package kvdbmongo
+package mongo
 
 import (
-	"github.com/0x00b/gobbq/engine/db/kv"
-	"github.com/0x00b/gobbq/engine/entity"
+	"context"
+	"errors"
+	"time"
+
+	"github.com/0x00b/gobbq/engine/db"
+	"github.com/0x00b/gobbq/engine/model"
 	"github.com/0x00b/gobbq/xlog"
-	"gopkg.in/mgo.v2"
-
-	"io"
-
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const (
-	_DEFAULT_DB_NAME = "goworld"
-	_VAL_KEY         = "_"
+	_DEFAULT_DB_NAME = "gobbq"
 )
 
-type mongoKVDB struct {
-	s *mgo.Session
-	c *mgo.Collection
+type Config struct {
+	URL            string
+	DBName         string
+	CollectionName string
 }
 
-// OpenMongoKVDB opens mongodb as KVDB engine
-func OpenMongoKVDB(url string, dbname string, collectionName string) (kv.KVDBEngine, error) {
-	xlog.Debugln(nil, "Connecting MongoDB ...")
-	session, err := mgo.Dial(url)
+var _ db.IDatabase = &mongoDB{}
+
+type mongoDB struct {
+	client   *mongo.Client
+	database *mongo.Database
+
+	collection *mongo.Collection
+
+	watchModels map[proto.Message]*watchMessage
+}
+
+func NewMongoDB() *mongoDB {
+	d := &mongoDB{
+		watchModels: make(map[protoreflect.ProtoMessage]*watchMessage),
+	}
+
+	return d
+}
+
+func (m *mongoDB) Name() db.DBName {
+	return db.DBMongo
+}
+
+func (m *mongoDB) Connect(cfg any) error {
+
+	mcfg, ok := cfg.(*Config)
+	if !ok {
+		return errors.New("err config")
+	}
+
+	xlog.Debugln(nil, "Connecting mongoDB ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mcfg.URL))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	session.SetMode(mgo.Monotonic, true)
-	if dbname == "" {
-		// if db is not specified, use default
-		dbname = _DEFAULT_DB_NAME
+	if mcfg.DBName == "" {
+		mcfg.DBName = _DEFAULT_DB_NAME
 	}
-	db := session.DB(dbname)
-	c := db.C(collectionName)
-	return &mongoKVDB{
-		s: session,
-		c: c,
-	}, nil
+
+	m.client = client
+	m.database = client.Database(mcfg.DBName)
+
+	if mcfg.CollectionName != "" {
+		m.collection = m.database.Collection(mcfg.CollectionName)
+	}
+
+	return nil
 }
 
-func (kvdb *mongoKVDB) Put(ctx entity.Context, key string, val string) error {
-	_, err := kvdb.c.UpsertId(key, map[string]string{
-		_VAL_KEY: val,
-	})
-	return err
+func (m *mongoDB) Table(name string) (db.IDatabase, error) {
+	if m == nil || m.database == nil {
+		return nil, errors.New("nil db")
+	}
+	if name == "" {
+		return nil, errors.New("empty name")
+	}
+	tm := NewMongoDB()
+
+	tm.client = m.client
+	tm.database = m.database
+
+	tm.collection = m.database.Collection(name)
+
+	return tm, nil
 }
 
-func (kvdb *mongoKVDB) Get(ctx entity.Context, key string) (val string, err error) {
-	q := kvdb.c.FindId(key)
-	var doc map[string]string
-	err = q.One(&doc)
+func (m *mongoDB) Load(c context.Context, record db.Record) error { // get by id
+
+	id, err := GetMongoID(record)
 	if err != nil {
-		if err == mgo.ErrNotFound {
-			err = nil
-		}
-		return
-	}
-	val = doc[_VAL_KEY]
-	return
-}
-
-type mongoKVIterator struct {
-	it *mgo.Iter
-}
-
-func (it *mongoKVIterator) Next(ctx entity.Context) (kv.KVItem, error) {
-	var doc map[string]string
-	ok := it.it.Next(&doc)
-	if ok {
-		return kv.KVItem{
-			Key: doc["_id"],
-			Val: doc["_"],
-		}, nil
+		return err
 	}
 
-	err := it.it.Close()
+	res := m.collection.FindOne(c, bson.M{"_id": id})
+	if res == nil {
+		return errors.New("nil res")
+	}
+	if res.Err() != nil {
+		return res.Err()
+	}
+
+	return res.Decode(record)
+}
+
+func (m *mongoDB) Update(c context.Context, record db.Record, fields []model.FieldName) error {
+	if len(fields) == 0 {
+		return m.Save(c, record)
+	}
+
+	fieldMap, err := m.PartialMarshalToMap(record, fields)
 	if err != nil {
-		return kv.KVItem{}, err
+		return err
 	}
-	return kv.KVItem{}, io.EOF
+
+	id, err := GetMongoID(record)
+	if err != nil {
+		return err
+	}
+
+	// map to set param
+	param := bson.D{{Key: "$set", Value: bson.M(fieldMap)}}
+
+	res, err := m.collection.UpdateByID(c, id, param)
+	if err != nil {
+		return err
+	}
+	_ = res
+
+	return nil
 }
 
-func (kvdb *mongoKVDB) Find(ctx entity.Context, beginKey string, endKey string) (kv.Iterator, error) {
-	q := kvdb.c.Find(bson.M{"_id": bson.M{"$gte": beginKey, "$lt": endKey}})
-	it := q.Iter()
-	return &mongoKVIterator{
-		it: it,
-	}, nil
+func (m *mongoDB) Insert(c context.Context, record db.Record) error {
+
+	res, err := m.collection.InsertOne(c, record)
+
+	if err != nil {
+		return err
+	}
+	_ = res.InsertedID
+
+	return nil
 }
 
-func (kvdb *mongoKVDB) Close() {
-	kvdb.s.Close()
+func (m *mongoDB) Delete(c context.Context, record db.Record) error {
+
+	id, err := GetMongoID(record)
+	if err != nil {
+		return err
+	}
+
+	res, err := m.collection.DeleteOne(c, bson.M{"_id": id})
+
+	if err != nil {
+		return err
+	}
+	_ = res
+
+	return nil
 }
 
-func (kvdb *mongoKVDB) IsConnectionError(err error) bool {
-	return err == io.EOF || err == io.ErrUnexpectedEOF
+func (m *mongoDB) Save(c context.Context, record db.Record) error {
+
+	id, err := GetMongoID(record)
+	if err != nil {
+		return err
+	}
+
+	opts := options.Update().SetUpsert(true)
+	param := bson.D{{Key: "$set", Value: record}}
+	res, err := m.collection.UpdateOne(c, bson.M{"_id": id}, param, opts)
+	if err != nil {
+		return err
+	}
+	_ = res
+
+	return nil
+}
+
+func (m *mongoDB) AutoSave(c context.Context, record db.Record) error { // just save updated field
+	return m.updateDirtyField(c, record)
 }

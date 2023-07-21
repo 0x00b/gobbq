@@ -9,6 +9,7 @@ import { ServiceType } from "gobbq-ts/dist/proto/bbq";
 import Long from "long";
 import { SayHelloRequest } from "./exam"
 import { SayHelloResponse } from "./exam"
+import { EchoProperty } from "./exam"
 	
 // EchoService
 export type EchoServiceDefinition = typeof EchoServiceDefinition;
