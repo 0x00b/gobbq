@@ -11,6 +11,8 @@ import (
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com"
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com/base"
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com/gorewriter/rewrite"
+	"github.com/0x00b/gobbq/proto/bbq"
+	"google.golang.org/protobuf/proto"
 )
 
 // GoGenerator generate go code
@@ -37,6 +39,24 @@ func NewGoGenerator(rootPackage string) (gg *GoGenerator, err error) {
 	// gg.Rewriter = make(map[*com.FileDescriptorProto]*rewrite.Rewriter)
 
 	return gg, nil
+}
+
+func (g *GoGenerator) shouldGenerate(path string, file *com.File) bool {
+	if !strings.Contains(path, ".bbqm.go.tpl") {
+		return true
+	}
+
+	for _, m := range file.Messages {
+		for _, f := range m.Fields {
+			v, ok := proto.GetExtension(f.Desc.Options(), bbq.E_Field).(*bbq.Field)
+			if !ok || v == nil {
+				continue
+			}
+			return true
+		}
+	}
+
+	return false
 }
 
 // Generate TODO
@@ -68,6 +88,9 @@ func (g *GoGenerator) Generate(tplRoot string, proto *com.Proto) error {
 
 				// no rewrit
 				// _ = g.setFileImpl(name, f)
+				if !g.shouldGenerate(path, f) {
+					continue
+				}
 
 				// get import paths
 				g.fillGoImplImportPaths(path, f)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/0x00b/gobbq/components/game"
 	"github.com/0x00b/gobbq/conf"
-	"github.com/0x00b/gobbq/engine/db"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/example/exampb"
 	"github.com/0x00b/gobbq/xlog"
@@ -68,13 +67,13 @@ type EchoEntity struct {
 }
 
 func (e *EchoEntity) OnInit() {
-	var db db.IDatabase
+	// var db db.IDatabase
 
-	e.Text = "xxx" // _id
+	// e.Text = "xxx" // _id
 
-	e.ModelInit(e.Context(), db)
+	// e.ModelInit(e.Context(), db)
 
-	e.SetText("xxxx")
+	// e.SetText("xxxx")
 
 	_ = e.Text
 }
@@ -85,7 +84,7 @@ func (e *EchoEntity) OnTick() {
 
 func (e *EchoEntity) OnDestroy() {
 
-	e.Destroy(e.Context())
+	// e.Destroy(e.Context())
 
 	// xlog.Infoln("tick...")
 	// e.Save()
