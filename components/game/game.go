@@ -75,8 +75,9 @@ func (g *Game) init(old entity.EntityID) {
 	new := entity.FixedEntityID(proxyID, instID, g.Entity.EntityID().ID())
 	g.EntityMgr.ReplaceEntityID(old, new)
 
-	g.AddTimer(10*time.Second, func() {
+	g.AddTimer(10*time.Second, func() bool {
 		client.Ping(g.Context(), &proxypb.PingPong{})
+		return true
 	})
 }
 

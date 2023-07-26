@@ -65,8 +65,9 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 	newID := entity.EntityID(rsp.GetEntityID())
 	client.EntityMgr.ReplaceEntityID(eid, newID)
 
-	client.AddTimer(10*time.Second, func() {
+	client.AddTimer(10*time.Second, func() bool {
 		gateSvc.Ping(client.Context(), &gatepb.PingPong{})
+		return true
 	})
 
 	return client

@@ -242,8 +242,9 @@ func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
 		p.RegisterProxyService(v, prxy.GetConn())
 	}
 
-	p.AddTimer(10*time.Second, func() {
+	p.AddTimer(10*time.Second, func() bool {
 		other.Ping(c, &proxypb.PingPong{})
+		return true
 	})
 }
 

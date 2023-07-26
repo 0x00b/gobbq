@@ -13,8 +13,8 @@ type Record = proto.Message
 type DBName string
 
 const (
+	DBMongo DBName = "mongo" //目前只实现了mongodb
 	DBMySQL DBName = "mysql"
-	DBMongo DBName = "mongo"
 	DBRedis DBName = "redis"
 )
 

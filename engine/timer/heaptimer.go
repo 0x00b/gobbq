@@ -7,8 +7,7 @@ import (
 type timer struct {
 	fireTime time.Time
 	interval time.Duration
-	callback CallbackFunc
-	repeat   bool
+	callback TimerCallbackFunc
 	addseq   uint
 }
 

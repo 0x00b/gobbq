@@ -33,7 +33,7 @@ type IEntity interface {
 	// AddCallback 直接用，不需要重写，除非有特殊需求
 	AddCallback(d time.Duration, callback timer.CallbackFunc)
 	// AddTimer 直接用，不需要重写，除非有特殊需求
-	AddTimer(d time.Duration, callback timer.CallbackFunc)
+	AddTimer(d time.Duration, callback timer.TimerCallbackFunc)
 	// OnTick entity执行过一次事件之后执行一次OnTick, 实时性很高要求的可以通过tick实现
 	// 如果没有事件发生，则定时调用，默认5ms，可以重写OnInit()调用SetTickIntervel()自定义间隔时间
 	OnTick()
@@ -423,7 +423,6 @@ func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) {
 		panic(erro.ErrBadResponse.WithMessage("unknown response for request:" + pkt.Header.RequestId))
 	}
 
-	return
 }
 
 func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) {
@@ -455,7 +454,6 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 		}
 	}
 
-	return
 }
 
 func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) {
@@ -471,7 +469,6 @@ func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) {
 
 	mt.Handler(sd.EntityImpl, c, pkt, chainServerInterceptors(sd.interceptors))
 
-	return
 }
 
 // AddOnceTimer 直接用，不需要重写，除非有特殊需求
@@ -480,7 +477,7 @@ func (e *Entity) AddCallback(d time.Duration, callback timer.CallbackFunc) {
 }
 
 // AddRepeatTimer 直接用，不需要重写，除非有特殊需求
-func (e *Entity) AddTimer(d time.Duration, callback timer.CallbackFunc) {
+func (e *Entity) AddTimer(d time.Duration, callback timer.TimerCallbackFunc) {
 	e.timer.AddTimer(d, callback)
 }
 

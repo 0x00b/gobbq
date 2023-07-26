@@ -62,8 +62,9 @@ func (gt *Gate) init(old entity.EntityID) {
 	newid := entity.FixedEntityID(proxyID, instID, gt.Service.EntityID().ID())
 	gt.EntityMgr.ReplaceEntityID(old, newid)
 
-	gt.AddTimer(10*time.Second, func() {
+	gt.AddTimer(10*time.Second, func() bool {
 		client.Ping(gt.Context(), &proxypb.PingPong{})
+		return true
 	})
 }
 

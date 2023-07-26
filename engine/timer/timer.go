@@ -15,8 +15,11 @@ const (
 	MIN_TIMER_INTERVAL = 1 * time.Millisecond
 )
 
-// Type of callback function
+// CallbackFunc Type of callback function
 type CallbackFunc func()
+
+// TimerCallbackFunc Type of callback function, return false represent stop this timer
+type TimerCallbackFunc func() bool
 
 type Timer struct {
 	timerHeap     _TimerHeap
@@ -34,8 +37,10 @@ func (t *Timer) AddCallback(d time.Duration, callback CallbackFunc) *timer {
 	timer := &timer{
 		fireTime: time.Now().Add(d),
 		interval: d,
-		callback: callback,
-		repeat:   false,
+		callback: func() bool {
+			callback()
+			return false
+		},
 	}
 
 	t.timerHeapLock.Lock()
@@ -49,7 +54,7 @@ func (t *Timer) AddCallback(d time.Duration, callback CallbackFunc) *timer {
 }
 
 // Add a timer which calls callback periodly
-func (t *Timer) AddTimer(d time.Duration, callback CallbackFunc) *timer {
+func (t *Timer) AddTimer(d time.Duration, callback TimerCallbackFunc) *timer {
 	if d < MIN_TIMER_INTERVAL {
 		d = MIN_TIMER_INTERVAL
 	}
@@ -58,7 +63,6 @@ func (t *Timer) AddTimer(d time.Duration, callback CallbackFunc) *timer {
 		fireTime: time.Now().Add(d),
 		interval: d,
 		callback: callback,
-		repeat:   true,
 	}
 
 	t.timerHeapLock.Lock()
@@ -96,18 +100,15 @@ func (t *Timer) Tick() {
 			continue
 		}
 
-		if !timer.repeat {
-			timer.callback = nil
-		}
-
+		stop := true
 		func() {
 			// unlock the lock to run callback, because callback may add more callbacks / timers
 			t.timerHeapLock.Unlock()
 			defer t.timerHeapLock.Lock()
-			t.runCallback(callback)
+			stop = !t.runCallback(callback)
 		}()
 
-		if timer.repeat {
+		if !stop {
 			// add Timer back to heap
 			timer.fireTime = timer.fireTime.Add(timer.interval)
 			if !timer.fireTime.After(now) { // might happen when interval is very small
@@ -134,7 +135,7 @@ func (t *Timer) selfTickRoutine(tickInterval time.Duration) {
 	}
 }
 
-func (t *Timer) runCallback(callback CallbackFunc) {
+func (t *Timer) runCallback(callback TimerCallbackFunc) bool {
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -142,5 +143,5 @@ func (t *Timer) runCallback(callback CallbackFunc) {
 			debug.PrintStack()
 		}
 	}()
-	callback()
+	return callback()
 }
