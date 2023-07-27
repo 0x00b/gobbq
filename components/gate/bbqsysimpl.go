@@ -8,7 +8,7 @@ import (
 //	替client实现 watch接口
 
 // SysWatch
-func (g *Gate) SysWatch(c entity.Context, req *entity.WatchRequest) (*entity.WatchResponse, error) {
+func (g *Gate) SysWatch(c entity.Context, req *entity.WatchRequest) error {
 	pkt := c.Packet()
 	dst := entity.DstEntity(pkt)
 
@@ -25,11 +25,11 @@ func (g *Gate) SysWatch(c entity.Context, req *entity.WatchRequest) (*entity.Wat
 	}
 	wc[entity.EntityID(req.EntityID)] = true
 
-	return &entity.WatchResponse{}, nil
+	return nil
 }
 
 // SysUnwatch
-func (g *Gate) SysUnwatch(c entity.Context, req *entity.WatchRequest) (*entity.WatchResponse, error) {
+func (g *Gate) SysUnwatch(c entity.Context, req *entity.WatchRequest) error {
 	xlog.Infoln("SysUnwatch", req.EntityID)
 
 	pkt := c.Packet()
@@ -42,5 +42,5 @@ func (g *Gate) SysUnwatch(c entity.Context, req *entity.WatchRequest) (*entity.W
 	wc := g.watcher[dst]
 	delete(wc, entity.EntityID(req.EntityID))
 
-	return &entity.WatchResponse{}, nil
+	return nil
 }

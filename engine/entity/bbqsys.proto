@@ -6,6 +6,7 @@ import "bbq.proto";
 
 // for options
 // import "google/protobuf/descriptor.proto";
+import "google/protobuf/empty.proto";
 
 
 message WatchRequest{
@@ -18,7 +19,7 @@ message WatchResponse{
 service BbqSys {
 	option (bbq.service_type) = Entity;
 
-	rpc SysWatch(WatchRequest) returns(WatchResponse) {}
-	rpc SysUnwatch(WatchRequest) returns(WatchResponse) {}
-	rpc SysNotify(WatchRequest) returns(WatchResponse) {}
+	rpc SysWatch(WatchRequest) returns(google.protobuf.Empty) {}
+	rpc SysUnwatch(WatchRequest) returns(google.protobuf.Empty) {}
+	rpc SysNotify(WatchRequest) returns(google.protobuf.Empty) {}
 }

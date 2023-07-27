@@ -448,6 +448,7 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 
 	if lc.respChan != nil {
 		if rsp != nil {
+			xlog.Println(lc.pkt, rsp)
 			lc.respChan <- rsp
 		} else {
 			lc.respChan <- err

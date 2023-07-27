@@ -24,24 +24,24 @@ func (e *Entity) OnNotify(w NotifyInfo) {
 // rpc接口实现
 
 // SysWatch
-func (e *Entity) SysWatch(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (e *Entity) SysWatch(c Context, req *WatchRequest) error {
 	xlog.Infoln("SysWatch", req.EntityID)
 	e.watchers[EntityID(req.EntityID)] = true
-	return &WatchResponse{}, nil
+	return nil
 }
 
 // SysUnwatch
-func (e *Entity) SysUnwatch(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (e *Entity) SysUnwatch(c Context, req *WatchRequest) error {
 	xlog.Infoln("SysUnwatch", req.EntityID)
 	delete(e.watchers, EntityID(req.EntityID))
-	return &WatchResponse{}, nil
+	return nil
 }
 
 // SysNotify
-func (e *Entity) SysNotify(c Context, req *WatchRequest) (*WatchResponse, error) {
+func (e *Entity) SysNotify(c Context, req *WatchRequest) error {
 
 	xlog.Infoln("SysNotify", req.EntityID)
 	c.Entity().OnNotify(NotifyInfo{EntityID: EntityID(req.EntityID)})
 
-	return &WatchResponse{}, nil
+	return nil
 }

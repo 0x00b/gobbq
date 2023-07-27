@@ -87,7 +87,7 @@ func NewPacket() *Packet {
 }
 
 func (p *Packet) String() string {
-	return fmt.Sprintf("hdrlen:%d, totallen:%d, hdr[%s]", p.headerLen, p.totalLen, p.Header.String())
+	return fmt.Sprintf("[hdrlen:%d, totallen:%d, hdr[%s]", p.headerLen, p.totalLen, p.Header.String())
 }
 
 // 想持有pkt，需要自行Retain/Release

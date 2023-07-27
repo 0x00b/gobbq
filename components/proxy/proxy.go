@@ -85,7 +85,7 @@ func (p *Proxy) NewInstID() entity.InstID {
 	return entity.InstID(id)
 }
 
-// // RegisterEntity register serive
+// RegisterEntity register serive
 func (p *Proxy) registerInst(instID entity.InstID, prw *nets.Conn) {
 	p.instMtx.Lock()
 	defer p.instMtx.Unlock()
@@ -96,15 +96,30 @@ func (p *Proxy) registerInst(instID entity.InstID, prw *nets.Conn) {
 	p.instMaps[instID] = prw
 }
 
+// getInst get inst
+func (p *Proxy) getInst(instID entity.InstID) (*nets.Conn, bool) {
+	p.instMtx.RLock()
+	defer p.instMtx.RUnlock()
+
+	cn, ok := p.instMaps[instID]
+	return cn, ok
+}
+
 // RegisterEntity register serive
 func (p *Proxy) registerService(svcName string, prw *nets.Conn) {
 	p.svcMtx.Lock()
 	defer p.svcMtx.Unlock()
-	// if _, ok := p.svcMaps[svcName]; ok {
-	// 	xlog.Errorln("already has svc")
-	// }
 
 	p.svcMaps[svcName] = append(p.svcMaps[svcName], prw)
+}
+
+// RegisterEntity register serive
+func (p *Proxy) getService(svcName string) ([]*nets.Conn, bool) {
+	p.svcMtx.RLock()
+	defer p.svcMtx.RUnlock()
+
+	cn, ok := p.svcMaps[svcName]
+	return cn, ok
 }
 
 // RegisterEntity register serive
@@ -118,6 +133,15 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
 	p.proxySvcMap[svcName] = append(p.proxySvcMap[svcName], prw)
 }
 
+// RegisterEntity register serive
+func (p *Proxy) getProxyService(svcName string) ([]*nets.Conn, bool) {
+	p.proxySvcMtx.RLock()
+	defer p.proxySvcMtx.RUnlock()
+
+	cn, ok := p.proxySvcMap[svcName]
+	return cn, ok
+}
+
 func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) (err error) {
 
 	// proxy to inst
@@ -125,9 +149,8 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) (err error)
 		if eid.ProxyID() != p.EntityID().ProxyID() {
 			return false
 		}
-		p.instMtx.RLock()
-		defer p.instMtx.RUnlock()
-		prw, ok := p.instMaps[eid.InstID()]
+
+		prw, ok := p.getInst(eid.InstID())
 		if ok {
 			err = prw.SendPacket(pkt)
 		} else {
@@ -143,6 +166,8 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) (err error)
 	// proxy to other proxy
 	func() bool {
 		proxyID := entity.DstEntity(pkt).ProxyID()
+		p.proxyMtx.RLock()
+		defer p.proxyMtx.RUnlock()
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
 			err = prw.SendPacket(pkt)
@@ -164,10 +189,8 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) (err error) {
 	svcType := hdr.Type
 	// proxy to local
 	sendLocal := func() bool {
-		p.svcMtx.RLock()
-		defer p.svcMtx.RUnlock()
 
-		prws, ok := p.svcMaps[svcType]
+		prws, ok := p.getService(svcType) // p.svcMaps[svcType]
 		if !ok || len(prws) == 0 {
 			return false
 		}
@@ -183,7 +206,7 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) (err error) {
 	// proxy to other proxy
 	func() bool {
 		typ := pkt.Header.Type
-		prws, ok := p.proxySvcMap[typ]
+		prws, ok := p.getProxyService(typ)
 		if !ok || len(prws) == 0 {
 			err = erro.ErrProxyServiceNotFound
 			return false
@@ -229,15 +252,19 @@ func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
 
 	other := proxypb.NewProxyEtyClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
 
-	rsp, err := other.RegisterProxy(c, &proxypb.RegisterProxyRequest{
-		ProxyID: uint32(p.EntityID().ProxyID()),
-	})
+	rsp, err := other.RegisterProxy(c,
+		&proxypb.RegisterProxyRequest{
+			ProxyID: uint32(p.EntityID().ProxyID()),
+		})
 	if err != nil {
 		panic(err)
 	}
 	// xlog.Println("RegisterProxy done...")
 
+	p.proxyMtx.Lock()
+	defer p.proxyMtx.Unlock()
 	p.proxyMap[entity.ProxyID(pcfg.ID)] = prxy.GetConn()
+
 	for _, v := range rsp.ServiceNames {
 		p.RegisterProxyService(v, prxy.GetConn())
 	}
