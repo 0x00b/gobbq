@@ -78,14 +78,23 @@ func (t *ProxyEty) RegisterProxy(c entity.Context, req *RegisterProxyRequest) (*
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -161,14 +170,23 @@ func (t *ProxyEty) SyncService(c entity.Context, req *SyncServiceRequest) (*Sync
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -244,14 +262,23 @@ func (t *ProxyEty) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -641,14 +668,23 @@ func (t *ProxySvc) RegisterInst(c entity.Context, req *RegisterInstRequest) (*Re
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -724,14 +760,23 @@ func (t *ProxySvc) RegisterService(c entity.Context, req *RegisterServiceRequest
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -807,14 +852,23 @@ func (t *ProxySvc) UnregisterService(c entity.Context, req *RegisterServiceReque
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -890,14 +944,23 @@ func (t *ProxySvc) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err

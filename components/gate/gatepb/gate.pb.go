@@ -65,7 +65,7 @@ type RegisterClientRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	EntityID uint64 `protobuf:"varint,1,opt,name=EntityID,proto3" json:"EntityID,omitempty"`
+	EntityID uint64 `protobuf:"varint,1,opt,name=EntityID,proto3" json:"EntityID,omitempty" bson:"EntityID"`
 }
 
 func (x *RegisterClientRequest) Reset() {
@@ -112,7 +112,7 @@ type RegisterClientResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	EntityID uint64 `protobuf:"varint,1,opt,name=EntityID,proto3" json:"EntityID,omitempty"`
+	EntityID uint64 `protobuf:"varint,1,opt,name=EntityID,proto3" json:"EntityID,omitempty" bson:"EntityID"`
 }
 
 func (x *RegisterClientResponse) Reset() {

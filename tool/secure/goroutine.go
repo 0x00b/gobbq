@@ -17,7 +17,7 @@ var IsRelease string
 func GOErrHandler(err any) {
 	var buf [1024 * 4]byte
 	n := runtime.Stack(buf[:], false)
-	xlog.Fatal("<panic> msg=%v type=%T traceback:\n%s.", err, err, string(buf[:n])) // nolint:logcheck
+	xlog.Fatalf("<panic> msg=%v type=%T traceback:\n%s.", err, err, string(buf[:n])) // nolint:logcheck
 
 	// 刷新日志
 	// if e := log.Sync(); e != nil {

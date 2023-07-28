@@ -116,14 +116,24 @@ func (t *{{$sName}}){{$m.GoName}}(c entity.Context, req *{{$m.GoInput.GoIdent.Go
 	pkt.Header.ErrMsg=       "" 
 
 	{{if $m.HasResponse}}
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any= make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 	{{end}}
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil{
 		return {{if $m.HasResponse}}nil,{{end}} erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, {{if $m.HasResponse}}chanRsp{{else}}nil{{end}})
+	{{if $m.HasResponse}}
+	isLocalCall = err == nil
+	{{end}}
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return {{if $m.HasResponse}}nil,{{end}} err

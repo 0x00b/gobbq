@@ -64,7 +64,7 @@ type RegisterProxyRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty"`
+	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty" bson:"ProxyID"`
 }
 
 func (x *RegisterProxyRequest) Reset() {
@@ -111,8 +111,8 @@ type RegisterProxyResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ServiceNames []string `protobuf:"bytes,1,rep,name=ServiceNames,proto3" json:"ServiceNames,omitempty"`
-	EntityNames  []string `protobuf:"bytes,2,rep,name=EntityNames,proto3" json:"EntityNames,omitempty"`
+	ServiceNames []string `protobuf:"bytes,1,rep,name=ServiceNames,proto3" json:"ServiceNames,omitempty" bson:"ServiceNames"`
+	EntityNames  []string `protobuf:"bytes,2,rep,name=EntityNames,proto3" json:"EntityNames,omitempty" bson:"EntityNames"`
 }
 
 func (x *RegisterProxyResponse) Reset() {
@@ -166,8 +166,8 @@ type SyncServiceRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty"`
-	SvcName string `protobuf:"bytes,2,opt,name=SvcName,proto3" json:"SvcName,omitempty"`
+	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty" bson:"ProxyID"`
+	SvcName string `protobuf:"bytes,2,opt,name=SvcName,proto3" json:"SvcName,omitempty" bson:"SvcName"`
 }
 
 func (x *SyncServiceRequest) Reset() {
@@ -297,8 +297,8 @@ type RegisterInstResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty"` //uint16
-	InstID  uint32 `protobuf:"varint,2,opt,name=InstID,proto3" json:"InstID,omitempty"`   //uint16
+	ProxyID uint32 `protobuf:"varint,1,opt,name=ProxyID,proto3" json:"ProxyID,omitempty" bson:"ProxyID"` //uint16
+	InstID  uint32 `protobuf:"varint,2,opt,name=InstID,proto3" json:"InstID,omitempty" bson:"InstID"`   //uint16
 }
 
 func (x *RegisterInstResponse) Reset() {
@@ -352,7 +352,7 @@ type RegisterServiceRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ServiceName string `protobuf:"bytes,1,opt,name=ServiceName,proto3" json:"ServiceName,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=ServiceName,proto3" json:"ServiceName,omitempty" bson:"ServiceName"`
 }
 
 func (x *RegisterServiceRequest) Reset() {

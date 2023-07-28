@@ -79,6 +79,7 @@ func (t *BbqSys) SysWatch(c Context, req *WatchRequest) error {
 		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
+
 	if err != nil {
 		if !NotMyMethod(err) {
 			return err
@@ -129,6 +130,7 @@ func (t *BbqSys) SysUnwatch(c Context, req *WatchRequest) error {
 		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
+
 	if err != nil {
 		if !NotMyMethod(err) {
 			return err
@@ -179,6 +181,7 @@ func (t *BbqSys) SysNotify(c Context, req *WatchRequest) error {
 		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
+
 	if err != nil {
 		if !NotMyMethod(err) {
 			return err

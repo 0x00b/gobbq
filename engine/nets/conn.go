@@ -139,7 +139,16 @@ func (cn *Conn) Serve() {
 }
 
 func (cn *Conn) handle(pkt *Packet) error {
+	if pkt == nil {
+		return nil
+	}
 	defer pkt.Release()
+
+	xlog.Traceln("handle:", pkt.String())
+
+	if cn.closed {
+		return nil
+	}
 
 	// todo report
 
@@ -273,6 +282,9 @@ func (cn *Conn) writeLoop() {
 
 		case p := <-cn.pktSendChan:
 			func(p *Packet) {
+				if p == nil {
+					return
+				}
 				defer p.Release()
 				if cn.closed {
 					return
@@ -303,11 +315,6 @@ func (cn *Conn) handleLoop() {
 			return
 
 		case pkt := <-cn.pktRecvChan:
-			if cn.closed {
-				return
-			}
-
-			xlog.Traceln("handle:", pkt.String())
 			err := cn.handle(pkt)
 			if err != nil {
 				xlog.Errorln("handle failed", err)

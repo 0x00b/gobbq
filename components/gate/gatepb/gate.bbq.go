@@ -14,9 +14,7 @@ import (
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/snowflake"
 	"github.com/0x00b/gobbq/xlog"
-
 	// gatepb "github.com/0x00b/gobbq/components/gate/gatepb"
-
 )
 
 var _ = snowflake.GenUUID()
@@ -55,14 +53,23 @@ func (t *Gate) RegisterClient(c entity.Context, req *RegisterClientRequest) (*Re
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -143,6 +150,7 @@ func (t *Gate) UnregisterClient(c entity.Context, req *RegisterClientRequest) er
 		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return err
@@ -188,14 +196,23 @@ func (t *Gate) Ping(c entity.Context, req *PingPong) (*PingPong, error) {
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -392,6 +409,7 @@ func _GateService_UnregisterClient_Remote_Handler(svc any, ctx entity.Context, p
 		return
 	}
 	err = _GateService_UnregisterClient_Handler(svc, ctx, in, interceptor)
+	_ = err
 	// report err
 
 }

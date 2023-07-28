@@ -4,6 +4,8 @@ import "github.com/0x00b/gobbq/xlog"
 
 // entity 接口实现
 
+var _ BbqSysEntity = &Entity{}
+
 func (e *Entity) Watch(id EntityID) {
 	client := NewBbqSysClient(id)
 	client.SysWatch(e.Context(), &WatchRequest{EntityID: uint64(e.EntityID())})

@@ -55,14 +55,23 @@ func (t *Echo) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloRespon
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -283,14 +292,23 @@ func (t *EchoEty) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloRes
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -488,14 +506,23 @@ func (t *EchoSvc2) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloRe
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -716,14 +743,23 @@ func (t *Client) SayHello(c entity.Context, req *SayHelloRequest) (*SayHelloResp
 	pkt.Header.ErrCode = 0
 	pkt.Header.ErrMsg = ""
 
+	// 如果是LocalCall，由local内部关闭chan
+	isLocalCall := false
 	var chanRsp chan any = make(chan any)
-	defer close(chanRsp)
+	defer func() {
+		if !isLocalCall {
+			close(chanRsp)
+		}
+	}()
 
 	etyMgr := entity.GetEntityMgr(c)
 	if etyMgr == nil {
 		return nil, erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, chanRsp)
+
+	isLocalCall = err == nil
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return nil, err
@@ -949,6 +985,7 @@ func (t *NoResp) SayHello(c entity.Context, req *SayHelloRequest) error {
 		return erro.ErrBadContext
 	}
 	err := etyMgr.LocalCall(pkt, req, nil)
+
 	if err != nil {
 		if !entity.NotMyMethod(err) {
 			return err

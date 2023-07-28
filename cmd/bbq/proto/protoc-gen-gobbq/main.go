@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/0x00b/gobbq/cmd/bbq/proto/com"
 	"github.com/0x00b/gobbq/cmd/bbq/proto/protoc-gen-gobbq/gogen"
@@ -191,7 +190,7 @@ func GetGenerator(pp *protogen.Plugin) (com.Generator, error) {
 func hasResponse(m *protogen.Method) bool {
 
 	ret := true
-	if m.Output.GoIdent.GoName == "Empty" && strings.Contains(m.Output.GoIdent.GoImportPath.String(), "golang/protobuf/ptypes/empty") {
+	if m.Output.GoIdent.GoName == "Empty" /*&& strings.Contains(m.Output.GoIdent.GoImportPath.String(), "golang/protobuf/ptypes/empty")*/ {
 		ret = false
 	}
 

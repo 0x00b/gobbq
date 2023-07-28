@@ -249,8 +249,10 @@ func (e *Entity) run(ch chan bool) {
 }
 
 func (e *Entity) Stop() {
-	e.cancel()
+	// 先移出，不接受包
 	e.getEntityMgr().removeEntity(e.EntityID())
+
+	e.cancel()
 }
 
 //  for inner
@@ -426,7 +428,12 @@ func (e *Entity) handleMethodRsp(c Context, pkt *nets.Packet) {
 }
 
 func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc) {
-	defer lc.pkt.Release()
+	defer func() {
+		lc.pkt.Release()
+		if lc.respChan != nil {
+			close(lc.respChan)
+		}
+	}()
 
 	e.initContext(c, lc.pkt)
 
@@ -448,7 +455,7 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 
 	if lc.respChan != nil {
 		if rsp != nil {
-			xlog.Println(lc.pkt, rsp)
+			// xlog.Println(lc.pkt, rsp)
 			lc.respChan <- rsp
 		} else {
 			lc.respChan <- err
