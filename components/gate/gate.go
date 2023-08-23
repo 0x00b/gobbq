@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -12,11 +14,12 @@ import (
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
+	capi "github.com/hashicorp/consul/api"
 )
 
 func NewGate() *Gate {
 
-	conf.Init("gate.yaml")
+	InitConfig()
 
 	gt := &Gate{
 		Server:  bs.NewServer(),
@@ -44,7 +47,35 @@ func NewGate() *Gate {
 }
 
 func (gt *Gate) init(old entity.EntityID) {
-	ex.ConnProxy(nets.WithPacketHandler(gt), nets.WithConnCallback(&ProxyConnCallBack{gate: gt}))
+
+	cfg := CFG.Proxy
+	if !CFG.LocalProxy {
+		var err error
+		gt.consul, err = capi.NewClient(capi.DefaultConfig())
+		if err != nil {
+			panic(err)
+		}
+
+		_, svcs, err := gt.consul.Agent().AgentHealthServiceByName("gobbqproxy")
+		if err != nil {
+			panic(err)
+		}
+		if len(svcs) <= 0 {
+			panic("no svc")
+		}
+
+		// todo 负载均衡，现在先随机一个
+		svc := svcs[rand.Int()%len(svcs)]
+		cfg = conf.NetConf{
+			Net:  string(nets.TCP),
+			IP:   svc.Service.Address,
+			Port: fmt.Sprint(svc.Service.Port),
+		}
+
+		xlog.Infoln("consul get proxy:", cfg)
+	}
+
+	ex.ConnProxy(cfg, nets.WithPacketHandler(gt), nets.WithConnCallback(&ProxyConnCallBack{gate: gt}))
 
 	gt.EntityMgr.Proxy = ex.ProxyClient
 
@@ -77,6 +108,8 @@ type Gate struct {
 	*bs.Server
 
 	watcher map[entity.EntityID]map[entity.EntityID]bool
+
+	consul *capi.Client
 }
 
 type clientMap map[entity.EntityID]*nets.Conn

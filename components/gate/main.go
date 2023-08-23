@@ -7,7 +7,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/0x00b/gobbq/components/gate/gatepb"
-	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/tool/secure"
@@ -46,7 +45,7 @@ func main() {
 		nets.NewNetService(
 			nets.WithPacketHandler(NewClientPacketHandler(gt)),
 			nets.WithConnCallback(gt),
-			nets.WithNetwork(nets.NetWorkName(conf.C.Gate.Inst[0].Net), fmt.Sprintf(":%s", conf.C.Gate.Inst[0].Port))),
+			nets.WithNetwork(nets.NetWorkName(CFG.Net), fmt.Sprintf(":%s", CFG.Port))),
 	)
 
 	err := gt.Serve()

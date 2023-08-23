@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
-	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -12,7 +11,7 @@ import (
 
 func main() {
 
-	fmt.Println(conf.C)
+	InitConfig()
 
 	xlog.Init("trace", false, true, &lumberjack.Logger{
 		Filename:  "./proxy.log",
@@ -27,7 +26,7 @@ func main() {
 	p.RegisterNetService(nets.NewNetService(
 		nets.WithPacketHandler(p),
 		nets.WithConnCallback(p),
-		nets.WithNetwork(nets.TCP, fmt.Sprintf(":%s", conf.C.Proxy.Inst[0].Port))),
+		nets.WithNetwork(nets.TCP, fmt.Sprintf(":%s", CFG.Port))),
 	)
 
 	err := p.Serve()

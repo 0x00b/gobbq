@@ -1,28 +1,23 @@
+env: dev
+run_env: host
 
+log_file: proxy.log
+log_level: debug
+net_timeout: 1000
+send_size:
+read_size:
+rsa_key: rsa.key
+rsa_certificate: rsa.crt
+compress_connection: false
+encrypt_connection: false
+heartbeat_check_interval: 0
 
-# 要用k8s，是不是需要global来管理，proxy 作为sidecar呢
-# sidecar启动时向global注册服务拉取已有的sidecar列表请求互联
-# game之间、game和gate之间的通讯通过sidecar转发
-# consul or etcd ？
-proxy:
-  inst_num: 2
-  common:
-    log_file: proxy.log
-    log_level: debug
-    net_timeout: 1000
-    send_size: 
-    read_size: 
-    rsa_key: rsa.key
-    rsa_certificate: rsa.crt
-    compress_connection: false
-    encrypt_connection: false
-    heartbeat_check_interval: 0
-  inst:
-    - id: 222
-      net: "tcp" # kcp, websocket
-      ip: "127.0.0.1"
-      port: 49541
-    - id: 111
-      net: "tcp" # kcp, websocket
-      ip: "127.0.0.1"
-      port: 49551
+id: 1
+net: "tcp" # kcp, websocket
+ip: "127.0.0.1"
+port: 49541
+
+mongo:
+  url: mongodb://127.0.0.1:27017
+  db: gobbqproxy
+  collection: gobbqproxy

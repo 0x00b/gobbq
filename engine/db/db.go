@@ -32,5 +32,8 @@ type IDatabase interface {
 	Save(c context.Context, record Record) error     // insert or update
 	AutoSave(c context.Context, record Record) error // just save updated field
 
+	// 实现自增id
+	GetIncrementID(c context.Context, idKey string) (uint64, error)
+
 	model.Watcher
 }

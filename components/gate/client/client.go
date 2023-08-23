@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/0x00b/gobbq/components/gate/gatepb"
-	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 )
@@ -19,11 +18,13 @@ type Client struct {
 
 func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.ServerInterceptor) *Client {
 
+	InitConfig()
+
 	client := &Client{
 		EntityMgr: entity.NewEntityManager(),
 	}
 
-	cfg := conf.C.Gate.Inst[0]
+	cfg := CFG.Gate
 	gate, err := nets.Connect(
 		nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, nets.WithPacketHandler(client.EntityMgr))
 	if err != nil {

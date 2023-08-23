@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/0x00b/gobbq/components/game"
-	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/example/exampb"
 	"github.com/0x00b/gobbq/xlog"
@@ -18,8 +15,6 @@ func main() {
 		MaxAge:    7,
 		LocalTime: true,
 	}, xlog.DefaultLogTag{})
-
-	fmt.Println(conf.C)
 
 	var g = game.NewGame()
 

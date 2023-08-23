@@ -20,9 +20,9 @@ const (
 )
 
 type Config struct {
-	URL            string
-	DBName         string
-	CollectionName string
+	URL            string `yaml:"url"`
+	DBName         string `yaml:"db"`
+	CollectionName string `yaml:"collection"`
 }
 
 var _ db.IDatabase = &mongoDB{}
@@ -52,7 +52,11 @@ func (m *mongoDB) Connect(cfg any) error {
 
 	mcfg, ok := cfg.(*Config)
 	if !ok {
-		return errors.New("err config")
+		mtcfg, ok := cfg.(Config)
+		if !ok {
+			return errors.New("err config")
+		}
+		mcfg = &mtcfg
 	}
 
 	xlog.Debugln(nil, "Connecting mongoDB ...")
@@ -183,10 +187,36 @@ func (m *mongoDB) Save(c context.Context, record db.Record) error {
 		return err
 	}
 	_ = res
-
 	return nil
 }
 
 func (m *mongoDB) AutoSave(c context.Context, record db.Record) error { // just save updated field
 	return m.updateDirtyField(c, record)
+}
+
+func (m *mongoDB) GetIncrementID(c context.Context, idKey string) (uint64, error) {
+
+	if idKey == "" {
+		return 0, nil
+	}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	res := m.database.Collection("IncrementID").FindOneAndUpdate(c, bson.M{"_id": idKey}, bson.M{"$inc": bson.M{"seq": 1}}, opts)
+	if res == nil {
+		return 0, errors.New("nil res")
+	}
+	if res.Err() != nil {
+		return 0, res.Err()
+	}
+	type ID struct {
+		ID  string `bson:"_id"`
+		Seq uint64 `bson:"seq"`
+	}
+	var id ID
+
+	err := res.Decode(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id.Seq, nil
 }

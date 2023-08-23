@@ -1,23 +1,23 @@
 package main
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	bs "github.com/0x00b/gobbq"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
-	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/engine/db"
+	"github.com/0x00b/gobbq/engine/db/mongo"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/erro"
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/xlog"
+	capi "github.com/hashicorp/consul/api"
 )
 
 func NewProxy() *Proxy {
-
-	conf.Init("proxy.yaml")
 
 	p := &Proxy{
 		instMtx:     sync.RWMutex{},
@@ -37,14 +37,35 @@ func NewProxy() *Proxy {
 	desc.EntityMgr = p.EntityMgr
 	entity.SetEntityDesc(p, &desc)
 
-	eid := uint16(conf.C.Proxy.Inst[0].ID)
+	p.db = mongo.NewMongoDB()
+
+	err := p.db.Connect(CFG.Mongo)
+	if err != nil {
+		panic(err)
+	}
+
+	eid, err := p.db.GetIncrementID(context.Background(), "gobbq_proxy_inst_id")
+	if err != nil {
+		panic(err)
+	}
+
+	xlog.Infoln("proxy entity id", eid)
 
 	proxypb.RegisterProxyEtyEntity(p.EntityMgr, p)
 	p.EntityMgr.RegisterEntity(nil, entity.FixedEntityID(entity.ProxyID(eid), 0, 0), p)
 
 	entity.Run(p)
 
+	p.consul, err = capi.NewClient(capi.DefaultConfig())
+	if err != nil {
+		panic(err)
+	}
+
+	// 连接其他proxy
 	p.ConnOtherProxys(nets.WithPacketHandler(p), nets.WithConnCallback(p))
+
+	// 注册自己到consul
+	p.RegisterToConsul()
 
 	return p
 }
@@ -67,6 +88,10 @@ type Proxy struct {
 	proxySvcMap ProxySvcMap
 
 	instIdCounter uint32
+
+	db db.IDatabase
+
+	consul *capi.Client
 }
 
 type ProxyMap map[entity.ProxyID]*nets.Conn
@@ -217,62 +242,6 @@ func (p *Proxy) ProxyToService(hdr *bbq.Header, pkt *nets.Packet) (err error) {
 	}()
 
 	return
-}
-
-func (p *Proxy) ConnOtherProxys(ops ...nets.Option) {
-	for i := 1; i < int(conf.C.Proxy.InstNum); i++ {
-
-		// connect to proxy
-		cfg := conf.C.Proxy.Inst[i]
-		_ = cfg.Net
-
-		// jump myself
-		// if cfg.ID == 0 {
-
-		// }
-		p.ConnOtherProxy(cfg, ops...)
-	}
-}
-
-func (p *Proxy) ConnOtherProxy(pcfg conf.Inst, ops ...nets.Option) {
-
-	prxy, err := nets.Connect(nets.NetWorkName(pcfg.Net), pcfg.IP, pcfg.Port, ops...)
-
-	if err != nil {
-		panic(err)
-	}
-
-	c, release := p.Context().Copy()
-	// defer release()
-	_ = release
-
-	entity.SetProxy(c, prxy)
-
-	// xlog.Println("RegisterProxy ing...")
-
-	other := proxypb.NewProxyEtyClient(entity.FixedEntityID(entity.ProxyID(pcfg.ID), 0, 0))
-
-	rsp, err := other.RegisterProxy(c,
-		&proxypb.RegisterProxyRequest{
-			ProxyID: uint32(p.EntityID().ProxyID()),
-		})
-	if err != nil {
-		panic(err)
-	}
-	// xlog.Println("RegisterProxy done...")
-
-	p.proxyMtx.Lock()
-	defer p.proxyMtx.Unlock()
-	p.proxyMap[entity.ProxyID(pcfg.ID)] = prxy.GetConn()
-
-	for _, v := range rsp.ServiceNames {
-		p.RegisterProxyService(v, prxy.GetConn())
-	}
-
-	p.AddTimer(10*time.Second, func() bool {
-		other.Ping(c, &proxypb.PingPong{})
-		return true
-	})
 }
 
 func (p *Proxy) NewEntityID() entity.EntityID {

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/0x00b/gobbq/components/gate/client"
-	"github.com/0x00b/gobbq/conf"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/example/exampb"
 	"github.com/0x00b/gobbq/tool/secure"
@@ -32,7 +31,6 @@ func TestWSClient(m *testing.T) {
 		MaxAge:    7,
 		LocalTime: true,
 	}, xlog.DefaultLogTag{})
-	conf.Init("client.yaml")
 
 	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 

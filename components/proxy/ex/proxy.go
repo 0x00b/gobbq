@@ -7,11 +7,9 @@ import (
 
 var ProxyClient *nets.Client
 
-func ConnProxy(ops ...nets.Option) {
+func ConnProxy(cfg conf.NetConf, opts ...nets.Option) {
 
-	cfg := conf.C.Proxy.Inst[0]
-
-	cli, err := nets.Connect(nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, ops...)
+	cli, err := nets.Connect(nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, opts...)
 
 	if err != nil {
 		panic(err)

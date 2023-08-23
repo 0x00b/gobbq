@@ -1,14 +1,18 @@
 package game
 
 import (
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/0x00b/gobbq/components/proxy/ex"
 	"github.com/0x00b/gobbq/components/proxy/proxypb"
 	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/engine/db"
 	"github.com/0x00b/gobbq/engine/entity"
 	"github.com/0x00b/gobbq/engine/nets"
 	"github.com/0x00b/gobbq/xlog"
+	capi "github.com/hashicorp/consul/api"
 )
 
 type Game struct {
@@ -18,6 +22,11 @@ type Game struct {
 	IDGenerator
 
 	EntityMgr *entity.EntityManager
+
+	// todo
+	DB db.IDatabase
+
+	consul *capi.Client
 }
 
 type IDGenerator interface {
@@ -26,7 +35,7 @@ type IDGenerator interface {
 
 func NewGame(opts ...Option) *Game {
 
-	conf.Init("game.yaml")
+	InitConfig()
 
 	gm := &Game{
 		EntityMgr:   entity.NewEntityManager(),
@@ -59,7 +68,31 @@ func NewGame(opts ...Option) *Game {
 
 func (g *Game) init(old entity.EntityID) {
 
-	ex.ConnProxy(nets.WithPacketHandler(g.EntityMgr), nets.WithConnCallback(g))
+	cfg := CFG.Proxy
+	if !CFG.LocalProxy {
+		var err error
+		g.consul, err = capi.NewClient(capi.DefaultConfig())
+		if err != nil {
+			panic(err)
+		}
+
+		_, svcs, err := g.consul.Agent().AgentHealthServiceByName("gobbqproxy")
+		if err != nil {
+			panic(err)
+		}
+		if len(svcs) <= 0 {
+			panic("no svc")
+		}
+
+		// todo 负载均衡，现在先随机一个
+		svc := svcs[rand.Int()%len(svcs)]
+		cfg = conf.NetConf{
+			Net:  string(nets.TCP),
+			IP:   svc.Service.Address,
+			Port: fmt.Sprint(svc.Service.Port),
+		}
+	}
+	ex.ConnProxy(cfg, nets.WithPacketHandler(g.EntityMgr), nets.WithConnCallback(g))
 
 	g.EntityMgr.Proxy = ex.ProxyClient
 
@@ -80,19 +113,6 @@ func (g *Game) init(old entity.EntityID) {
 		return true
 	})
 }
-
-// func (g *Game) RegisterEntityToProxy(eid entity.EntityID) error {
-
-// 	client := proxypb.NewProxySvcServiceClient()
-
-// 	_, err := client.RegisterEntity(g.Context(), &proxypb.RegisterEntityRequest{EntityID: eid})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	xlog.Debug("register proxy entity resp")
-// 	return nil
-// }
 
 func (g *Game) RegisterServiceToProxy(svcName string) error {
 

@@ -22,6 +22,8 @@ func TestXxx(t *testing.T) {
 				fmt.Println("done1")
 				wg.Done()
 				return
+			default:
+				_ = c
 			}
 
 		}
@@ -35,6 +37,8 @@ func TestXxx(t *testing.T) {
 				fmt.Println("done2")
 				wg.Done()
 				return
+			default:
+				_ = c
 			}
 
 		}

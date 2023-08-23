@@ -185,6 +185,7 @@ func ReplayError(pkt *Packet, e error) {
 	pkt.WriteBody(nil)
 	if err := pkt.Src.SendPacket(pkt); err != nil {
 		// report
+		_ = err
 	}
 }
 
