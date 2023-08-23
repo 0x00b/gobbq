@@ -32,6 +32,9 @@ service ProxyEty {
  
 	rpc SyncService(SyncServiceRequest) returns(SyncServiceResponse) {}
 
+	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
+	rpc UnregisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
+
 	rpc Ping(PingPong) returns(PingPong) {}
 }
 
@@ -56,8 +59,5 @@ service ProxySvc {
 
 	rpc RegisterInst(RegisterInstRequest) returns(RegisterInstResponse) {}
  
-	rpc RegisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
-	rpc UnregisterService(RegisterServiceRequest) returns(RegisterServiceResponse) {}
-
 	rpc Ping(PingPong) returns(PingPong) {}
 }

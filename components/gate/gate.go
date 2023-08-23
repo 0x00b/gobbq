@@ -170,7 +170,7 @@ func (gt *Gate) Ping(c entity.Context, req *gatepb.PingPong) (*gatepb.PingPong, 
 
 func (gt *Gate) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcClient()
+	client := proxypb.NewProxyEtyClient(entity.FixedEntityID(gt.EntityID().ProxyID(), 0, 0))
 
 	_, err := client.RegisterService(gt.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {

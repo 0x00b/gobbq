@@ -69,7 +69,7 @@ func (p *Proxy) ConnOtherProxys(ops ...nets.Option) {
 
 		p.ConnOtherProxy(&svc, ops...)
 
-		xlog.Infoln("register myself:", svc)
+		xlog.Infoln("ConnOtherProxy:", svc)
 	}
 }
 
@@ -109,8 +109,8 @@ func (p *Proxy) ConnOtherProxy(pcfg *capi.AgentServiceChecksInfo, ops ...nets.Op
 	}
 	// xlog.Println("RegisterProxy done...")
 
-	p.proxyMtx.Lock()
-	defer p.proxyMtx.Unlock()
+	// p.proxyMtx.Lock()
+	// defer p.proxyMtx.Unlock()
 	p.proxyMap[entity.ProxyID(eid)] = prxy.GetConn()
 
 	for _, v := range rsp.ServiceNames {

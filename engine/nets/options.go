@@ -76,6 +76,7 @@ var DefaultOptions = &Options{
 }
 
 type PacketHandler interface {
+	// 同步接口，不会异步调用，想要异步处理需要内部保证安全
 	HandlePacket(pkt *Packet) error
 }
 

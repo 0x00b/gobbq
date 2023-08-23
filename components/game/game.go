@@ -116,7 +116,7 @@ func (g *Game) init(old entity.EntityID) {
 
 func (g *Game) RegisterServiceToProxy(svcName string) error {
 
-	client := proxypb.NewProxySvcClient()
+	client := proxypb.NewProxyEtyClient(entity.FixedEntityID(g.EntityID().ProxyID(), 0, 0))
 
 	_, err := client.RegisterService(g.Context(), &proxypb.RegisterServiceRequest{ServiceName: string(svcName)})
 	if err != nil {

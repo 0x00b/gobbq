@@ -22,7 +22,6 @@ func NewProxy() *Proxy {
 	p := &Proxy{
 		instMtx:     sync.RWMutex{},
 		instMaps:    make(instMap),
-		svcMtx:      sync.RWMutex{},
 		svcMaps:     make(serviceMap),
 		proxyMap:    make(ProxyMap),
 		proxySvcMap: make(ProxySvcMap),
@@ -75,16 +74,16 @@ type Proxy struct {
 
 	entity.Entity
 
+	// 属于service，需要加锁
 	instMtx  sync.RWMutex
 	instMaps instMap
 
-	svcMtx  sync.RWMutex
+	// 下面的都是entity使用，不需要锁
+	// svcMtx  sync.RWMutex
 	svcMaps serviceMap
-
-	proxyMtx sync.RWMutex
+	// proxyMtx sync.RWMutex
 	proxyMap ProxyMap
-
-	proxySvcMtx sync.RWMutex
+	// proxySvcMtx sync.RWMutex
 	proxySvcMap ProxySvcMap
 
 	instIdCounter uint32
@@ -132,16 +131,16 @@ func (p *Proxy) getInst(instID entity.InstID) (*nets.Conn, bool) {
 
 // RegisterEntity register serive
 func (p *Proxy) registerService(svcName string, prw *nets.Conn) {
-	p.svcMtx.Lock()
-	defer p.svcMtx.Unlock()
+	// p.svcMtx.Lock()
+	// defer p.svcMtx.Unlock()
 
 	p.svcMaps[svcName] = append(p.svcMaps[svcName], prw)
 }
 
 // RegisterEntity register serive
 func (p *Proxy) getService(svcName string) ([]*nets.Conn, bool) {
-	p.svcMtx.RLock()
-	defer p.svcMtx.RUnlock()
+	// p.svcMtx.RLock()
+	// defer p.svcMtx.RUnlock()
 
 	cn, ok := p.svcMaps[svcName]
 	return cn, ok
@@ -149,8 +148,8 @@ func (p *Proxy) getService(svcName string) ([]*nets.Conn, bool) {
 
 // RegisterEntity register serive
 func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
-	p.proxySvcMtx.Lock()
-	defer p.proxySvcMtx.Unlock()
+	// p.proxySvcMtx.Lock()
+	// defer p.proxySvcMtx.Unlock()
 	if _, ok := p.proxySvcMap[svcName]; ok {
 		xlog.Traceln("already has svc")
 	}
@@ -160,8 +159,8 @@ func (p *Proxy) RegisterProxyService(svcName string, prw *nets.Conn) {
 
 // RegisterEntity register serive
 func (p *Proxy) getProxyService(svcName string) ([]*nets.Conn, bool) {
-	p.proxySvcMtx.RLock()
-	defer p.proxySvcMtx.RUnlock()
+	// p.proxySvcMtx.RLock()
+	// defer p.proxySvcMtx.RUnlock()
 
 	cn, ok := p.proxySvcMap[svcName]
 	return cn, ok
@@ -191,8 +190,8 @@ func (p *Proxy) ProxyToEntity(eid entity.EntityID, pkt *nets.Packet) (err error)
 	// proxy to other proxy
 	func() bool {
 		proxyID := entity.DstEntity(pkt).ProxyID()
-		p.proxyMtx.RLock()
-		defer p.proxyMtx.RUnlock()
+		// p.proxyMtx.RLock()
+		// defer p.proxyMtx.RUnlock()
 		prw, ok := p.proxyMap[proxyID]
 		if ok {
 			err = prw.SendPacket(pkt)

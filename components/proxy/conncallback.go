@@ -21,8 +21,8 @@ func (p *Proxy) HandleClose(cn *nets.Conn) {
 	}()
 
 	func() {
-		p.svcMtx.Lock()
-		defer p.svcMtx.Unlock()
+		// p.svcMtx.Lock()
+		// defer p.svcMtx.Unlock()
 		for svc, svcPrws := range p.svcMaps {
 			for i, t := range svcPrws {
 				if cn == t {
