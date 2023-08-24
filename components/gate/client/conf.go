@@ -1,6 +1,11 @@
 package client
 
-import "github.com/0x00b/gobbq/conf"
+import (
+	"encoding/json"
+
+	"github.com/0x00b/gobbq/conf"
+	"github.com/0x00b/gobbq/xlog"
+)
 
 type Config struct {
 	Env                    string `yaml:"env"`                      //  env: product/test/dev
@@ -16,11 +21,13 @@ type Config struct {
 	EncryptConnection      string `yaml:"encrypt_connection"`       //	encrypt_connection: false
 	HeartbeatCheckInterval string `yaml:"heartbeat_check_interval"` //	heartbeat_check_interval: 0
 
-	Gate conf.NetConf `yaml:"gate"`
+	Gates []conf.NetConf `yaml:"gates"`
 }
 
 var CFG Config
 
 func InitConfig() {
 	conf.Init("client.yaml", &CFG)
+	bt, err := json.Marshal(CFG)
+	xlog.Infoln(err, string(bt))
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -65,11 +66,10 @@ func (p *Proxy) ConnOtherProxys(ops ...nets.Option) {
 	if err != nil {
 		panic(err)
 	}
+	xlog.Infoln("ConnOtherProxy:")
 	for _, svc := range svcs {
-
+		xlog.Infoln(json.Marshal(svc))
 		p.ConnOtherProxy(&svc, ops...)
-
-		xlog.Infoln("ConnOtherProxy:", svc)
 	}
 }
 

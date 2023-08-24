@@ -26,13 +26,13 @@ func (*ClientService) SayHello(c entity.Context, req *exampb.SayHelloRequest) (*
 
 func TestWSClient(m *testing.T) {
 
+	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
+
 	xlog.Init("trace", true, true, &lumberjack.Logger{
 		Filename:  "./client.log",
 		MaxAge:    7,
 		LocalTime: true,
 	}, xlog.DefaultLogTag{})
-
-	client := client.NewClient(&exampb.ClientEntityDesc, &ClientService{})
 
 	wg := sync.WaitGroup{}
 	for i := 0; i < 1; i++ {

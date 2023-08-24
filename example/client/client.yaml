@@ -1,23 +1,21 @@
 
-gate:
-  inst_num: 1
-  common:
-    log_file: gate.log
-    log_level: debug
-    net_timeout: 1000
-    send_size: 
-    read_size: 
-    rsa_key: rsa.key
-    rsa_certificate: rsa.crt
-    compress_connection: false
-    encrypt_connection: false
-    heartbeat_check_interval: 0
-  inst:
-    - id: 1
-      net: "kcp" # tcp, kcp, websocket
-      ip: "127.0.0.1"
-      port: 59551
-    - id: 2
-      net: "websocket" # kcp, websocket
-      ip: "127.0.0.1"
-      port: 59552
+log_file: gate.log
+log_level: debug
+net_timeout: 1000
+send_size: 
+read_size: 
+rsa_key: rsa.key
+rsa_certificate: rsa.crt
+compress_connection: false
+encrypt_connection: false
+heartbeat_check_interval: 0
+
+gates:
+  - id: 1
+    net: "kcp" # tcp, kcp, websocket
+    ip: "127.0.0.1"
+    port: 59551
+  - id: 2
+    net: "websocket" # kcp, websocket
+    ip: "127.0.0.1"
+    port: 59552

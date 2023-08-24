@@ -24,7 +24,7 @@ func NewClient(sd *entity.EntityDesc, ss entity.IEntity, intercepter ...entity.S
 		EntityMgr: entity.NewEntityManager(),
 	}
 
-	cfg := CFG.Gate
+	cfg := CFG.Gates[0]
 	gate, err := nets.Connect(
 		nets.NetWorkName(cfg.Net), cfg.IP, cfg.Port, nets.WithPacketHandler(client.EntityMgr))
 	if err != nil {
