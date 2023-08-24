@@ -91,6 +91,7 @@ func (g *Game) init(old entity.EntityID) {
 			IP:   svc.Service.Address,
 			Port: fmt.Sprint(svc.Service.Port),
 		}
+		xlog.Infoln("consul get proxy:", cfg)
 	}
 	ex.ConnProxy(cfg, nets.WithPacketHandler(g.EntityMgr), nets.WithConnCallback(g))
 
