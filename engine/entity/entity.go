@@ -42,7 +42,7 @@ type IEntity interface {
 	// SetTickIntervel 自定义OnTick()的间隔时间，只能在OnInit()中调用
 	SetTickIntervel(t time.Duration)
 
-	// 关注entity, 如果entity退出或者状态变更会通过Receive接收到状态变更通知
+	// 关注entity, 如果entity退出或者状态变更会通过OnNotify接收到状态变更通知
 	Watch(id EntityID)
 	Unwatch(id EntityID)
 	OnNotify(NotifyInfo)
