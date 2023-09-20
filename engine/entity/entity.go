@@ -20,7 +20,6 @@ type IEntity interface {
 	// EntityID
 	EntityID() EntityID
 	Context() Context
-	EntityDesc() *EntityDesc
 
 	// Entity Lifetime
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
@@ -51,10 +50,13 @@ type IEntity interface {
 	// 主动结束, 主动调用结束entity的生命周期
 	Stop()
 
+	// 不建议外部使用的接口
 	innerEntity
 }
 
 type innerEntity interface {
+	EntityDesc() *EntityDesc
+
 	// === for inner ===
 	getEntityMgr() *EntityManager
 
