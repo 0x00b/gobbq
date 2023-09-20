@@ -26,6 +26,9 @@ type IEntity interface {
 	OnInit()    // Called when initializing entity struct, override to initialize entity custom fields
 	OnDestroy() // Called when entity is destroying (just before destroy)
 
+	// OnMessage 收到请求，返回false则不处理，默认true
+	OnMessage(c Context, pkt *nets.Packet) bool
+
 	// Migration
 	OnMigrateOut() // Called just before entity is migrating out
 	OnMigrateIn()  // Called just after entity is migrating in
@@ -437,6 +440,10 @@ func (e *Entity) handleLocalCallMethod(c Context, lc *localCall, sd *EntityDesc)
 
 	e.initContext(c, lc.pkt)
 
+	if !c.Entity().OnMessage(c, lc.pkt) {
+		return
+	}
+
 	hdr := lc.pkt.Header
 
 	mt, ok := sd.Methods[hdr.Method]
@@ -468,6 +475,10 @@ func (e *Entity) handleCallMethod(c Context, pkt *nets.Packet, sd *EntityDesc) {
 	defer pkt.Release()
 
 	e.initContext(c, pkt)
+
+	if !c.Entity().OnMessage(c, pkt) {
+		return
+	}
 
 	hdr := pkt.Header
 	mt, ok := sd.Methods[hdr.Method]
@@ -511,3 +522,5 @@ func (e *Entity) OnMigrateIn()       {} // Called just after entity is migrating
 func (e *Entity) Context() Context   { return e.context }
 func (e *Entity) OnTick()            {}
 func (e *Entity) EntityID() EntityID { return e.entityID }
+
+func (e *Entity) OnMessage(c Context, pkt *nets.Packet) bool { return true }
