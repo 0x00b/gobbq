@@ -10,6 +10,7 @@ import (
 	"github.com/0x00b/gobbq/proto/bbq"
 	"github.com/0x00b/gobbq/tool/secure"
 	"github.com/0x00b/gobbq/xlog"
+	gproto "google.golang.org/protobuf/proto"
 )
 
 var _ IEntity = &Entity{}
@@ -46,6 +47,9 @@ type IEntity interface {
 	Watch(id EntityID)
 	Unwatch(id EntityID)
 	OnNotify(NotifyInfo)
+
+	// Redirect 重定向请求到指定的dst Entity
+	Redirect(c Context, pkt *nets.Packet, dst EntityID) error
 
 	// 主动结束, 主动调用结束entity的生命周期
 	Stop()
@@ -510,6 +514,24 @@ func (e *Entity) SetTickIntervel(t time.Duration) {
 		t = 1 * time.Millisecond
 	}
 	e.ticker = time.NewTicker(t)
+}
+
+// Redirect 重定向请求到指定的dst Entity
+func (e *Entity) Redirect(c Context, pkt *nets.Packet, dst EntityID) error {
+
+	npkt := nets.NewPacket()
+
+	npkt.Header = gproto.Clone(pkt.Header).(*bbq.Header)
+	npkt.Header.DstEntity = uint64(dst)
+	npkt.Src = pkt.Src
+
+	err := npkt.WriteBody(pkt.PacketBody())
+	if err != nil {
+		return err
+	}
+
+	// 待优化，本地entity不需要走proxy
+	return GetProxy(c).SendPacket(npkt)
 }
 
 // empty/default implement
